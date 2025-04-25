@@ -148,8 +148,8 @@ uploadForm.addEventListener('submit', async (e) => {
     if (svoMatch && svoMatch[1]) {
       serviceNumber = svoMatch[1];
       
-      // Verificar si este servicio ya existe
-      const checkResponse = await fetch('/excel/check-service-exists', {
+    // Verificar si este servicio ya existe
+    const checkResponse = await fetch('/.netlify/functions/server/excel/check-service-exists', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -187,7 +187,7 @@ uploadForm.addEventListener('submit', async (e) => {
  */
 async function uploadExcelFile(formData) {
   try {
-    const response = await fetch('/excel/upload', {
+    const response = await fetch('/.netlify/functions/server/excel/upload', {
       method: 'POST',
       body: formData
     });
@@ -248,7 +248,7 @@ function showNotification(message, type) {
  */
 async function loadFilesList() {
   try {
-    const response = await fetch('/excel/files');
+    const response = await fetch('/.netlify/functions/server/excel/files');
     
     if (!response.ok) {
       throw new Error('Error al cargar la lista de archivos');
@@ -320,7 +320,7 @@ async function loadFilesList() {
  */
 async function loadStructure(structureFile) {
   try {
-    const response = await fetch(`/excel/structure?structure_file=${structureFile}`);
+    const response = await fetch(`/.netlify/functions/server/excel/structure?structure_file=${structureFile}`);
     
     if (!response.ok) {
       const errorData = await response.json();
@@ -939,7 +939,7 @@ function initServiceEvents() {
  */
 async function loadServicesList() {
   try {
-    const response = await fetch('/api/services');
+    const response = await fetch('/.netlify/functions/server/api/services');
     
     if (!response.ok) {
       throw new Error('Error al cargar la lista de servicios');
@@ -1018,7 +1018,7 @@ async function loadServicesIntoSelect(selectId) {
   if (!select) return;
   
   try {
-    const response = await fetch('/api/services');
+    const response = await fetch('/.netlify/functions/server/api/services');
     
     if (!response.ok) {
       throw new Error('Error al cargar la lista de servicios');
@@ -1092,7 +1092,7 @@ async function loadServicesIntoSelect(selectId) {
  */
 async function loadServiceVersions(serviceNumber) {
   try {
-    const response = await fetch(`/api/services/versions?serviceNumber=${serviceNumber}`);
+    const response = await fetch(`/.netlify/functions/server/api/services/versions?serviceNumber=${serviceNumber}`);
     
     if (!response.ok) {
       throw new Error('Error al cargar las versiones del servicio');
@@ -1136,7 +1136,7 @@ async function processService(serviceNumber = null) {
     // Obtener el texto del stream si está disponible
     const streamData = streamDataInput ? streamDataInput.value : '';
     
-    const response = await fetch('/api/services/process', {
+    const response = await fetch('/.netlify/functions/server/api/services/process', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

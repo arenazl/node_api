@@ -11,7 +11,7 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📊</text></svg>">
   
   <!-- Estilos CSS -->
-  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="stylesheet" href="css/styles.css">
 </head>
 
 <body>
@@ -22,7 +22,7 @@
     </div>
 
     <div class="file-upload">
-      <form id="uploadForm" action="/excel/upload" method="post" enctype="multipart/form-data">
+      <form id="uploadForm" action="/.netlify/functions/server/excel/upload" method="post" enctype="multipart/form-data">
         <div class="upload-icon">📄</div>
         <h3>Suba su archivo Excel</h3>
         <p>Formatos soportados: .xls, .xlsx</p>
@@ -233,8 +233,8 @@
   </div>
 
   <!-- Scripts -->
-  <script src="/js/json-formatter.js"></script>
-  <script src="/js/main.js"></script>
-  <script src="/js/service-tabs.js"></script>
+  <script src="js/json-formatter.js"></script>
+  <script src="js/main.js"></script>
+  <script src="js/service-tabs.js"></script>
 </body>
 </html>
