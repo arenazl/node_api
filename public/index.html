@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Procesador de Mensajes Excel para archivos SVO">
+  <meta name="theme-color" content="#2563eb">
+  <title>Procesador de Mensajes Excel</title>
+  
+  <!-- Favicon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📊</text></svg>">
+  
+  <!-- Estilos CSS -->
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Procesador de Mensajes Excel</h1>
+      <p class="subtitle">Importación y procesamiento de archivos SVO</p>
+    </div>
+
+    <div class="file-upload">
+      <form id="uploadForm" action="/excel/upload" method="post" enctype="multipart/form-data">
+        <div class="upload-icon">📄</div>
+        <h3>Suba su archivo Excel</h3>
+        <p>Formatos soportados: .xls, .xlsx</p>
+        <label for="excelFile" class="file-input-label">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="upload-icon"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+          Seleccionar Archivo Excel
+        </label>
+        <input type="file" id="excelFile" name="file" accept=".xlsx,.xls">
+        <div class="file-name" id="fileName">Ningún archivo seleccionado</div>
+        <button type="submit" id="uploadButton" disabled>Procesar Archivo</button>
+      </form>
+    </div>
+
+    <!-- Tabs Navigation -->
+    <div class="tabs-container">
+      <div class="tabs-nav">
+        <button class="tab-btn active" data-tab="cabecera">Cabecera</button>
+        <button class="tab-btn" data-tab="requerimiento">Requerimiento</button>
+        <button class="tab-btn" data-tab="respuesta">Respuesta</button>
+        <button class="tab-btn" data-tab="json">Estructura</button>
+        <button class="tab-btn" data-tab="archivos">Archivos</button>
+        <button class="tab-btn" data-tab="servicios">Servicios</button>
+      </div>
+      
+      <!-- Tab Content -->
+      <div class="tab-content">
+        <div id="cabecera" class="tab-pane active">
+          <div class="table-container">
+            <table id="headerTable">
+              <thead>
+                <tr>
+                  <th>Campo</th>
+                  <th>Longitud</th>
+                  <th>Tipo</th>
+                  <th>Requerido</th>
+                  <th>Valores</th>
+                  <th>Descripción</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Contenido de la cabecera se insertará aquí -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div id="requerimiento" class="tab-pane">
+          <div class="table-container">
+            <table id="requestTable">
+              <thead>
+                <tr>
+                  <th>Campo</th>
+                  <th>Longitud</th>
+                  <th>Tipo</th>
+                  <th>Requerido</th>
+                  <th>Valores</th>
+                  <th>Descripción</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Contenido del requerimiento se insertará aquí -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div id="respuesta" class="tab-pane">
+          <div class="table-container">
+            <table id="responseTable">
+              <thead>
+                <tr>
+                  <th>Campo</th>
+                  <th>Longitud</th>
+                  <th>Tipo</th>
+                  <th>Requerido</th>
+                  <th>Valores</th>
+                  <th>Descripción</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Contenido de la respuesta se insertará aquí -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div id="json" class="tab-pane">
+          <div class="json-container">
+            <pre id="jsonContent">Seleccione un archivo Excel para ver la estructura JSON.</pre>
+          </div>
+        </div>
+        <div id="archivos" class="tab-pane">
+          <div class="files-container">
+            <table id="filesTable">
+              <thead>
+                <tr>
+                  <th>Archivo</th>
+                  <th>Fecha</th>
+                  <th>Acción</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Lista de archivos se insertará aquí -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div id="servicios" class="tab-pane">
+          <div class="services-tabs">
+            <div class="services-nav">
+              <button class="services-tab-btn active" data-service-tab="ida">Servicio de Ida</button>
+              <button class="services-tab-btn" data-service-tab="vuelta">Servicio de Vuelta</button>
+            </div>
+            
+            <!-- Servicio de Ida -->
+            <div id="idaService" class="service-tab-content active">
+              <div class="service-panel">
+                <h3>Servicio de Ida</h3>
+                <div class="service-form">
+                  <div class="form-group">
+                    <label for="idaServiceSelect">Seleccione un servicio:</label>
+                    <select id="idaServiceSelect" class="service-select">
+                      <option value="">-- Seleccione un servicio --</option>
+                      <!-- Las opciones se cargarán dinámicamente -->
+                    </select>
+                  </div>
+                  
+                  <div class="form-group">
+                    <label for="idaJsonInput">JSON a enviar:</label>
+                    <div class="json-input-container">
+                      <pre id="idaJsonInput" class="json-editor" contenteditable="true">{ }</pre>
+                    </div>
+                  </div>
+                  
+                  <button id="processIdaBtn" class="service-button">Procesar Servicio de Ida</button>
+                </div>
+                
+                <div class="result-section">
+                  <h4>Respuesta:</h4>
+                  <div class="result-container">
+                    <pre id="idaResult">La respuesta se mostrará aquí</pre>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Servicio de Vuelta -->
+            <div id="vueltaService" class="service-tab-content">
+              <div class="service-panel">
+                <h3>Servicio de Vuelta</h3>
+                <div class="service-form">
+                  <div class="form-group">
+                    <label for="vueltaServiceSelect">Seleccione un servicio:</label>
+                    <select id="vueltaServiceSelect" class="service-select">
+                      <option value="">-- Seleccione un servicio --</option>
+                      <!-- Las opciones se cargarán dinámicamente -->
+                    </select>
+                  </div>
+                  
+                  <div class="form-group">
+                    <label for="streamData">Stream de datos:</label>
+                    <textarea id="streamData" rows="8" placeholder="Ingrese el stream de datos a procesar"></textarea>
+                  </div>
+                  
+                  <button id="processVueltaBtn" class="service-button">Procesar Servicio de Vuelta</button>
+                </div>
+                
+                <div class="result-section">
+                  <h4>Respuesta:</h4>
+                  <div class="result-container">
+                    <pre id="vueltaResult">La respuesta se mostrará aquí</pre>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="services-list-section">
+              <h3>Servicios Disponibles</h3>
+              <table id="servicesTable">
+                <thead>
+                  <tr>
+                    <th>Número</th>
+                    <th>Nombre</th>
+                    <th>Acción</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- Lista de servicios se insertará aquí -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="notification" class="notification" style="display: none;"></div>
+    
+    <!-- Modal de confirmación -->
+    <div id="confirmModal" class="modal">
+      <div class="modal-content">
+        <span class="close">&times;</span>
+        <h3>Confirmar actualización</h3>
+        <p id="confirmMessage">¿Desea actualizar este servicio? La versión anterior será eliminada.</p>
+        <div class="modal-buttons">
+          <button id="confirmYes" class="action-btn">Sí, actualizar</button>
+          <button id="confirmNo" class="action-btn secondary-btn">No, cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="/js/json-formatter.js"></script>
+  <script src="/js/main.js"></script>
+  <script src="/js/service-tabs.js"></script>
+</body>
+</html>

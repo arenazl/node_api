@@ -1,0 +1,586 @@
+{
+  "serviceNumber": "3088",
+  "serviceName": "3088",
+  "header_structure": {
+    "totalLength": 102,
+    "fields": [
+      {
+        "name": "REQUERIMIENTO",
+        "length": null,
+        "type": "",
+        "required": "",
+        "values": "",
+        "description": ""
+      },
+      {
+        "name": "*",
+        "length": null,
+        "type": "Longitud del CAMPO",
+        "required": "Tipo de Datos",
+        "values": "obligatorio   /opcional",
+        "description": "VALORES"
+      },
+      {
+        "name": "LONGITUD DEL MENSAJE",
+        "length": 6,
+        "type": "numerico",
+        "required": "OBLIGATORIO",
+        "values": "VALOR",
+        "description": "VALOR"
+      },
+      {
+        "name": "CANAL",
+        "length": 2,
+        "type": "alfanumerico",
+        "required": "OBLIGATORIO",
+        "values": "VALOR",
+        "description": "VALOR"
+      },
+      {
+        "name": "SERVICIO",
+        "length": 4,
+        "type": "numerico",
+        "required": "OBLIGATORIO",
+        "values": "VALOR",
+        "description": "VALOR"
+      },
+      {
+        "name": "CÓDIGO DE RETORNO",
+        "length": 4,
+        "type": "numerico",
+        "required": "OBLIGATORIO",
+        "values": "CEROS",
+        "description": "0000  Transaccion exitosa  \n8001  Error validacion de datos                                                 \n8992  CANAL/SERVICIO NO HABILITADO \n8991  ERROR Validacion Header mensaje      \n8993  SERVICIO NO HABILITADO POR CANAL                       \n8001  ERROR PARRAFO DE VALIDACION GENERAL\n5099 + COD RET <> 0 DEL MODULO KVOSC3050  \n6000 + COD RET <> 0 DEL MODULO SVOJO01  \n5001 POSICION DEUDORA NO PERMITIDA  \n5002 CUENTA INEXISTENTE MODULO 5000\n5003 IMPUTACION RECHAZADA POR CUENTA BLOQUEADA\n5004 IMPUTACION RECHAZADA POR MOVIMIENTO ORIGEN NO APLICADO\n5005 MODULO EDO4009 NUMERADOR TERMINA CON ERROR\n5006 ERROR EN ACCESO A TABLA DB2 V4046CT0\n5007 ERROR EN ACCESO A TABLA DB2 V6530PA0           \n5000 COD RET <> 0 DEL MODULO KVOSC3050\n5099 (6015) - SUCURSAL NO OPERATIVA - FDO6501Y\n5099 (6071) - CUENTA CONTABLE NO VIGENTE - FDO6501Y\n5099 (6072) - CUENTA NO DISPONIBLE - FECHA DE FIN DE VIGENCIA MENOR O IGUAL A FECHA DE MOVIMIENTO - FDO6501Y\n5099 (6073) - SALDO CONTRANATURALEZA - FDO6501Y\n5099 (6074) - CUENTA INEXISTENTE - FDO6501Y\n5099 (6075) - FALTA TIT.PARA NIV.INDIV - FDO6501Y\n5099 (6076) - NIV.IND.NO ACORDE CON CTA - FDO6501Y\n5099 (6077) - FALTA CONCEPTO DEL APUNTE - FDO6501Y\n5099 (6078) - FALTAN INTERVINIENTES - FDO6501Y\n5099 (6080) - BANCO-SUCURSAL INEXISTENTE - FDO6501Y\n5099 (6107) - MONEDA NO COINCIDE CON CUENTA - FDO6501Y\n5099 (6112) - FECHA CONTAB.NO VALIDA - FDO6501Y\n5099 (6998) - COD.SERVICIO NO VALIDO  - FDO6501Y"
+      },
+      {
+        "name": "ID DEL MENSAJE",
+        "length": 9,
+        "type": "numerico",
+        "required": "OBLIGATORIO",
+        "values": "VALOR",
+        "description": "este valor debe ser unico por dia y por servicio"
+      },
+      {
+        "name": "FECHA",
+        "length": 8,
+        "type": "numerico",
+        "required": "OBLIGATORIO",
+        "values": "VALOR",
+        "description": "VALOR"
+      },
+      {
+        "name": "HORA",
+        "length": 6,
+        "type": "numerico",
+        "required": "OBLIGATORIO",
+        "values": "VALOR",
+        "description": "VALOR"
+      },
+      {
+        "name": "USUARIO",
+        "length": 7,
+        "type": "alfanumerico",
+        "required": "OBLIGATORIO",
+        "values": "VALOR",
+        "description": "VALOR"
+      },
+      {
+        "name": "Ubicación",
+        "length": 4,
+        "type": "numerico",
+        "required": "OBLIGATORIO",
+        "values": "VALOR",
+        "description": "VALOR"
+      },
+      {
+        "name": "TEXTO DEL CÓDIGO DE RETORNO",
+        "length": 45,
+        "type": "alfanumerico",
+        "required": "OBLIGATORIO",
+        "values": "ESPACIOS",
+        "description": "CÓDIGO DE RETORNO <> 0 texto del mensaje          ESTADO ENVIADO <> 0 texto del mensaje"
+      },
+      {
+        "name": "ESTADO ENVIADO",
+        "length": 2,
+        "type": "numerico",
+        "required": "OBLIGATORIO",
+        "values": "CEROS",
+        "description": "VALOR"
+      },
+      {
+        "name": "CAMPO COMPLEMENTARIO",
+        "length": 5,
+        "type": "alfanumerico",
+        "required": "OBLIGATORIO",
+        "values": "ESPACIOS",
+        "description": "ESPACIOS"
+      }
+    ]
+  },
+  "service_structure": {
+    "serviceNumber": "3088",
+    "serviceName": "3088",
+    "request": {
+      "totalLength": 12026,
+      "elements": [
+        {
+          "type": "field",
+          "index": 0,
+          "name": "SVC3088-TIP-PEDIDO",
+          "length": 2,
+          "fieldType": "numérico",
+          "required": "OBLIGATORIO",
+          "values": "1=Imputación Mov en cuenta",
+          "description": "TIPO DE PEDIDO",
+          "id": "field_0"
+        },
+        {
+          "type": "occurrence",
+          "index": 1,
+          "id": "occ_1",
+          "count": 20,
+          "fields": [
+            {
+              "type": "field",
+              "index": 2,
+              "name": "SVC3088-NRO-OPER-SERV",
+              "length": 5,
+              "fieldType": "numérico",
+              "required": "Obligatorio para tipo de pedido=1 y 3",
+              "values": "1=Alta de compra - Pesos\n2=CPR - Cobro MTM - Pesos\n3=CPR - Pago MTM - Pesos\n4=Alta venta - Pesos\n5=Baja de Operaciones Compra - Pesos \n6=Baja de Operaciones Venta - Pesos\n10=Débito Comercio Exterior - Pesos (711) - No aplica impuestos\n11=Crédito Comercio Exterior - Pesos (710) - No aplica impuestos\n12=Débito Comercio Exterior sin tener en cuenta posicion resultante - Pesos (711) - No aplica impuestos\n13=Crédito Comercio Exterior sin tener en cuenta posicion resultante - Pesos (710) - No aplica impuestos\n14=Débito Operaciones Diversas - Pesos (140)\n15=Crédito Operaciones Diversas - Pesos (040)\n16=Débito Operaciones Diversas sin tener en cuenta posición resultante- Pesos (140)\n17=Crédito Operaciones Diversas sin tener en cuenta posición resultante - Pesos (040)\n18=Débito Comercio Exterior - Dólares (711) - No aplica impuestos\n19=Crédito Comercio Exterior - Dólares (710) - No aplica impuestos\n20=Débito Comercio Exterior sin tener en cuenta posicion resultante - Dólares (711) - No aplica impuestos\n21=Crédito Comercio Exterior sin tener en cuenta posicion resultante - Dólares (710) - No aplica impuestos\n22=Débito Operaciones Diversas - Dólares (140)\n23=Crédito Operaciones Diversas - Dólares (040)\n24=Débito Operaciones Diversas sin tener en cuenta posición resultante- Dólares (140)\n25=Crédito Operaciones Diversas sin tener en cuenta posición resultante - Dólares (040)\n50=Cobro de Comision Venta de Pliegos en Licitaciones\n101=COMISIONES COBRADAS POR ALTA DE CARTA DE CREDITO DE IMPORTACION-SECTOR PUBLICO Y PRIVADO\n102=COMISIONES COBRADAS POR ACTUALIZACION DE CARTA DE CREDITO DE IMPORTACION-SECTOR PUBLICO Y PRIVADO \n103=NEGOCIACION CARTA DE CREDITO DE IMPORTACION-SECTOR PUBLICO, PRIVADO Y CONVENIO ALADI\n104=COMISION POR CANCELACION CARTA DE CREDITO DE IMPORTACION POR NO NEGOCIACION-SECTOR PUBLICO Y PRIVADO \n105=COMISIONES POR NEGOCIACION CARTA DE CREDITO DE IMPORTACION \n106=NEGOCIACION CARTA DE CREDITO DE IMPORTACION – COMISION PERIODICA  \n107=COMISION POR ALTA NEGOCIACION DE CARTA DE CREDITO DE IMPORTACION POR DOCUMENTOS DE IMPORTACION DIRECTA \n108=GASTOS CORRESPONSAL\n109=GASTOS ADICIONAL POR SISTEMA SWIFT\n110=GASTOS ADICIONAL POR MODIFICACION DE CARTA DE CREDITO DE IMPORTACION\n111=GASTOS ADICIONAL POR CARTA DE CREDITO RECIBIDA \n112=DEVOLUCION COMISION SWIFT COBRADA EN EL EJERCICIO EN CURSO\n113= DEVOLUCION COMISION DE MODIFICACION DE CARTA DE CREDITO DE IMPORTACION COBRADA EN EL EJERCICIO EN CURSO\n114=DEVOLUCION DE COMISION POR NO UTILIZACION DE CREDITOS DOCUMENTARIOS COBRADA EN EL EJERCICIO EN CURSO\n115=DEVOLUCION POR COMISION DE APERTURA DE CARTA DE CREDITO DE IMPORTACION COBRADA EN EL EJERCICIO EN CURSO\n116=DEVOLUCION COMISION POR AMPLIACION DE CARTA DE CREDITO DE IMPORTACION COBRADA EN EL EJERCICIO EN CURSO\n117=DEVOLUCION COMISION POR TRAMITACION DE FORMULARIO COBRADA EN EL EJERCICIO EN CURSO\n118=DEVOLUCION COMISION POR CARTA RECIBIDA COBRADA EN EL EJERCICIO EN CURSO\n119=GASTO ADICIONAL DIFERENCIA DE COTIZACION SALDO ACREDOR \n120=GASTO ADICIONAL DIFERENCIA DE COTIZACION SALDO DEUDOR\n201=Comision por emision de cobranzas de importacion\n202=Negociacion cobranzas de importación.\n203=Comision por tramitacion de formularios\n204=Comision por cobranzas en el exterior\n205=Comision por gestión de aceptacion\n206=Comision por avales otorgados\n207=Gasto adicional por certificaciones varias\n208=Gasto adicional por afectacion DJNI\n209=Gasto adicional por la no negociacion\n210=Gasto adicional por endoso de documentos\n211=Gasto adicional pro franqueo\n212=Gasto adicional por remision de Documentacion\n213=Gasto adicional por gestion de aceptacion\n214=Gasto adicional por protesto de documentos\n215=Gasto adicional por avales otorgados\n216=Devolucion comision swift cobrada en el ejercicio en curso\n217=Devolucion comision por tramitacion de formularios cobrada en el ejercicio en curso\n218=Devolucion comision por cobranzas del exterior cobrada en el ejericicio en curso\n219=Devolucion comision por certificaciones varias cobrada en el ejercicio en curso.\n220=Devolucion comision por apectacion djni cobrada en el ejercicio en curso\n221=Devolucion comision por no negociacion cobrada en el ejercicio en curso\n222=Devolucion comision por endoso de documentos cobrada en el ejercicio en curso\n223=Devolucion comision por franqueo cobrada en el ejercicio en curso\n224=Devolucion comision por remision de documentacion cobrada en el ejercicio en curso\n225=Devolucion comision por gestion de aceptacion cobrada en el ejercicio en curso\n226=Devolucion comision por protesto de documentos cobrada en el ejercicio en curso \n227=Devolucion comision por avalaes otorgados cobrada en el ejericicio en curso \n228=Comision gasto corresponsal\n229=Devolucion comision gasto corresponsal cobrada en el ejercicio en curso.\n230=Adelanto gasto de protesto escribano\n301=EMISION DE TRASFERENCIA \n302=COMISIÓN POR TRANSFERENCIAS AL EXTERIOR \n303=COMISION por sistema swift \n304=COMISION POR TRAMITACION DE FORMULARIOS\n305=COMISIONES PERCIBIDAS BANCOS CORRESPONSALES DEL EXTERIOR \n306=comision POR CERTIFICACIONES VARIAS \n307=comision POR AFECTACIÓN DJNI \n308=DEVOLUCION comision swift cobrada en el ejercicio en curso \n309=devolucion comision por tramitacion de formularios cobrada en el ejercicio en curso \n310=DEVOLUCION COMISION POR TRANSFERENCIAS AL EXTERIOR COBRADA EN EL EJERCICIO EN CURSO \n311=diferencia de cotizacion saldo deudor \n312=diferencia de cotizacion saldo acreedor \n313=devolucion COMISIONES PERCIBIDAS BANCOS CORRESPONSALES DEL EXTERIOR en el ejercicio en curso \n314=devolucion transferencia emitida \n315=DEVOLUCION TRANSFERENCIA CNAME \n316=DEVOLUCION DE TRANSFERENCIA \n317=devolucion comision por certificaciones varias cobrada en el ejercicio en curso \n318=devolucion comision por apectacion djni cobrada en el ejercicio en curso\n351=EMISION DE transferencia AL EXTERIOR \n352=COMISIÓN POR TRANSFERENCIAS AL EXTERIOR\n353=COMISION por sistema swift \n354=COMISION POR TRAMITACION DE FORMULARIOS \n355=COMISIONES PERCIBIDAS BANCOS CORRESPONSALES DEL EXTERIOR \n356=COMISION POR CERTIFICACIONES VARIAS\n357=COMISION POR AFECTACIÓN DJNI \n358=devolucion comision swift cobrada en el ejercicio en curso \n359=devolucion comision por tramitacion de formularios cobrada en el ejercicio en curso\n360=DEVOLUCION COMISION POR TRANSFERENCIAS AL EXTERIOR COBRADA EN EL EJERCICIO EN CURSO\n363=DEVOLUCION COMISIONES PERCIBIDAS BANCOS CORRESPONSALES DEL EXTERIOR en el ejercicio en curso \n367=devolucion comision por certificaciones varias cobrada en el ejercicio en curso \n368=devolucion comision por apectacion djni cobrada en el ejercicio en curso \n401=Liquidación de transferencia\n402=COMISION por sistema Swift \n403=COMISION POR TRAMITACION DE FORMULARIOS \n404=COMISIÓN POR TRANSFERENCIAS AL EXTERIOR \n405=COMISIONES PERCIBIDAS BANCOS CORRESPONSALES DEL  EXTERIOR \n406=comision POR AFECTACIÓN DJNI \n407=devolucion transferencia emitida-liquidación \n408=COMISION POR COBRANZAS EN EL EXTERIOR \n409=LIQUIDACIÓN DEVOLUCION DE TRANSFERENCIA \n410=GASTO ADICIONAL POR FRANQUEO \n411=comision POR CERTIFICACIONES VARIAS \n413=comision por la no negociación \n414=devolucion comision por franqueo cobrada en el ejercicio en curso \n415=DEVOLUCION COMISION POR TRANSFERENCIAS AL EXTERIOR COBRADA EN EL EJERCICIO EN CURSO\n416=DEVOLUCION comision swift cobrada en el ejercicio en curso \n417=devolucion comision por tramitacion de formularios cobrada en el  ejercicio en curso \n418=devolucion comision por cobranzas del exterior cobrada en el ejericicio en curso \n419=devolucion comision por certificaciones varias cobrada en el ejercicio en curso \n420=devolucion comision por apectacion djni cobrada en el ejercicio en curso \n421=devolucion comision por no negociacion cobrada en el ejercicio en curso \n422=diferencia de cotizacion saldo deudor \n423=diferencia de cotizacion saldo acreedor \n424=devolucion COMISIONES PERCIBIDAS BANCOS CORRESPONSALES DEL EXTERIOR en el ejercicio en curso\n501= Negociacion - liquidacion órdenes de pago\n502=COMISION POR pago de transferencia del EXTERIOR\n503=COMISION POR CERTIFICACIONES VARIAS \n504=COMISION POR anticipo de exportación\n505=COMISION por sistema swift\n506=COMISION por no negociacion de divisas\n507=Emision orden de pago Sml \n508=negociacion-liquidacion ÓRDENES de pago  sml\n509=Devolucion comision por pago de transferencia del exterior cobrada en el ejercicio en curso\n510=Devolucion comision por certificaciones varias cobrada en el ejercicio en curso \n511= Devolucion comision por no negociacion de divisas cobrada en el ejercicio en curso \n512=devolucion comision por anticipo de exportacion cobrada en el ejercicio en curso \n513=diferencia de cotizacion saldo deudor\n514=diferencia de cotizacion saldo acreedor\n515=Gastos por corresponsalia\n516=convenio aladi\n517=convenio aladi-Cargo bcra\n551=negociación – liquidación órdenes de pago\n552=comisión por pago de transferencia del exterior\n553=comisión por certificaciones varias\n554=comisión por anticipo de exportación\n555=comisión por sistema Swift\n556=comisión por no negociación de divisas\n559=devolución comisión por pago de transferencia del exterior cobrada en el ejercicio en curso\n560=devolución comisión por certificaciones varias cobrada en el ejercicio en curso\n561=devolución comisión por no negociación de divisas cobrada en el ejercicio en curso\n562=devolución comisión por anticipo de exportación cobrada en el ejercicio en curso\n563=diferencia de cotización saldo deudor\n564=diferencia de cotización saldo acreedor\n565=gastos cobrados por el banco corresponsal\n581=negociación – liquidación órdenes de pago\n582=comisión por pago de transferencia del exterior\n583=comisión por certificaciones varias\n584=comisión por sistema Swift\n585=comisión por no negociación de divisas \n588=comisión por anticipo de exportación\n701=Emision Valores en gestión  \n702=COMISIÓN POR REMISION DE DOCUMENTOS\n703=comision POR CERTIFICACIONES VARIAS \n704=comision POR disposicion de fondos \n705=comision POR gestion de aceptacion \n706=COMISION POR TRAMITACION DE FORMULARIOS\n707=COMISION POR cheque rechazado \n708=COMISION POR no negociacion de divisas \n709=devolucion comision por no negociacion de divisas \n710=DEVOLUCION comision swift cobrada en el ejercicio en curso\n711=devolucion comision por certificaciones varias cobrada en el ejercicio en curso\n712=devolucion comision por disposicion de fondos cobrada en el ejercicio en curso\n713=devolucion comision por tramitacion de formularios cobrada en el ejercicio en curso\n714=devolucion comision por gestion de aceptacion cobrada en el ejercicio en curso\n715=devolucion comision por valores negociados cobrada en el ejercicio en curso\n716=devolucion comision por remision de documentacion cobrada en el ejercicio en curso\n717=devolucion comision por notificaciones cobrada en el ejercicio en curso\n718=COMISION por sistema swift\n719=COMISION por valores negociados\n720=COMISION por notificaciones\n901=COMISION POR NOTIFICACIONES\n902=COMISION POR FRANQUEO\n903=COMISIÓN POR SISTEMA SWIFT\n904=COMISIÓN POR GARANTÍAS EMITIDAS\n905=COMISIÓN POR MODIFICACIONES\n906=COMISIÓN POR CONFIRMACIÓN\n907=COMISIÓN TRAMITACIÓN FORMULARIOS\n908=DEVOLUCIÓN COMISIÓN SISTEMA SWIFT\n909=DEVOLUCIÓN COMISIÓN NOTIFICACIONES\n910=DEVOLUCIÓN COMISIÓN POR FRANQUEO\n911=DEVOLUCIÓN COMISIÓN GARANTÍAS EMITIDAS\n912=DEVOLUCIÓN COMISIÓN MODIFICACIONES\n913=DEVOLUCIÓN COMISIÓN CONFIRMACIÓN\n914=DEVOLUCIÓN COMISIÓN TRAMITACIÓN FORMULARIOS\n50001=Reversa Alta venta (para opcion 3)\n50002=Reversa CPR - Pago MTM (para opcion 3)\n50003=Reversa CPR - Cobro MTM (para opcion 3)\n50004=Reversa de Alta de Compra (para opcion 3)\n50010=Reversa de Crédito Comercio Exterior - Pesos (711) (para opcion 3) - No aplica impuestos\n50011=Reversa de Débito Comercio Exterior - Pesos (710) (para opcion 3) - No aplica impuestos\n50012=Reversa de Crédito Comercio Exterior sin tener en cuenta posicion resultante - Pesos (711) (para opcion 3) - No aplica impuestos\n50013=Reversa de Débito Comercio Exterior sin tener en cuenta posicion resultante  - Pesos (710) (para opcion 3) - No aplica impuestos\n50014=Reversa de Crédito Operaciones Diversas  - Pesos (140) (para opcion 3)\n50015=Reversa de Débito Operaciones Diversas  - Pesos (040) (para opción 3)\n50016=Reversa de Crédito Operaciones Diversas sin tener en cuenta posición resultante  - Pesos (140) (para opción 3)\n50017=Reversa de Débito Operaciones Diversas sin tener en cuenta posición resultante  - Pesos (040) (para opción 3)\n50018=Reversa de Crédito Comercio Exterior - Dólares (711) ( (para opcion 3) - No aplica impuestos\n50019=Reversa de Débito Comercio Exterior - Dólares (710) ( (para opcion 3) - No aplica impuestos\n50020=Reversa de Crédito Comercio Exterior sin tener en cuenta posicion resultante - Dólares (711) (para opcion 3) - No aplica impuestos\n50021=Reversa de Débito Operaciones Diversas sin tener en cuenta posición resultante  - Dólares (710) (para opción 3) - No aplica impuestos\n50022=Reversa de Crédito Comercio Exterior - Dólares (140) (para opcion 3)\n50023=Reversa de Débito Comercio Exterior - Dólares (040) (para opcion 3)\n50024=Reversa de Crédito Operaciones Diversas sin tener en cuenta posición resultante  - Dólares (140) (para opción 3)\n50025=Reversa de Débito Operaciones Diversas sin tener en cuenta posición resultante  - Dólares (040) (para opción 3)",
+              "description": "NUMERO OPERACIÓN DEL SERVICIO",
+              "parentId": "occ_1",
+              "id": "occ_1_field_2",
+              "level": 1
+            },
+            {
+              "type": "field",
+              "index": 3,
+              "name": "SVC3088-BCO-ORIG",
+              "length": 5,
+              "fieldType": "numérico",
+              "required": "Obligatorio para tipo de pedido=1",
+              "values": "VALOR",
+              "description": "BANCO DE ORIGEN",
+              "parentId": "occ_1",
+              "id": "occ_1_field_3",
+              "level": 1
+            },
+            {
+              "type": "field",
+              "index": 4,
+              "name": "SVC3088-SUC-ORIG",
+              "length": 5,
+              "fieldType": "numérico",
+              "required": "Obligatorio para tipo de pedido=1",
+              "values": "VALOR",
+              "description": "SUCURSAL DE ORIGEN",
+              "parentId": "occ_1",
+              "id": "occ_1_field_4",
+              "level": 1
+            },
+            {
+              "type": "field",
+              "index": 5,
+              "name": "SVC3088-BCO-DEST",
+              "length": 5,
+              "fieldType": "numérico",
+              "required": "OPCIONAL",
+              "values": "VALOR",
+              "description": "BANCO DESTINO",
+              "parentId": "occ_1",
+              "id": "occ_1_field_5",
+              "level": 1
+            },
+            {
+              "type": "field",
+              "index": 6,
+              "name": "SVC3088-SUC-DEST",
+              "length": 5,
+              "fieldType": "numérico",
+              "required": "OPCIONAL",
+              "values": "VALOR",
+              "description": "SUCURSAL DESTINO",
+              "parentId": "occ_1",
+              "id": "occ_1_field_6",
+              "level": 1
+            },
+            {
+              "type": "field",
+              "index": 7,
+              "name": "SVC3088-NRO-ORDEN",
+              "length": 3,
+              "fieldType": "numérico",
+              "required": "OPCIONAL",
+              "values": "VALOR",
+              "description": "NUMERO DE ORDEN",
+              "parentId": "occ_1",
+              "id": "occ_1_field_7",
+              "level": 1
+            },
+            {
+              "type": "field",
+              "index": 8,
+              "name": "SVC3088-FECHA-PROC",
+              "length": 10,
+              "fieldType": "alfanumerico",
+              "required": "Obligatorio para tipo de pedido=1",
+              "values": "DD/MM/AAAA",
+              "description": "FECHA DE PROCESO",
+              "parentId": "occ_1",
+              "id": "occ_1_field_8",
+              "level": 1
+            },
+            {
+              "type": "field",
+              "index": 9,
+              "name": "SVC3088-FECHA-MOVI",
+              "length": 10,
+              "fieldType": "alfanumerico",
+              "required": "Obligatorio para tipos de pedidos=1, 2 y 3",
+              "values": "DD/MM/AAAA (se debe validar que sea igual a la fecha del día)",
+              "description": "FECHA DE MOVIMIENTO",
+              "parentId": "occ_1",
+              "id": "occ_1_field_9",
+              "level": 1
+            },
+            {
+              "type": "field",
+              "index": 10,
+              "name": "SVC3088-FECHA-VALOR",
+              "length": 10,
+              "fieldType": "alfanumerico",
+              "required": "Obligatorio para tipo de pedido=1",
+              "values": "DD/MM/AAAA",
+              "description": "FECHA VALOR",
+              "parentId": "occ_1",
+              "id": "occ_1_field_10",
+              "level": 1
+            },
+            {
+              "type": "field",
+              "index": 11,
+              "name": "SVC3088-CALC-COMIS",
+              "length": 2,
+              "fieldType": "numérico",
+              "required": "OPCIONAL",
+              "values": "0=No calcula comision",
+              "description": "CALCULA COMISION",
+              "parentId": "occ_1",
+              "id": "occ_1_field_11",
+              "level": 1
+            },
+            {
+              "type": "field",
+              "index": 12,
+              "name": "SVC3088-CONCEPTO",
+              "length": 35,
+              "fieldType": "alfanumerico",
+              "required": "OPCIONAL",
+              "values": "VALOR",
+              "description": "CONCEPTO",
+              "parentId": "occ_1",
+              "id": "occ_1_field_12",
+              "level": 1
+            },
+            {
+              "type": "field",
+              "index": 13,
+              "name": "SVC3088-CANT-CUENTAS",
+              "length": 5,
+              "fieldType": "numerico",
+              "required": "Opcional para tipo de pedido=1",
+              "values": "Valor",
+              "description": "CANTIDAD DE CUENTAS",
+              "parentId": "occ_1",
+              "id": "occ_1_field_13",
+              "level": 1
+            },
+            {
+              "type": "occurrence",
+              "index": 14,
+              "id": "occ_14",
+              "count": 10,
+              "fields": [
+                {
+                  "type": "field",
+                  "index": 15,
+                  "name": "SVC3088-PROD-RUBRO",
+                  "length": 5,
+                  "fieldType": "numérico",
+                  "required": "Opcional para tipo de pedido=1",
+                  "values": "Valor",
+                  "description": "PRODUCTO O RUBRO",
+                  "parentId": "occ_14",
+                  "id": "occ_14_field_15",
+                  "level": 2
+                },
+                {
+                  "type": "field",
+                  "index": 16,
+                  "name": "SVC3088-CUENTA-NIV",
+                  "length": 7,
+                  "fieldType": "numérico",
+                  "required": "Opcional para tipo de pedido=1",
+                  "values": "Valor",
+                  "description": "NUMERO DE CUENTA O NIVEL INDIVIDUAL",
+                  "parentId": "occ_14",
+                  "id": "occ_14_field_16",
+                  "level": 2
+                }
+              ],
+              "level": 2,
+              "parentId": "occ_1"
+            },
+            {
+              "type": "field",
+              "index": 17,
+              "name": "SVC3088-CANT-IMPORTES",
+              "length": 5,
+              "fieldType": "numerico",
+              "required": "Obligatorio para tipo de pedido=1",
+              "values": "Valor",
+              "description": "CANTIDAD DE IMPORTES",
+              "parentId": "occ_1",
+              "id": "occ_1_field_17",
+              "level": 1
+            },
+            {
+              "type": "occurrence",
+              "index": 18,
+              "id": "occ_18",
+              "count": 10,
+              "fields": [
+                {
+                  "type": "field",
+                  "index": 19,
+                  "name": "SVC3088-IMPORTE",
+                  "length": 17,
+                  "fieldType": "numérico",
+                  "required": "Obligatorio para tipo de pedido=1",
+                  "values": "15 POSICIONES ENTERAS + 2 POSICIONES DECIMALES",
+                  "description": "IMPORTE",
+                  "parentId": "occ_18",
+                  "id": "occ_18_field_19",
+                  "level": 2
+                }
+              ],
+              "level": 2,
+              "parentId": "occ_1"
+            },
+            {
+              "type": "field",
+              "index": 20,
+              "name": "SVC3088-CANT-SUCURSALES",
+              "length": 5,
+              "fieldType": "numerico",
+              "required": "Obligatorio para tipo de pedido=1",
+              "values": "Valor",
+              "description": "CANTIDAD DE SUCURSALES",
+              "parentId": "occ_1",
+              "id": "occ_1_field_20",
+              "level": 1
+            },
+            {
+              "type": "occurrence",
+              "index": 21,
+              "id": "occ_21",
+              "count": 10,
+              "fields": [
+                {
+                  "type": "field",
+                  "index": 22,
+                  "name": "SVC3088-BCO",
+                  "length": 5,
+                  "fieldType": "numérico",
+                  "required": "Obligatorio para tipo de pedido=1",
+                  "values": "Valor",
+                  "description": "BANCO",
+                  "parentId": "occ_21",
+                  "id": "occ_21_field_22",
+                  "level": 2
+                },
+                {
+                  "type": "field",
+                  "index": 23,
+                  "name": "SVC3088-SUCU",
+                  "length": 5,
+                  "fieldType": "numérico",
+                  "required": "Obligatorio para tipo de pedido=1",
+                  "values": "Valor",
+                  "description": "SUCURSAL",
+                  "parentId": "occ_21",
+                  "id": "occ_21_field_23",
+                  "level": 2
+                }
+              ],
+              "level": 2,
+              "parentId": "occ_1"
+            },
+            {
+              "type": "field",
+              "index": 24,
+              "name": "SVC3088-ID-MENS-ORIG",
+              "length": 9,
+              "fieldType": "numérico",
+              "required": "Obligatorio para tipo de pedido=2 y 3",
+              "values": "Valor",
+              "description": "ID DEL MENSAJE\n(Cabecera del mensaje de imputacion)",
+              "parentId": "occ_1",
+              "id": "occ_1_field_24",
+              "level": 1
+            },
+            {
+              "type": "field",
+              "index": 25,
+              "name": "SVC3088-CON-ID-OPS",
+              "length": 30,
+              "fieldType": "alfanumerico",
+              "required": "Obligatorio para tipo de pedido=3",
+              "values": "Valor",
+              "description": "SVC3088-CON-ID-OPS",
+              "parentId": "occ_1",
+              "id": "occ_1_field_25",
+              "level": 1
+            },
+            {
+              "type": "field",
+              "index": 26,
+              "name": "SVC3088-TITULAR",
+              "length": 35,
+              "fieldType": "alfanumerico",
+              "required": "Opcional",
+              "values": "Valor",
+              "description": "Nombre del titular",
+              "parentId": "occ_1",
+              "id": "occ_1_field_26",
+              "level": 1
+            }
+          ],
+          "level": 1,
+          "parentId": null
+        }
+      ],
+      "fieldCount": 1,
+      "occurrenceCount": 1,
+      "totalFieldCount": 1
+    },
+    "response": {
+      "totalLength": 7712,
+      "elements": [
+        {
+          "type": "field",
+          "index": 0,
+          "name": "SVC3088-ESTADO",
+          "length": 2,
+          "fieldType": "numerico",
+          "required": "OBLIGATORIO",
+          "values": "00    PROCESO FINALIZO CORRECTAMENTE.\n02 NO EXISTE MOV. DE REVERSA.                    \n03 EXISTEN VARIOS MOV. DE REVERSA.               \n04 NO ES CORRECTO EL CAMPO COND-ID-OPS INFORMADO.                       \n99    ERROR EN SVC0000-CODRET.",
+          "description": "Estado de los registros informados.                                               El valor de este campo, se informa tambien en el campo \"ESTADO ENVIADO\" y el texto correspondiente a este código, en el campo \"TEXTO DEL CÓDIGO DE RETORNO\" de la \"Cabecera Servicios\".",
+          "id": "field_0"
+        },
+        {
+          "type": "field",
+          "index": 1,
+          "name": "SVC3088-CANT-REG",
+          "length": 2,
+          "fieldType": "numerico",
+          "required": "OPCIONAL",
+          "values": "--",
+          "description": "CANTIDAD DE REGISTROS INFORMADOS",
+          "id": "field_1"
+        },
+        {
+          "type": "field",
+          "index": 2,
+          "name": "SVC3088-MAS-DATOS",
+          "length": 1,
+          "fieldType": "numerico",
+          "required": "OPCIONAL",
+          "values": "0=NO TIENE MAS PROD.  \n1=TIENE MAS PRODUCTOS",
+          "description": "INDICADOR SI TIENE MAS REGISTROS PARA INFORMAR",
+          "id": "field_2"
+        },
+        {
+          "type": "occurrence",
+          "index": 3,
+          "id": "occ_3",
+          "count": 20,
+          "fields": [
+            {
+              "type": "field",
+              "index": 4,
+              "name": "SVC3088-INCONSIST-SAL",
+              "length": 2,
+              "fieldType": "numerico",
+              "required": "obligatorio",
+              "values": "Valor",
+              "description": "INCONSISTENCIA",
+              "parentId": "occ_3",
+              "id": "occ_3_field_4",
+              "level": 1
+            },
+            {
+              "type": "field",
+              "index": 5,
+              "name": "SVC3088-CON-ID-OPS-SAL",
+              "length": 30,
+              "fieldType": "alfanumerico",
+              "required": "Obligatorio",
+              "values": "Valor",
+              "description": "CONTENIDO IDENTIF.OPER.SERV",
+              "parentId": "occ_3",
+              "id": "occ_3_field_5",
+              "level": 1
+            },
+            {
+              "type": "field",
+              "index": 6,
+              "name": "SVC3088-NRO-OPER-SERV-SAL",
+              "length": 5,
+              "fieldType": "numérico",
+              "required": "Obligatorio para tipo de pedido=1 y 3",
+              "values": "Valor",
+              "description": "NUMERO OPERACIÓN DEL SERVICIO",
+              "parentId": "occ_3",
+              "id": "occ_3_field_6",
+              "level": 1
+            },
+            {
+              "type": "field",
+              "index": 7,
+              "name": "SVC3088-MENS-ERROR-SAL",
+              "length": 30,
+              "fieldType": "alfanumerico",
+              "required": "OPCIONAL",
+              "values": "Valor",
+              "description": "MENSAJE DE ERROR",
+              "parentId": "occ_3",
+              "id": "occ_3_field_7",
+              "level": 1
+            },
+            {
+              "type": "field",
+              "index": 8,
+              "name": "SVC3088-MENS-ERROR-TRAMA",
+              "length": 300,
+              "fieldType": "alfanumerico",
+              "required": "OPCIONAL",
+              "values": "Valor",
+              "description": "MENSAJE DE ERROR",
+              "parentId": "occ_3",
+              "id": "occ_3_field_8",
+              "level": 1
+            }
+          ],
+          "level": 1,
+          "parentId": null
+        }
+      ],
+      "fieldCount": 3,
+      "occurrenceCount": 1,
+      "totalFieldCount": 3
+    }
+  }
+}
