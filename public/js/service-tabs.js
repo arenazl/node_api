@@ -58,7 +58,7 @@ function processIdaService() {
     const parsedData = JSON.parse(jsonData);
     
     // Enviar petición para procesar el servicio de ida
-    fetch(`/.netlify/functions/server/api/services/${serviceNumber}/process`, {
+    fetch(`/api/services/${serviceNumber}/process`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -119,7 +119,7 @@ function processVueltaService() {
   }
   
   // Enviar petición para procesar el servicio de vuelta
-  fetch('/.netlify/functions/server/api/services/process', {
+  fetch('/api/services/process', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'

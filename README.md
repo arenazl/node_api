@@ -20,8 +20,8 @@ Esta API permite procesar y analizar mensajes en formato MQ. Incluye una interfa
 
 ## Requisitos
 
-- Node.js 14.x o superior
-- npm o yarn
+- Node.js 16.x o superior
+- npm 8.x o superior
 
 ## Instalación
 
@@ -32,6 +32,46 @@ Esta API permite procesar y analizar mensajes en formato MQ. Incluye una interfa
 cd node_api
 npm install
 ```
+
+## Despliegue en Heroku
+
+### Requisitos para Heroku
+- Cuenta en [Heroku](https://www.heroku.com/)
+- [Heroku CLI](https://devcenter.heroku.com/articles/heroku-cli) instalado
+
+### Pasos para el despliegue
+1. Iniciar sesión en Heroku desde la terminal:
+   ```bash
+   heroku login
+   ```
+
+2. Crear una nueva aplicación en Heroku:
+   ```bash
+   heroku create nombre-de-tu-app
+   ```
+
+3. Añadir el repositorio remoto de Heroku (si no se añadió automáticamente):
+   ```bash
+   heroku git:remote -a nombre-de-tu-app
+   ```
+
+4. Subir el código a Heroku:
+   ```bash
+   git push heroku main
+   ```
+   o si estás en la rama master:
+   ```bash
+   git push heroku master
+   ```
+
+5. Abrir la aplicación en el navegador:
+   ```bash
+   heroku open
+   ```
+
+### Configuración de Heroku
+- La aplicación incluye un archivo `Procfile` necesario para Heroku
+- Las versiones de Node.js y npm están especificadas en el archivo `package.json` en la sección `engines`
 
 ## Estructura del Proyecto
 
