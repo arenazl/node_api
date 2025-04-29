@@ -259,16 +259,42 @@ function parseServiceStructure(filePath) {
     serviceNumber = serviceMatch[1];
   }
   
-  // Obtener el nombre del servicio de la segunda fila (row index 1) de la segunda solapa
+  // Obtener el nombre del servicio buscando en las primeras filas un valor que empiece con "SERVICIO"
   let serviceName = "";
   
-  // Si hay al menos dos filas en el Excel, intentar obtener el nombre del servicio de la fila 2
-  if (data.length > 1 && data[1] && data[1].length > 0) {
+  // Buscar en las primeras 10 filas de la hoja
+  const maxRows = Math.min(data.length, 10);
+  let serviceNameFound = false;
+  
+  for (let rowIndex = 0; rowIndex < maxRows; rowIndex++) {
+    const row = data[rowIndex];
+    if (!row) continue;
+    
+    // Buscar en todas las columnas de la fila
+    for (let colIndex = 0; colIndex < row.length; colIndex++) {
+      const cellValue = row[colIndex];
+      if (cellValue && typeof cellValue === 'string') {
+        const cellText = String(cellValue).trim();
+        // Buscar una celda que empiece con "SERVICIO"
+        if (cellText.toUpperCase().startsWith('SERVICIO')) {
+          serviceName = cellText;
+          console.log(`Nombre del servicio encontrado en fila ${rowIndex + 1}, columna ${colIndex + 1}: "${serviceName}"`);
+          serviceNameFound = true;
+          break;
+        }
+      }
+    }
+    
+    if (serviceNameFound) break;
+  }
+  
+  // Si no se encontró un nombre que empiece con "SERVICIO", intentar obtener de la fila 2 (método original)
+  if (!serviceNameFound && data.length > 1 && data[1] && data[1].length > 0) {
     // La segunda fila (index 1) contiene el nombre del servicio en la primera columna no vacía
     for (let i = 0; i < data[1].length; i++) {
       if (data[1][i] && String(data[1][i]).trim() !== '') {
         serviceName = String(data[1][i]).trim();
-        console.log(`Nombre del servicio extraído de la fila 2: "${serviceName}"`);
+        console.log(`Nombre del servicio extraído de la fila 2 (método alternativo): "${serviceName}"`);
         break;
       }
     }

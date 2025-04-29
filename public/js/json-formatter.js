@@ -66,10 +66,10 @@ function formatJsonSimple(data, level = 0) {
       }
     }
     
-    // Formatear array con botón de colapso
+  // Formatear array con botón de colapso
     html += `<span class="json-brackets ${arrayClass}">
       <span class="json-collapse-btn" data-target="${nodeId}" onclick="toggleJsonNode('${nodeId}', this)">-</span>
-      [</span><div id="${nodeId}" class="json-collapsible"><br>`;
+      [</span><div id="${nodeId}" class="json-collapsible">`;
     
     data.forEach((item, index) => {
       html += `${indent}  ${formatJsonSimple(item, level + 1)}`;
@@ -78,11 +78,9 @@ function formatJsonSimple(data, level = 0) {
       if (index < data.length - 1) {
         html += '<span class="json-comma">,</span>';
       }
-      
-      html += '<br>';
     });
     
-    html += `${indent}</div><span class="json-brackets ${arrayClass}">]</span>`;
+    html += `</div><span class="json-brackets ${arrayClass}">]</span>`;
     return html;
   } else if (typeof data === 'object') {
     // Si el objeto está vacío
@@ -110,37 +108,11 @@ function formatJsonSimple(data, level = 0) {
     // Formatear objeto con botón de colapso
     html += `<span class="json-brackets ${objectClass}">
       <span class="json-collapse-btn" data-target="${nodeId}" onclick="toggleJsonNode('${nodeId}', this)">-</span>
-      {</span><div id="${nodeId}" class="json-collapsible"><br>`;
+      {</span><div id="${nodeId}" class="json-collapsible">`;
     
-    // Ordenar las claves para que type, index, id, level aparezcan primero
-    // y fields aparezca al final
-    const orderedKeys = keys.sort((a, b) => {
-      const keyOrder = {
-        'type': 1,
-        'index': 2,
-        'id': 3,
-        'level': 4,
-        'count': 5,
-        'parentId': 6,
-        'name': 7,
-        'fields': 99 // Siempre al final
-      };
-      
-      // Si ambas claves están en la lista de prioridad
-      if (keyOrder[a] && keyOrder[b]) {
-        return keyOrder[a] - keyOrder[b];
-      }
-      // Si solo a está en la lista de prioridad
-      else if (keyOrder[a]) {
-        return -1;
-      }
-      // Si solo b está en la lista de prioridad
-      else if (keyOrder[b]) {
-        return 1;
-      }
-      // Para otras claves, orden alfabético
-      return a.localeCompare(b);
-    });
+    // Usar el orden original de las claves en el objeto
+    // No ordenar las claves, para mantener el mismo orden que tiene el archivo JSON original
+    const orderedKeys = keys;
     
     orderedKeys.forEach((key, index) => {
       // Determinar clase para el key basado en el contexto

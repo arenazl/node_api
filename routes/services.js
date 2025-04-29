@@ -34,10 +34,10 @@ router.get('/', async (req, res) => {
 });
 
 /**
- * @route POST /api/services/process
+ * @route POST /api/services/vuelta
  * @description Procesa un servicio por número y stream (Servicio de Vuelta)
  */
-router.post('/process', async (req, res) => {
+router.post('/vuelta', async (req, res) => {
   try {
     const { service_number, stream } = req.body;
     
@@ -58,11 +58,78 @@ router.post('/process', async (req, res) => {
     
     // Procesar el stream de entrada
     try {
-      const parsedData = messageAnalyzer.parseMessage(stream, headerStructure, serviceStructure);
+      // Forzar la sección a "response" para el servicio de vuelta
+      // Esto es importante porque por defecto puede intentar interpretar como request
+      const section = "response";
       
-      // Devolver solamente el mensaje procesado como string
-      res.set('Content-Type', 'text/plain');
-      return res.send(stream);
+      // Analizar mensaje explícitamente como una respuesta
+      console.log(`Procesando stream de ${stream.length} caracteres como RESPUESTA`);
+      
+      // Extraer cabecera
+      const headerLength = headerStructure.totalLength || 102;
+      const headerMessage = stream.substring(0, headerLength);
+      const headerData = messageAnalyzer.parseHeaderMessage(headerMessage, headerStructure);
+      
+      // Extraer cuerpo de la respuesta
+      const bodyMessage = stream.substring(headerLength);
+      const responseStructure = serviceStructure.response;
+      
+      // Procesar el cuerpo de la respuesta
+      let responseData = {};
+      if (responseStructure && responseStructure.elements) {
+        // Usar directamente el parseDataMessage para procesar la respuesta
+        responseData = messageAnalyzer.parseDataMessage(bodyMessage, responseStructure);
+      } else {
+        console.warn("No se encontró estructura de respuesta para el servicio");
+      }
+      
+      // Construir resultado final
+      const parsedData = {
+        header: headerData,
+        response: responseData
+      };
+      
+      // Añadir logs para debuggear
+      console.log("Servicio de vuelta - headers:", JSON.stringify(headerData, null, 2));
+      console.log("Servicio de vuelta - response:", JSON.stringify(responseData, null, 2));
+      
+      // Extraer solo las ocurrencias/registros del responseData
+      const occurrences = [];
+      
+      // Buscar elementos que parezcan ocurrencias (empiezan con "occurrence_")
+      if (responseData) {
+        Object.keys(responseData).forEach(key => {
+          if (key.startsWith('occurrence_') && Array.isArray(responseData[key])) {
+            // Añadir todos los registros de esta ocurrencia
+            responseData[key].forEach(occurrence => {
+              occurrences.push(occurrence);
+            });
+          }
+        });
+      }
+      
+      // Si no hay ocurrencias, pero hay algunos otros campos como estado o cantidad de registros,
+      // añadirlos como un primer registro para mantener info importante
+      if (occurrences.length === 0 && responseData) {
+        const basicInfo = {};
+        // Añadir campos simples que no son ocurrencias (estado, cant-reg, etc.)
+        Object.keys(responseData).forEach(key => {
+          if (!key.startsWith('occurrence_')) {
+            basicInfo[key] = responseData[key];
+          }
+        });
+        
+        // Solo añadir si tiene al menos un campo
+        if (Object.keys(basicInfo).length > 0) {
+          occurrences.push(basicInfo);
+        }
+      }
+      
+      // Devolver solo el nombre del servicio y las ocurrencias encontradas
+      return res.json({
+        service_name: serviceStructure.serviceName || "",
+        records: occurrences
+      });
     } catch (error) {
       throw new Error(`Error al procesar el stream: ${error.message}`);
     }
@@ -75,17 +142,17 @@ router.post('/process', async (req, res) => {
 });
 
 /**
- * @route POST /api/services/:serviceNumber/process
+ * @route POST /api/services/ida
  * @description Procesa un servicio con JSON (Servicio de Ida)
  */
-router.post('/:serviceNumber/process', async (req, res) => {
+router.post('/ida', async (req, res) => {
   try {
-    const serviceNumber = req.params.serviceNumber;
     const jsonData = req.body;
+    const serviceNumber = jsonData.service_number;
     
     if (!serviceNumber) {
       return res.status(400).json({
-        error: "Se requiere un número de servicio"
+        error: "Se requiere un número de servicio en el campo service_number"
       });
     }
     
@@ -117,6 +184,36 @@ router.post('/:serviceNumber/process', async (req, res) => {
   } catch (error) {
     res.status(error.statusCode || 500).json({ 
       error: error.message 
+    });
+  }
+});
+
+/**
+ * @route GET /api/services/refresh
+ * @description Fuerza una actualización de la caché de servicios
+ */
+router.get('/refresh', async (req, res) => {
+  try {
+    // Limpiar caché
+    if (global.serviceCache) {
+      global.serviceCache.services = null;
+      global.serviceCache.lastUpdate = null;
+      global.serviceCache.structures = {};
+    }
+    
+    // Obtener servicios con forceRefresh en true para recargar desde archivos
+    const services = await getAvailableServices(true);
+    
+    res.json({
+      message: "Caché actualizada correctamente",
+      services_count: services.length,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error("Error al actualizar caché:", error);
+    res.status(500).json({ 
+      error: `Error al actualizar caché: ${error.message}` 
     });
   }
 });
@@ -184,22 +281,42 @@ const excelParser = require('../utils/excel-parser');
 
 /**
  * Obtiene la lista de servicios disponibles
+ * @param {boolean} forceRefresh - Si es true, ignorar caché y recargar desde archivos
  * @returns {Promise<Array>} Lista de servicios
  */
-async function getAvailableServices() {
+async function getAvailableServices(forceRefresh = false) {
   try {
+    // Verificar si existe caché válida de servicios
+    if (global.serviceCache && global.serviceCache.services && global.serviceCache.lastUpdate && !forceRefresh) {
+      // Verificar si la caché es reciente (menos de 5 minutos)
+      const cacheAge = Date.now() - new Date(global.serviceCache.lastUpdate).getTime();
+      if (cacheAge < 5 * 60 * 1000) { // 5 minutos en milisegundos
+        console.log(`Usando caché de servicios (edad: ${Math.round(cacheAge/1000)}s)`);
+        return global.serviceCache.services;
+      } else {
+        console.log(`Caché de servicios expirada (edad: ${Math.round(cacheAge/1000)}s), recargando...`);
+      }
+    }
+    
     const uploadsDir = path.join(__dirname, '..', 'uploads');
     
     // Verificar que el directorio de uploads existe
     if (!fs.existsSync(uploadsDir)) {
+      console.log("El directorio de uploads no existe");
       return [];
     }
     
-    // Leer todos los archivos Excel del directorio
-    const excelFiles = fs.readdirSync(uploadsDir)
-      .filter(file => file.endsWith('.xls') || file.endsWith('.xlsx'));
-    
-    console.log(`Encontrados ${excelFiles.length} archivos Excel en uploads`);
+    let excelFiles = [];
+    try {
+      // Leer todos los archivos Excel del directorio
+      excelFiles = fs.readdirSync(uploadsDir)
+        .filter(file => file.endsWith('.xls') || file.endsWith('.xlsx'));
+      
+      console.log(`Encontrados ${excelFiles.length} archivos Excel en uploads`);
+    } catch (readDirError) {
+      console.error("Error al leer directorio de uploads:", readDirError);
+      return []; // Retornar lista vacía si hay error al leer directorio
+    }
     
     // Array para almacenar todos los servicios
     const services = [];
@@ -209,6 +326,12 @@ async function getAvailableServices() {
       try {
         const excelPath = path.join(uploadsDir, excelFile);
         
+        // Verificar si el archivo existe antes de procesarlo
+        if (!fs.existsSync(excelPath)) {
+          console.warn(`El archivo ${excelFile} no existe, saltando...`);
+          continue;
+        }
+        
         // Extraer número de servicio del nombre del archivo
         let serviceNumber = null;
         const svoMatch = excelFile.match(/SVO(\d+)/i);
@@ -216,7 +339,10 @@ async function getAvailableServices() {
           serviceNumber = svoMatch[1];
         }
         
-        if (!serviceNumber) continue; // Saltar si no se pudo extraer un número de servicio
+        if (!serviceNumber) {
+          console.log(`Archivo ${excelFile} no contiene número de servicio, saltando...`);
+          continue; // Saltar si no se pudo extraer un número de servicio
+        }
         
         // Extraer nombre del servicio de la segunda fila de la segunda hoja
         let serviceName = "";
@@ -249,10 +375,20 @@ async function getAvailableServices() {
               const minute = timestampStr.substring(10, 12);
               const second = timestampStr.substring(12, 14) || '00';
               
-              uploadDate = new Date(`${year}-${month}-${day}T${hour}:${minute}:${second}`);
+              // Create a valid date format
+              try {
+                uploadDate = new Date(`${year}-${month}-${day}T${hour}:${minute}:${second}`);
+                // Verify if the date is valid before trying to convert to ISO string
+                if (isNaN(uploadDate.getTime())) {
+                  uploadDate = new Date(); // Fallback to current date if invalid
+                }
+              } catch (dateError) {
+                uploadDate = new Date(); // Fallback to current date if there's an error
+              }
             }
           } catch (error) {
             // Si hay error en parsear la fecha, usar la fecha actual
+            console.error(`Error al parsear fecha para ${excelFile}:`, error);
           }
         }
         
@@ -267,86 +403,220 @@ async function getAvailableServices() {
         }
         
         // Verificar si el archivo de estructura existe
-        const structureExists = fs.existsSync(path.join(structuresDir, structureFile));
+        let structureExists = false;
+        try {
+          structureExists = fs.existsSync(path.join(structuresDir, structureFile));
+        } catch (fsError) {
+          console.error(`Error al verificar estructura para ${structureFile}:`, fsError);
+        }
         
-        // Añadir a la lista de servicios
-        services.push({
+        // Preparar objeto de servicio con valores seguros
+        const serviceObj = {
           service_number: serviceNumber,
-          service_name: serviceName,
-          display_name: serviceName,
+          service_name: serviceName || `Servicio ${serviceNumber}`,
+          display_name: serviceName || `Servicio ${serviceNumber}`,
           structure_file: structureExists ? structureFile : null,
           excel_file: excelFile,
-          timestamp: uploadDate.toISOString()
-        });
+          timestamp: null // Inicializamos con null
+        };
+        
+        // Asegurar que la fecha sea válida antes de convertir a ISO string
+        try {
+          if (!isNaN(uploadDate.getTime())) {
+            serviceObj.timestamp = uploadDate.toISOString();
+          } else {
+            serviceObj.timestamp = new Date().toISOString();
+          }
+        } catch (dateError) {
+          serviceObj.timestamp = new Date().toISOString();
+          console.error(`Error al convertir fecha para ${excelFile}:`, dateError);
+        }
+        
+        // Añadir a la lista de servicios
+        services.push(serviceObj);
         
         console.log(`Añadido servicio: ${serviceNumber} - ${serviceName}`);
       } catch (error) {
         console.error(`Error al procesar el archivo Excel ${excelFile}:`, error);
+        // Continuamos con el siguiente archivo
       }
     }
     
     // Ordenar servicios por fecha (más recientes primero)
-    services.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    try {
+      services.sort((a, b) => {
+        try {
+          // Manejar casos donde el timestamp podría ser null o inválido
+          const dateA = a.timestamp ? new Date(a.timestamp) : new Date(0);
+          const dateB = b.timestamp ? new Date(b.timestamp) : new Date(0);
+          
+          if (isNaN(dateA.getTime())) return 1; // Mover fechas inválidas al final
+          if (isNaN(dateB.getTime())) return -1;
+          
+          return dateB - dateA;
+        } catch (error) {
+          console.error("Error al ordenar servicios:", error);
+          return 0; // En caso de error, mantener el orden
+        }
+      });
+    } catch (sortError) {
+      console.error("Error al ordenar la lista de servicios:", sortError);
+      // Aún retornamos la lista sin ordenar
+    }
+    
+    // Actualizar caché global
+    if (global.serviceCache) {
+      global.serviceCache.services = services;
+      global.serviceCache.lastUpdate = new Date().toISOString();
+    }
     
     return services;
   } catch (error) {
-    console.error("Error al obtener servicios:", error);
-    return [];
+    console.error("Error general al obtener servicios:", error);
+    return []; // Siempre devolvemos un array, incluso en caso de error
   }
 }
 
 /**
  * Busca un servicio por número
  * @param {string} serviceNumber - Número de servicio
+ * @param {boolean} forceRefresh - Si es true, ignorar caché y recargar estructura
  * @returns {Promise<Object>} Estructuras de cabecera y servicio
  */
-async function findServiceByNumber(serviceNumber) {
+async function findServiceByNumber(serviceNumber, forceRefresh = false) {
   try {
+    if (!serviceNumber) {
+      const error = new Error('Número de servicio no proporcionado');
+      error.statusCode = 400;
+      throw error;
+    }
+    
+    console.log(`Buscando servicio con número: ${serviceNumber}`);
+    
+    // Verificar caché de estructuras
+    if (!forceRefresh && 
+        global.serviceCache && 
+        global.serviceCache.structures && 
+        global.serviceCache.structures[serviceNumber]) {
+      console.log(`Usando estructura en caché para servicio ${serviceNumber}`);
+      return global.serviceCache.structures[serviceNumber];
+    }
+    
     // Obtener la lista de servicios
     const services = await getAvailableServices();
     
     // Buscar el servicio por número
     const service = services.find(s => s.service_number === serviceNumber);
     if (!service) {
-      throw new Error(`Servicio no encontrado: ${serviceNumber}`);
+      const error = new Error(`Servicio no encontrado: ${serviceNumber}`);
+      error.statusCode = 404;
+      throw error;
     }
+    
+    console.log(`Servicio encontrado: ${service.service_name}, archivo: ${service.excel_file}`);
+    
+    // Resultado que se devolverá
+    let result = null;
     
     // Si tenemos un archivo de estructura, usarlo
     if (service.structure_file) {
       const structureFile = path.join(structuresDir, service.structure_file);
       
-      if (fs.existsSync(structureFile)) {
-        const structure = await fs.readJson(structureFile);
-        
-        return { 
-          headerStructure: structure.header_structure,
-          serviceStructure: structure.service_structure
-        };
+      try {
+        if (fs.existsSync(structureFile)) {
+          console.log(`Usando archivo de estructura: ${structureFile}`);
+          const structure = await fs.readJson(structureFile);
+          
+          // Verificar que la estructura tenga los componentes necesarios
+          if (!structure.header_structure) {
+            console.warn(`El archivo de estructura ${structureFile} no contiene header_structure`);
+          }
+          
+          if (!structure.service_structure) {
+            console.warn(`El archivo de estructura ${structureFile} no contiene service_structure`);
+          }
+          
+          result = { 
+            headerStructure: structure.header_structure || {},
+            serviceStructure: structure.service_structure || {}
+          };
+        } else {
+          console.warn(`Archivo de estructura ${structureFile} no encontrado, intentando parsear Excel directamente`);
+        }
+      } catch (structureError) {
+        console.error(`Error al leer archivo de estructura ${structureFile}:`, structureError);
+        // Continuamos al siguiente método
       }
     }
     
-    // Si no hay archivo de estructura o no existe, parsear directamente el Excel
-    if (service.excel_file) {
+    // Si no se ha obtenido un resultado y hay un archivo Excel, parsearlo directamente
+    if (!result && service.excel_file) {
       const excelPath = path.join(__dirname, '..', 'uploads', service.excel_file);
       
-      if (fs.existsSync(excelPath)) {
-        // Parsear cabecera y estructura directamente del Excel
-        const headerStructure = excelParser.parseHeaderStructure(excelPath);
-        const serviceStructure = excelParser.parseServiceStructure(excelPath);
-        
-        return {
-          headerStructure: headerStructure,
-          serviceStructure: serviceStructure
-        };
+      try {
+        if (fs.existsSync(excelPath)) {
+          console.log(`Parseando Excel directamente: ${excelPath}`);
+          
+          // Parsear cabecera y estructura directamente del Excel
+          let headerStructure = {};
+          let serviceStructure = {};
+          
+          try {
+            headerStructure = excelParser.parseHeaderStructure(excelPath);
+            console.log('Estructura de cabecera parseada correctamente');
+          } catch (headerError) {
+            console.error(`Error al parsear cabecera desde Excel ${service.excel_file}:`, headerError);
+            headerStructure = {}; // Estructura vacía en caso de error
+          }
+          
+          try {
+            serviceStructure = excelParser.parseServiceStructure(excelPath);
+            console.log('Estructura de servicio parseada correctamente');
+          } catch (serviceError) {
+            console.error(`Error al parsear servicio desde Excel ${service.excel_file}:`, serviceError);
+            serviceStructure = {}; // Estructura vacía en caso de error
+          }
+          
+          result = {
+            headerStructure: headerStructure,
+            serviceStructure: serviceStructure
+          };
+        } else {
+          console.error(`Archivo Excel ${excelPath} no encontrado`);
+          throw new Error(`Archivo Excel ${service.excel_file} no encontrado para el servicio ${serviceNumber}`);
+        }
+      } catch (excelError) {
+        console.error(`Error al procesar Excel ${service.excel_file}:`, excelError);
+        throw new Error(`Error al procesar Excel para el servicio ${serviceNumber}: ${excelError.message}`);
       }
     }
     
-    throw new Error(`No se pudo cargar el servicio ${serviceNumber}: archivos de estructura o Excel no encontrados`);
+    if (!result) {
+      throw new Error(`No se pudo cargar el servicio ${serviceNumber}: archivos de estructura o Excel no encontrados`);
+    }
+    
+    // Guardar en caché
+    if (global.serviceCache && global.serviceCache.structures) {
+      global.serviceCache.structures[serviceNumber] = result;
+    }
+    
+    return result;
     
   } catch (error) {
     console.error(`Error al cargar servicio ${serviceNumber}:`, error);
-    error.statusCode = 500;
-    error.message = `Error al cargar estructura: ${error.message}`;
+    
+    // Asegurar que todos los errores tienen un código de estado
+    if (!error.statusCode) {
+      error.statusCode = 500;
+    }
+    
+    // Crear mensaje de error más descriptivo
+    if (error.message.includes('no encontrado')) {
+      error.message = `Error al cargar estructura: ${error.message}`;
+    } else {
+      error.message = `Error al cargar estructura para servicio ${serviceNumber}: ${error.message}`;
+    }
+    
     throw error;
   }
 }

@@ -195,17 +195,30 @@ button:disabled {
   font-weight: 600;
 }
 
+/* Estilos para las pestañas */
 .tab-pane {
-  display: none;
+  display: none !important; /* Forzar ocultación de todas las pestañas */
   padding: 1.5rem;
   border: 1px solid var(--border-color);
   border-radius: var(--radius);
   background-color: #fff;
 }
 
+/* Mostrar solo la pestaña activa */
 .tab-pane.active {
-  display: block;
+  display: block !important; /* Forzar visualización de la pestaña activa */
   animation: fadeIn 0.3s ease-in-out;
+}
+
+/* Panel de búsqueda de estructuras (fuera del sistema de pestañas) */
+#structuresPanel {
+  display: none !important; /* Oculto por defecto */
+  margin-top: 1.5rem;
+}
+
+/* Mostrar el panel de estructuras solo cuando la pestaña JSON está activa */
+.tab-pane.active[id="json"] ~ #structuresPanel {
+  display: block !important; /* Forzar visualización cuando pestaña JSON está activa */
 }
 
 @keyframes fadeIn {
@@ -247,9 +260,6 @@ th {
   z-index: 10;
 }
 
-tr:nth-child(even) {
-  background-color: #fafafa;
-}
 
 tr:hover {
   background-color: rgba(37, 99, 235, 0.05);
@@ -564,6 +574,51 @@ tr[data-level="3"] td:first-child {
   transform: translateY(-1px);
 }
 
+.open-excel-btn {
+  background-color: var(--success-color);
+}
+
+.open-excel-btn:hover {
+  background-color: var(--success-hover);
+}
+
+/* Estilos para animación de carga */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: spin 1s ease-in-out infinite;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+.button-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.button-text {
+  margin-left: 4px;
+}
+
+.btn-loading {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.btn-loading:hover {
+  transform: none;
+}
+
 /* Estilos para la nueva sección de servicios */
 .services-tabs {
   width: 100%;
@@ -665,7 +720,7 @@ tr[data-level="3"] td:first-child {
 
 .json-input-container {
   width: 100%;
-  height: 200px;
+  height: 600px;
   border: 1px solid var(--border-color);
   border-radius: var(--radius);
   overflow: auto;
@@ -956,4 +1011,104 @@ th:nth-child(6), td:nth-child(6) { width: 14%; }
 
 .secondary-btn:hover {
   background-color: #374151;
+}
+
+/* Estilos para la pestaña de configuración */
+.config-container {
+  padding: 1rem;
+  background-color: var(--light-bg);
+  border-radius: var(--radius);
+  margin-bottom: 1.5rem;
+}
+
+.config-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+#canalInput {
+  padding: 0.625rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  font-size: 0.9375rem;
+  max-width: 200px;
+  transition: var(--transition);
+}
+
+#canalInput:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+}
+
+.config-tabs {
+  margin-top: 1rem;
+}
+
+.config-tabs-nav {
+  display: flex;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 1rem;
+}
+
+.config-tab-btn {
+  padding: 0.625rem
+}
+
+.level-color-0 {
+  background-color: #ff980040 !important;
+}
+
+.level-color-1 {
+  background-color: rgb(0 188 212 / 15%) !important;
+}
+
+/* Estilos para elementos de generación de string fijo */
+.button-group {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+}
+
+.secondary-btn {
+  background-color: var(--secondary-color);
+}
+
+.secondary-btn:hover {
+  background-color: #374151;
+}
+
+#fixedStringOutput {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 0.875rem;
+  background-color: #f9fafb;
+  transition: var(--transition);
+  resize: vertical;
+}
+
+#fixedStringOutput:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+}
+
+.character-count {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin-top: 0.5rem;
+  text-align: right;
+  padding-right: 0.5rem;
+  font-weight: 500;
+}
+
+#charCount {
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-weight: bold;
+  color: var(--primary-color);
 }

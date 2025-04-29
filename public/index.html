@@ -12,6 +12,8 @@
   
   <!-- Estilos CSS -->
   <link rel="stylesheet" href="/css/styles.css">
+  <link rel="stylesheet" href="/css/json-editor.css">
+  <link rel="stylesheet" href="/css/config-styles.css">
 </head>
 
 <body>
@@ -43,8 +45,9 @@
         <button class="tab-btn" data-tab="requerimiento">Requerimiento</button>
         <button class="tab-btn" data-tab="respuesta">Respuesta</button>
         <button class="tab-btn" data-tab="json">Estructura</button>
+        <button class="tab-btn" data-tab="configuracion">Configuración</button>
         <button class="tab-btn" data-tab="archivos">Archivos</button>
-        <button class="tab-btn" data-tab="servicios">Servicios</button>
+        <button class="tab-btn" data-tab="servicios">Api</button>
       </div>
       
       <!-- Tab Content -->
@@ -106,9 +109,109 @@
             </table>
           </div>
         </div>
+        <!-- Tab de estructura JSON -->
         <div id="json" class="tab-pane">
           <div class="json-container">
             <pre id="jsonContent">Seleccione un archivo Excel para ver la estructura JSON.</pre>
+          </div>
+        </div>
+        
+        <!-- Panel de búsqueda de estructuras (solo visible cuando la pestaña JSON está activa) -->
+        <div id="structuresPanel" class="structures-panel">
+          <div class="structures-search-container">
+            <h3>Estructuras Disponibles</h3>
+            <div class="search-container">
+              <input type="text" id="structureSearchInput" class="form-control" placeholder="Buscar estructura...">
+              <span class="search-icon">🔍</span>
+            </div>
+            <div id="structureAutocompleteResults" class="autocomplete-results" style="display: none;"></div>
+            <div id="structuresList" class="structures-list">
+              <p id="noStructuresMessage" class="text-center">No hay estructuras cargadas.</p>
+            </div>
+          </div>
+        </div>
+        <div id="configuracion" class="tab-pane">
+          <div class="config-container">
+            <h3>Configuración del Servicio</h3>
+            <div class="config-form">
+              <div class="form-group select-service-group">
+                <label for="configServiceSelect">Seleccione un servicio:</label>
+                <select id="configServiceSelect" class="service-select">
+                  <option value="">-- Seleccione un servicio --</option>
+                  <!-- Las opciones se cargarán dinámicamente -->
+                </select>
+              </div>
+              
+              <div class="form-group">
+                <label for="canalInput">Canal (máximo 3 caracteres):</label>
+                <input type="text" id="canalInput" maxlength="3" placeholder="Ingrese su canal (obligatorio)" required>
+              </div>
+              
+              <div class="form-group">
+                <label for="versionDisplay">Versión:</label>
+                <div id="versionDisplay" class="version-display">v1</div>
+                <input type="hidden" id="versionInput" value="v1">
+              </div>
+              
+              <div class="form-group config-buttons">
+                <button type="button" id="autoFillBtn" class="action-btn secondary-btn">Auto Llenar Campos</button>
+              </div>
+              
+              <div class="config-tabs">
+                <div class="config-tabs-nav">
+                  <button class="config-tab-btn active" data-config-tab="headerConfig">Cabecera</button>
+                  <button class="config-tab-btn" data-config-tab="requestConfig">Requerimiento</button>
+                </div>
+                
+                <div class="config-tab-content">
+                  <div id="headerConfig" class="config-tab-pane active">
+                    <div class="table-container">
+                      <table id="headerConfigTable">
+                        <thead>
+                          <tr>
+                            <th>Campo</th>
+                            <th>Tipo</th>
+                            <th>Longitud</th>
+                            <th>Valor</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <!-- Contenido de configuración de cabecera se insertará aquí -->
+                          <tr class="empty-message">
+                            <td colspan="4" class="text-center">Seleccione un servicio para cargar los campos de la cabecera</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                  
+                  <div id="requestConfig" class="config-tab-pane">
+                    <div class="table-container">
+                      <table id="requestConfigTable">
+                        <thead>
+                          <tr>
+                            <th>Campo</th>
+                            <th>Tipo</th>
+                            <th>Longitud</th>
+                            <th>Valor</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <!-- Contenido de configuración de requerimiento se insertará aquí -->
+                          <tr class="empty-message">
+                            <td colspan="4" class="text-center">Seleccione un servicio para cargar los campos del requerimiento</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="config-actions">
+                <button id="saveConfigBtn" class="action-btn">Guardar Configuración</button>
+              </div>
+            </div>
           </div>
         </div>
         <div id="archivos" class="tab-pane">
@@ -146,6 +249,14 @@
                       <!-- Las opciones se cargarán dinámicamente -->
                     </select>
                   </div>
+
+                  <div class="form-group">
+                    <label for="idaConfigSelect">Seleccione una configuración:</label>
+                    <select id="idaConfigSelect" class="service-select">
+                      <option value="">-- Seleccione una configuración --</option>
+                      <!-- Las opciones se cargarán dinámicamente -->
+                    </select>
+                  </div>
                   
                   <div class="form-group">
                     <label for="idaJsonInput">JSON a enviar:</label>
@@ -154,15 +265,25 @@
                     </div>
                   </div>
                   
-                  <button id="processIdaBtn" class="service-button">Procesar Servicio de Ida</button>
+                  <div class="button-group">
+                    <button id="processIdaBtn" style="display: none;" class="service-button">Procesar Servicio de Ida</button>
+                    <button id="generateStringBtn" class="service-button secondary-btn">Generar String Fijo</button>
+                  </div>
+                  
+                  <div class="form-group">
+                    <label for="fixedStringOutput">String de longitud fija:</label>
+                    <textarea id="fixedStringOutput" rows="4" placeholder="El string generado se mostrará aquí" readonly></textarea>
+                    <div class="character-count">Cantidad de caracteres: <span id="charCount">0</span></div>
+                  </div>
                 </div>
                 
-                <div class="result-section">
+                <div class="result-section" style="display: none;">
                   <h4>Respuesta:</h4>
                   <div class="result-container">
                     <pre id="idaResult">La respuesta se mostrará aquí</pre>
                   </div>
                 </div>
+
               </div>
             </div>
             
@@ -182,9 +303,13 @@
                   <div class="form-group">
                     <label for="streamData">Stream de datos:</label>
                     <textarea id="streamData" rows="8" placeholder="Ingrese el stream de datos a procesar"></textarea>
+                    <div class="character-count">Cantidad de caracteres: <span id="streamCharCount">0</span></div>
                   </div>
                   
-                  <button id="processVueltaBtn" class="service-button">Procesar Servicio de Vuelta</button>
+                  <div class="button-group">
+                    <button id="processVueltaBtn" class="service-button">Procesar Servicio de Vuelta</button>
+                    <button id="generateExampleBtn" class="service-button secondary-btn">Generar Ejemplo</button>
+                  </div>
                 </div>
                 
                 <div class="result-section">
@@ -236,5 +361,9 @@
   <script src="/js/json-formatter.js"></script>
   <script src="/js/main.js"></script>
   <script src="/js/service-tabs.js"></script>
+  <script src="/js/config-manager.js"></script>
+  <script src="/js/structure-search.js"></script>
+  <script src="/js/tab-manager.js"></script>
+  <script src="/js/example-stream.js"></script>
 </body>
 </html>

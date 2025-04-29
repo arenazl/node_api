@@ -231,6 +231,9 @@ function calculateOccurrenceLength(fields) {
   return totalLength;
 }
 
+// Exportar módulo con todas las funciones necesarias
 module.exports = {
-  parseMessage
+  parseMessage,
+  parseHeaderMessage,  // Añadimos esta función para uso externo
+  parseDataMessage     // También esta para completitud
 };

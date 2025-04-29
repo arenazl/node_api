@@ -72,6 +72,16 @@ npm install
 ### Configuración de Heroku
 - La aplicación incluye un archivo `Procfile` necesario para Heroku
 - Las versiones de Node.js y npm están especificadas en el archivo `package.json` en la sección `engines`
+- La aplicación está configurada para manejar variables de entorno a través de `.env` (localmente) y variables de entorno de Heroku (en producción)
+- **Importante**: El sistema de archivos en Heroku es efímero, lo que significa que los archivos cargados y las estructuras generadas se perderán cuando la aplicación se reinicie o se despliegue nuevamente
+
+### Variables de Entorno
+La aplicación utiliza las siguientes variables de entorno (hay un archivo `.env.example` como referencia):
+
+- `PORT`: Puerto en el que se ejecutará la aplicación (por defecto: 3000)
+- `NODE_ENV`: Entorno de ejecución ('development', 'production', etc.)
+- `FILE_UPLOAD_SIZE_LIMIT`: Límite de tamaño para la carga de archivos en MB (por defecto: 50)
+- `REQUEST_TIMEOUT`: Tiempo de espera para las solicitudes en milisegundos (por defecto: 120000)
 
 ## Estructura del Proyecto
 

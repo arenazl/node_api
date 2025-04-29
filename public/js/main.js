@@ -35,17 +35,17 @@ let currentStructure = null;
 
 // Inicialización
 document.addEventListener('DOMContentLoaded', () => {
-  // Cargar lista de archivos
-  loadFilesList();
-  
-  // Cargar lista de servicios
-  loadServicesList();
-  
-  // Inicializar pestañas
+  // Inicializar pestañas primero
   initTabs();
   
   // Inicializar eventos de servicios
   initServiceEvents();
+  
+  // Cargar lista de archivos y servicios después de inicializar la UI
+  setTimeout(() => {
+    loadFilesList();
+    loadServicesList();
+  }, 100);
 });
 
 /**
@@ -302,7 +302,7 @@ async function loadFilesList() {
         <td>${displayName}</td>
         <td>${file.upload_date}</td>
         <td>
-        <button class="action-btn" onclick="loadStructure('${file.structure_file}')">Ver</button>
+          <button class="action-btn open-excel-btn" onclick="openExcelFile('${file.filename}', this)">Abrir Excel</button>
         </td>
       `;
       
@@ -320,10 +320,19 @@ async function loadFilesList() {
  */
 async function loadStructure(structureFile) {
   try {
+    // Verificar si se proporcionó un nombre de archivo válido
+    if (!structureFile) {
+      showNotification('Archivo de estructura no especificado', 'error');
+      return;
+    }
+    
     const response = await fetch(`/excel/structure?structure_file=${structureFile}`);
     
     if (!response.ok) {
-      const errorData = await response.json();
+      const errorData = await response.json().catch(() => {
+        // Si la respuesta de error no es un JSON válido, crear un objeto de error personalizado
+        return { error: `Error ${response.status} al cargar la estructura` };
+      });
       throw new Error(errorData.error || 'Error al cargar la estructura');
     }
     
@@ -346,6 +355,60 @@ async function loadStructure(structureFile) {
   } catch (error) {
     showNotification(error.message, 'error');
   }
+}
+
+/**
+ * Abre o descarga un archivo Excel
+ * @param {string} filename - Nombre del archivo Excel en la carpeta uploads
+ * @param {HTMLButtonElement} button - El botón que se presionó para abrir el Excel
+ */
+function openExcelFile(filename, button) {
+  if (!filename) {
+    showNotification('Nombre de archivo no válido', 'error');
+    return;
+  }
+  
+  // Guardar el contenido original del botón
+  const originalContent = button.innerHTML;
+  
+  // Mostrar el spinner y deshabilitar el botón
+  button.innerHTML = '<div class="button-content"><span class="loading-spinner"></span><span class="button-text">Cargando...</span></div>';
+  button.disabled = true;
+  button.classList.add('btn-loading');
+  
+  // Crear URL para la descarga
+  const downloadUrl = `/excel/download/${encodeURIComponent(filename)}`;
+  
+  // Restaurar el botón después de un breve retraso para que el usuario no tenga que esperar
+  // incluso si la ventana que se abre es cerrada
+  setTimeout(() => {
+    button.innerHTML = originalContent;
+    button.disabled = false;
+    button.classList.remove('btn-loading');
+    
+    // Abrir en una nueva pestaña
+    window.open(downloadUrl, '_blank');
+  }, 800); // Un poco de retraso para que se vea el spinner
+  
+  // Establecer un fetch para verificar si el archivo existe y está disponible
+  fetch(downloadUrl, { method: 'HEAD' })
+    .then(response => {
+      if (!response.ok) {
+        showNotification('Error al acceder al archivo Excel', 'error');
+        // Restaurar el botón inmediatamente en caso de error
+        button.innerHTML = originalContent;
+        button.disabled = false;
+        button.classList.remove('btn-loading');
+      }
+    })
+    .catch(error => {
+      console.error('Error verificando archivo:', error);
+      showNotification('Error al acceder al archivo Excel', 'error');
+      // Restaurar el botón inmediatamente en caso de error
+      button.innerHTML = originalContent;
+      button.disabled = false;
+      button.classList.remove('btn-loading');
+    });
 }
 
 /**
@@ -901,20 +964,55 @@ function toggleValueDetails(id) {
  * @param {string} id - ID de la ocurrencia
  */
 function toggleOccurrence(id) {
-  // Obtener todos los elementos relacionados con esta ocurrencia
-  const rows = document.querySelectorAll(`[data-parent-occurrence="${id}"], [data-occurrence-end="${id}"]`);
+  // Obtener la fila de la ocurrencia
   const occurrenceRow = document.querySelector(`[data-occurrence-id="${id}"]`);
   
+  // Obtener level actual de esta ocurrencia para identificar hijos anidados
+  const level = parseInt(occurrenceRow.getAttribute('data-level') || '0');
+  const nextLevel = level + 1;
+  
+  // Selector más completo para encontrar todos los elementos relacionados:
+  // 1. Elementos directamente asociados a la ocurrencia
+  // 2. Elementos hijos con nivel superior
+  // 3. Marcadores de fin de ocurrencia
+  const allRelatedElements = document.querySelectorAll(`
+    [data-parent-occurrence="${id}"],
+    [data-occurrence-end="${id}"],
+    tr[data-level="${nextLevel}"]
+  `);
+  
   // Si no hay filas para alternar, no hacer nada
-  if (rows.length === 0) return;
+  if (allRelatedElements.length === 0) return;
   
   // Verificar si están visibles (usar la primera fila como referencia)
-  const isVisible = window.getComputedStyle(rows[0]).display !== 'none';
+  const isVisible = window.getComputedStyle(allRelatedElements[0]).display !== 'none';
   
   // Cambiar el estado de visibilidad
-  rows.forEach(row => {
+  allRelatedElements.forEach(row => {
+    // Si este es un elemento de nivel inferior, ocultarlo/mostrarlo
     row.style.display = isVisible ? 'none' : 'table-row';
+    
+    // Si este elemento es una ocurrencia anidada, también cambiar su botón
+    const nestedButton = row.querySelector('.collapse-btn');
+    if (nestedButton && isVisible) {
+      // Si estamos ocultando, asegurarnos de que los botones de los hijos muestren "+"
+      nestedButton.textContent = '+';
+    }
   });
+  
+  // Obtener también todas las ocurrencias anidadas dentro de esta ocurrencia
+  const nestedOccurrences = document.querySelectorAll(`[data-level="${nextLevel}"][data-type="occurrence"]`);
+  
+  // Si estamos colapsando, asegurarse de colapsar todas las ocurrencias anidadas también
+  if (isVisible) {
+    nestedOccurrences.forEach(nestedOcc => {
+      const nestedId = nestedOcc.getAttribute('data-occurrence-id');
+      if (nestedId) {
+        // Ocultar todos los elementos de estas ocurrencias anidadas recursivamente
+        const nestedChildren = document.querySelectorAll(`[data-parent-occurrence="${nestedId}"], [data-occurrence-end="${nestedId}"]`);
+      }
+    });
+  }
   
   // Cambiar el icono del botón en la fila de ocurrencia
   if (occurrenceRow) {

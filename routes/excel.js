@@ -168,6 +168,130 @@ router.get('/structure', async (req, res) => {
   }
 });
 
+/**
+ * @route GET /excel/download/:filename
+ * @description Descarga un archivo Excel desde la carpeta uploads
+ */
+router.get('/download/:filename', (req, res) => {
+  try {
+    const { filename } = req.params;
+    
+    // Validar el nombre del archivo para evitar path traversal
+    if (!filename || filename.includes('..') || !filename.match(/\.(xlsx|xls)$/i)) {
+      return res.status(400).json({ 
+        error: "Nombre de archivo inválido o no permitido" 
+      });
+    }
+    
+    const filePath = path.join(uploadsDir, filename);
+    
+    // Verificar si el archivo existe
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ 
+        error: "Archivo no encontrado" 
+      });
+    }
+    
+    // Enviar el archivo para descarga
+    res.download(filePath);
+    
+  } catch (error) {
+    console.error(`Error al descargar archivo:`, error);
+    res.status(500).json({ 
+      error: `Error al descargar el archivo: ${error.message}` 
+    });
+  }
+});
+
+/**
+ * @route GET /excel/structures
+ * @description Obtiene la lista de todos los archivos de estructura disponibles
+ */
+router.get('/structures', async (req, res) => {
+  try {
+    // Verificar si el directorio de estructuras existe
+    if (!fs.existsSync(structuresDir)) {
+      return res.status(404).json({
+        error: "No se encontraron archivos de estructura"
+      });
+    }
+    
+    // Leer todos los archivos de estructura
+    const structures = fs.readdirSync(structuresDir)
+      .filter(file => file.endsWith('_structure.json'));
+    
+    if (structures.length === 0) {
+      return res.status(404).json({
+        error: "No se encontraron archivos de estructura"
+      });
+    }
+    
+    // Ordenar por fecha (los nombres tienen formato: 20250425T163957_3088_structure.json)
+    structures.sort((a, b) => b.localeCompare(a)); // Orden descendente
+    
+    res.json({ structures });
+  } catch (error) {
+    console.error(`Error al obtener estructuras:`, error);
+    res.status(500).json({ 
+      error: `Error al obtener la lista de estructuras: ${error.message}` 
+    });
+  }
+});
+
+/**
+ * @route GET /excel/structure-by-service
+ * @description Obtiene la estructura más reciente para un número de servicio
+ */
+router.get('/structure-by-service', async (req, res) => {
+  try {
+    const { service_number } = req.query;
+    
+    if (!service_number) {
+      return res.status(400).json({ 
+        error: "Se requiere el parámetro service_number" 
+      });
+    }
+    
+    // Buscar todos los archivos de estructura en la carpeta structures
+    const structureFiles = fs.readdirSync(structuresDir)
+      .filter(file => file.endsWith('_structure.json') && file.includes(`_${service_number}_`));
+    
+    if (structureFiles.length === 0) {
+      return res.status(404).json({
+        error: `No se encontraron archivos de estructura para el servicio ${service_number}`
+      });
+    }
+    
+    // Ordenar por fecha (los nombres tienen formato: 20250425T163957_3088_structure.json)
+    structureFiles.sort((a, b) => b.localeCompare(a)); // Orden descendente
+    
+    // Usar el más reciente
+    const latestStructureFile = structureFiles[0];
+    console.log(`Estructura más reciente encontrada para servicio ${service_number}: ${latestStructureFile}`);
+    
+    // Cargar la estructura
+    const structure = await getStructure(latestStructureFile);
+    
+    // Verificar y loggear la estructura para debugging
+    console.log(`Estructura cargada: ${JSON.stringify({
+      hasHeader: !!structure.header_structure,
+      hasHeaderFields: structure.header_structure ? structure.header_structure.fields.length : 0,
+      hasServiceStructure: !!structure.service_structure,
+      hasRequest: structure.service_structure ? !!structure.service_structure.request : false,
+      hasElements: structure.service_structure && structure.service_structure.request ? 
+        (structure.service_structure.request.elements ? structure.service_structure.request.elements.length : 0) : 0
+    })}`);
+    
+    res.json(structure);
+    
+  } catch (error) {
+    console.error(`Error al buscar estructura por servicio:`, error);
+    res.status(error.statusCode || 500).json({ 
+      error: error.message 
+    });
+  }
+});
+
 
 /**
  * Guarda la estructura JSON completa en un único archivo
