@@ -93,43 +93,10 @@ router.post('/vuelta', async (req, res) => {
       console.log("Servicio de vuelta - headers:", JSON.stringify(headerData, null, 2));
       console.log("Servicio de vuelta - response:", JSON.stringify(responseData, null, 2));
       
-      // Extraer solo las ocurrencias/registros del responseData
-      const occurrences = [];
-      
-      // Buscar elementos que parezcan ocurrencias (empiezan con "occurrence_")
-      if (responseData) {
-        Object.keys(responseData).forEach(key => {
-          if (key.startsWith('occurrence_') && Array.isArray(responseData[key])) {
-            // Añadir todos los registros de esta ocurrencia
-            responseData[key].forEach(occurrence => {
-              occurrences.push(occurrence);
-            });
-          }
-        });
-      }
-      
-      // Si no hay ocurrencias, pero hay algunos otros campos como estado o cantidad de registros,
-      // añadirlos como un primer registro para mantener info importante
-      if (occurrences.length === 0 && responseData) {
-        const basicInfo = {};
-        // Añadir campos simples que no son ocurrencias (estado, cant-reg, etc.)
-        Object.keys(responseData).forEach(key => {
-          if (!key.startsWith('occurrence_')) {
-            basicInfo[key] = responseData[key];
-          }
-        });
-        
-        // Solo añadir si tiene al menos un campo
-        if (Object.keys(basicInfo).length > 0) {
-          occurrences.push(basicInfo);
-        }
-      }
-      
-      // Devolver solo el nombre del servicio y las ocurrencias encontradas
-      return res.json({
-        service_name: serviceStructure.serviceName || "",
-        records: occurrences
-      });
+      // Devolver el responseData completo, que ya contiene tanto los campos básicos como las ocurrencias
+      // Esto preserva la estructura original con los campos fuera de las ocurrencias en el nivel superior
+      // y las ocurrencias como arrays en sus respectivas propiedades
+      return res.json(responseData);
     } catch (error) {
       throw new Error(`Error al procesar el stream: ${error.message}`);
     }

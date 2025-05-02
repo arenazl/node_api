@@ -17,6 +17,7 @@ Esta API permite procesar y analizar mensajes en formato MQ. Incluye una interfa
 - Almacenamiento de metadata para uso posterior
 - Búsqueda de servicios por número
 - Procesamiento de streams de datos
+- Soporte para CORS (Cross-Origin Resource Sharing)
 
 ## Requisitos
 
@@ -82,6 +83,7 @@ La aplicación utiliza las siguientes variables de entorno (hay un archivo `.env
 - `NODE_ENV`: Entorno de ejecución ('development', 'production', etc.)
 - `FILE_UPLOAD_SIZE_LIMIT`: Límite de tamaño para la carga de archivos en MB (por defecto: 50)
 - `REQUEST_TIMEOUT`: Tiempo de espera para las solicitudes en milisegundos (por defecto: 120000)
+- `ALLOWED_ORIGINS`: Lista de orígenes permitidos para CORS, separados por comas (por defecto: '*' para permitir cualquier origen)
 
 ## Estructura del Proyecto
 
@@ -159,6 +161,33 @@ La interfaz web permite:
 - `POST /excel/upload`: Sube y procesa un archivo Excel
 - `GET /excel/files`: Obtiene la lista de archivos Excel procesados
 - `GET /excel/structure`: Obtiene la estructura de un archivo procesado
+
+### Configuración CORS
+
+La API incorpora soporte CORS (Cross-Origin Resource Sharing) para permitir solicitudes desde otros dominios. La configuración CORS se puede personalizar a través de variables de entorno:
+
+- **Orígenes permitidos**: Controla qué dominios pueden acceder a la API
+  - Se configura mediante la variable de entorno `ALLOWED_ORIGINS`
+  - Admite múltiples orígenes separados por comas: `https://app1.example.com,https://app2.example.com`
+  - Por defecto es `*` (permite todos los orígenes)
+
+- **Métodos HTTP permitidos**: 
+  - GET, POST, PUT, DELETE, OPTIONS
+
+- **Cabeceras permitidas**:
+  - Content-Type, Authorization, X-Requested-With, Accept
+
+- **Credenciales**: 
+  - Habilitado (permite enviar cookies y cabeceras de autenticación)
+
+- **Caché de preflight**:
+  - 24 horas (86400 segundos)
+
+Ejemplo de configuración personalizada en `.env`:
+
+```
+ALLOWED_ORIGINS=https://miapp.ejemplo.com,http://localhost:8080
+```
 
 ## Flujo de trabajo con archivos Excel
 

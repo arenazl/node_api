@@ -209,31 +209,70 @@ router.get('/download/:filename', (req, res) => {
  */
 router.get('/structures', async (req, res) => {
   try {
+    // Inicializar un arreglo vacío para las estructuras
+    const structures = [];
+    
     // Verificar si el directorio de estructuras existe
     if (!fs.existsSync(structuresDir)) {
-      return res.status(404).json({
-        error: "No se encontraron archivos de estructura"
-      });
+      // Devolver un arreglo vacío en lugar de un error
+      return res.json({ structures });
     }
     
-    // Leer todos los archivos de estructura
-    const structures = fs.readdirSync(structuresDir)
-      .filter(file => file.endsWith('_structure.json'));
+    // Leer todos los archivos de estructura si existen
+    const structureFiles = fs.readdirSync(structuresDir)
+      .filter(file => file.endsWith('_structure.json') && !file.includes('placeholder_'));
     
-    if (structures.length === 0) {
-      return res.status(404).json({
-        error: "No se encontraron archivos de estructura"
-      });
+    // Si no hay estructuras, devolver arreglo vacío en lugar de error
+    if (structureFiles.length === 0) {
+      return res.json({ structures });
     }
     
     // Ordenar por fecha (los nombres tienen formato: 20250425T163957_3088_structure.json)
-    structures.sort((a, b) => b.localeCompare(a)); // Orden descendente
+    structureFiles.sort((a, b) => b.localeCompare(a)); // Orden descendente
     
-    res.json({ structures });
+    res.json({ structures: structureFiles });
   } catch (error) {
     console.error(`Error al obtener estructuras:`, error);
+    // Incluso en caso de error, devolver un arreglo vacío para evitar errores en el cliente
+    res.json({ structures: [], error: error.message });
+  }
+});
+
+/**
+ * @route GET /excel/header-sample/:serviceNumber
+ * @description Obtiene el ejemplo de cabecera para un número de servicio
+ */
+router.get('/header-sample/:serviceNumber', async (req, res) => {
+  try {
+    const { serviceNumber } = req.params;
+    
+    if (!serviceNumber) {
+      return res.status(400).json({ 
+        error: "Se requiere el número de servicio" 
+      });
+    }
+    
+    // Ruta del archivo de header sample
+    const headersDir = path.join(__dirname, '..', 'headers');
+    const headerSampleFile = path.join(headersDir, `${serviceNumber}_header_sample.json`);
+    
+    // Verificar si el archivo existe
+    if (!fs.existsSync(headerSampleFile)) {
+      return res.status(404).json({
+        error: `No se encontró header sample para el servicio ${serviceNumber}`
+      });
+    }
+    
+    // Cargar el header sample
+    const headerSample = await fs.readJson(headerSampleFile);
+    
+    // Devolver el resultado
+    res.json(headerSample);
+    
+  } catch (error) {
+    console.error(`Error al obtener header sample:`, error);
     res.status(500).json({ 
-      error: `Error al obtener la lista de estructuras: ${error.message}` 
+      error: `Error al obtener header sample: ${error.message}` 
     });
   }
 });
@@ -466,10 +505,32 @@ async function processExcelFile(filePath) {
     // Guardar la estructura combinada
     const structureInfo = saveStructures(headerStructure, serviceStructure, filePath);
     
+    // Extraer y guardar el header sample si hay un número de servicio válido
+    let headerSampleInfo = null;
+    if (serviceStructure && serviceStructure.serviceNumber) {
+      try {
+        // Crear directorio de headers si no existe
+        const headersDir = path.join(__dirname, '..', 'headers');
+        if (!fs.existsSync(headersDir)) {
+          fs.mkdirSync(headersDir, { recursive: true });
+        }
+        
+        // Extraer y guardar el header sample
+        headerSampleInfo = excelParser.saveHeaderSample(filePath, serviceStructure.serviceNumber, headersDir);
+        console.log(`Header sample extraído y guardado: ${JSON.stringify(headerSampleInfo)}`);
+      } catch (headerSampleError) {
+        console.error(`Error al extraer header sample: ${headerSampleError.message}`);
+        // No fallar todo el proceso si solo falló la extracción del header sample
+      }
+    } else {
+      console.warn(`No se pudo extraer header sample: No se encontró número de servicio válido`);
+    }
+    
     return { 
       headerStructure, 
       serviceStructure,
-      structureFile: structureInfo.structure_file 
+      structureFile: structureInfo.structure_file,
+      headerSampleInfo
     };
   } catch (error) {
     throw new Error(`Error al procesar el archivo Excel: ${error.message}`);

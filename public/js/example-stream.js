@@ -65,17 +65,17 @@ async function loadServiceStructure(serviceNumber) {
  * Genera un string de ejemplo basado en la estructura del servicio.
  * @param {Object} structure - Estructura del servicio.
  * @param {string} serviceNumber - Número del servicio.
- * @returns {string} - String de ejemplo generado.
+ * @returns {Promise<string>} - Promise que resuelve al string de ejemplo generado.
  */
-function generateExampleFromStructure(structure, serviceNumber) {
+async function generateExampleFromStructure(structure, serviceNumber) {
     // Obtener las longitudes de la estructura
     const headerLength = structure.header_structure?.totalLength || 102;
     const responseLength = structure.service_structure?.response?.totalLength || 0;
     
     console.log(`Generando ejemplo para servicio ${serviceNumber}. Cabecera: ${headerLength}, Respuesta: ${responseLength}`);
     
-    // Generar la cabecera
-    const header = generateHeaderExample(structure, serviceNumber, headerLength);
+    // Generar la cabecera (ahora es async)
+    const header = await generateHeaderExample(structure, serviceNumber, headerLength);
     
     // Generar el cuerpo de respuesta
     const responseBody = generateResponseExample(structure, responseLength - headerLength);
@@ -85,14 +85,58 @@ function generateExampleFromStructure(structure, serviceNumber) {
 }
 
 /**
+ * Obtiene un ejemplo de cabecera desde el servidor basado en el número de servicio.
+ * @param {string} serviceNumber - Número del servicio.
+ * @returns {Promise<string>} - Promise que resuelve a la cabecera de ejemplo del servidor o una generada.
+ */
+async function fetchHeaderSample(serviceNumber) {
+    try {
+        // Intentar obtener el header sample desde el servidor
+        const response = await fetch(`/excel/header-sample/${serviceNumber}`);
+        
+        if (!response.ok) {
+            console.warn(`No se encontró header sample para el servicio ${serviceNumber}, código: ${response.status}`);
+            return null;
+        }
+        
+        const headerSample = await response.json();
+        
+        if (headerSample && headerSample.value) {
+            console.log(`Header sample obtenido del servidor para servicio ${serviceNumber}:`, headerSample.value);
+            return headerSample.value;
+        }
+        
+        return null;
+    } catch (error) {
+        console.error(`Error al obtener header sample para el servicio ${serviceNumber}:`, error);
+        return null;
+    }
+}
+
+/**
  * Genera un ejemplo de cabecera basado en la estructura.
  * @param {Object} structure - Estructura del servicio.
  * @param {string} serviceNumber - Número del servicio.
  * @param {number} headerLength - Longitud total de la cabecera.
- * @returns {string} - Cabecera de ejemplo.
+ * @returns {Promise<string>} - Promise que resuelve a la cabecera de ejemplo.
  */
-function generateHeaderExample(structure, serviceNumber, headerLength) {
-    // Valores de ejemplo para los campos comunes de la cabecera
+async function generateHeaderExample(structure, serviceNumber, headerLength) {
+    // Primero intentar obtener el header sample desde el servidor
+    const headerSample = await fetchHeaderSample(serviceNumber);
+    
+    // Si tenemos un header sample válido, usarlo (ajustando la longitud si es necesario)
+    if (headerSample) {
+        if (headerSample.length > headerLength) {
+            return headerSample.substring(0, headerLength);
+        } else if (headerSample.length < headerLength) {
+            return headerSample.padEnd(headerLength, ' ');
+        }
+        return headerSample;
+    }
+    
+    console.log(`Generando cabecera manualmente para servicio ${serviceNumber}`);
+    
+    // Si no hay header sample disponible, generar uno manualmente
     const headerParts = [
         "00102000",                 // Longitud del mensaje (8 posiciones)
         "API",                      // Canal (3 posiciones)

@@ -75,6 +75,12 @@ const ConfigManager = {
                             this.serviceSelect.appendChild(option);
                         }
                     });
+                    
+                    // Trigger change event on the service select if there are services available
+                    // This will automatically load the latest service structure after upload
+                    if (this.serviceSelect.options.length > 1 && !this.currentServiceNumber) {
+                        this.serviceSelect.dispatchEvent(new Event('change'));
+                    }
                 }
             })
             .catch(error => {
@@ -735,21 +741,141 @@ const ConfigManager = {
             tab.classList.toggle('active', tab.id === tabName);
         });
     },
+    
+    /**
+     * Fetch header sample from the server for the current service
+     * @returns {Promise<string|null>} Promise that resolves to the header sample string or null if not found
+     */
+    fetchHeaderSample: async function() {
+        if (!this.currentServiceNumber) {
+            console.warn("No hay servicio seleccionado para obtener header sample");
+            return null;
+        }
 
-    // Auto-fill fields based on their data type and length
-    autoFillFields: function() {
+        console.log(`Buscando header sample para servicio ${this.currentServiceNumber}`);
+        
+        try {
+            const response = await fetch(`/excel/header-sample/${this.currentServiceNumber}`);
+            
+            if (!response.ok) {
+                console.warn(`No se encontró header sample para el servicio ${this.currentServiceNumber}, código: ${response.status}`);
+                return null;
+            }
+            
+            const data = await response.json();
+            
+            if (data && data.value) {
+                console.log(`Header sample obtenido del servidor para servicio ${this.currentServiceNumber}:`, data.value);
+                return data.value;
+            }
+            
+            return null;
+        } catch (error) {
+            console.error(`Error al obtener header sample para el servicio ${this.currentServiceNumber}:`, error);
+            return null;
+        }
+    },
+    
+    /**
+     * Parse the header sample string based on the header structure
+     * @param {string} headerSample - Raw header sample string
+     * @returns {Object} Object with field values extracted from the sample
+     */
+    parseHeaderSample: function(headerSample) {
+        if (!headerSample || !this.currentStructure || !this.currentStructure.header_structure) {
+            console.warn("No se puede parsear header sample: falta header sample o estructura");
+            return {};
+        }
+        
+        console.log("Parseando header sample:", headerSample);
+        
+        const headerStructure = this.currentStructure.header_structure;
+        const headerFields = headerStructure.fields || [];
+        const parsedValues = {};
+        
+        let position = 0;
+        
+        headerFields.forEach(field => {
+            // Skip non-data fields (special markers, comments, placeholder fields)
+            if (!field.name || field.name === '*' || field.name === 'REQUERIMIENTO' || field.type === 'Longitud del CAMPO') {
+                return;
+            }
+            
+            // Skip CANAL field since we want to use the input value from the form
+            if (field.name.toUpperCase() === 'CANAL') {
+                position += parseInt(field.length || '0');
+                console.log(`Campo CANAL ignorado: usando valor del input del formulario en su lugar`);
+                return;
+            }
+            
+            const fieldLength = parseInt(field.length || '0');
+            if (fieldLength <= 0) {
+                return;
+            }
+            
+            // Extract the value from the header sample at current position
+            const fieldValue = headerSample.substring(position, position + fieldLength).trim();
+            
+            // Store the parsed value
+            parsedValues[field.name] = fieldValue;
+            
+            // Log the extraction for debugging
+            console.log(`Campo: ${field.name}, Posición: ${position}, Longitud: ${fieldLength}, Valor extraído: '${fieldValue}'`);
+            
+            // Move the position forward by field length
+            position += fieldLength;
+        });
+        
+        return parsedValues;
+    },
+
+    // Auto-fill fields based on header sample data
+    autoFillFields: async function() {
         if (!this.currentStructure) {
             showNotification('Seleccione un servicio primero', 'error');
             return;
         }
         
-        // Auto-fill only header fields as requested
-        const headerInputs = document.querySelectorAll('#headerConfigTable .config-field-input');
-        headerInputs.forEach(input => {
-            this.autoFillInput(input);
-        });
+        console.log(`Iniciando auto-llenado para servicio ${this.currentServiceNumber}`);
         
-        showNotification('Campos de cabecera llenados automáticamente con valores de prueba', 'success');
+        // Intentar obtener el header sample
+        showNotification('Buscando datos de muestra para cabecera...', 'info');
+        const headerSample = await this.fetchHeaderSample();
+        
+        if (!headerSample) {
+            console.warn("No se encontró header sample, usando valores por defecto");
+            showNotification('No se encontró muestra de cabecera, usando valores por defecto', 'warning');
+            
+            // Fallback al método anterior si no hay muestra disponible
+            const headerInputs = document.querySelectorAll('#headerConfigTable .config-field-input');
+            headerInputs.forEach(input => {
+                this.autoFillInput(input);
+            });
+        } else {
+            // Extraer valores de la muestra usando la estructura
+            console.log("Parseando sample para extraer valores");
+            const parsedValues = this.parseHeaderSample(headerSample);
+            console.log("Valores extraídos del header sample:", parsedValues);
+            
+            // Aplicar los valores extraídos a los campos del formulario
+            const headerInputs = document.querySelectorAll('#headerConfigTable .config-field-input');
+            let fieldsPopulated = 0;
+            
+            headerInputs.forEach(input => {
+                const fieldName = input.dataset.fieldName;
+                if (fieldName && parsedValues[fieldName] !== undefined) {
+                    input.value = parsedValues[fieldName];
+                    fieldsPopulated++;
+                    console.log(`Campo ${fieldName} llenado con valor: ${parsedValues[fieldName]}`);
+                } else if (fieldName) {
+                    // Si no hay valor en el sample para este campo, usar el método anterior
+                    this.autoFillInput(input);
+                    console.log(`Campo ${fieldName} llenado con valor por defecto (no encontrado en sample)`);
+                }
+            });
+            
+            showNotification(`Campos de cabecera llenados automáticamente. ${fieldsPopulated} campos desde muestra.`, 'success');
+        }
     },
     
     // Generate an appropriate value for a field based on its properties
@@ -1330,6 +1456,60 @@ const ConfigManager = {
             return input ? (input.value || "") : "";
         };
         
+        // Función recursiva para procesar ocurrencias anidadas
+        const processNestedOccurrence = (occurrenceField, instanceId) => {
+            const nestedOccName = occurrenceField.id || occurrenceField.name;
+            const result = [];
+            
+            // Buscar instancias de esta ocurrencia anidada
+            const nestedInstanceRows = requestTbody.querySelectorAll(`tr.occurrence-instance-row[data-parent-def-id="${nestedOccName}"][data-instance-id*="${instanceId}"]`);
+            
+            if (nestedInstanceRows && nestedInstanceRows.length > 0) {
+                // Procesar cada instancia anidada
+                nestedInstanceRows.forEach(nestedInstanceRow => {
+                    const nestedInstanceId = nestedInstanceRow.dataset.instanceId;
+                    if (!nestedInstanceId) return;
+                    
+                    const nestedInstanceData = {};
+                    
+                    // Procesar campos de la instancia anidada
+                    if (occurrenceField.fields && Array.isArray(occurrenceField.fields)) {
+                        occurrenceField.fields.forEach(field => {
+                            if (field.type !== 'occurrence' && field.name) {
+                                nestedInstanceData[field.name] = getInstanceFieldValue(nestedInstanceId, field.name);
+                            } else if (field.type === 'occurrence') {
+                                // Procesar ocurrencias en un nivel más profundo (recursivo)
+                                nestedInstanceData[field.id || field.name] = processNestedOccurrence(field, nestedInstanceId);
+                            }
+                        });
+                    }
+                    
+                    result.push(nestedInstanceData);
+                });
+            } else {
+                // No hay instancias, crear una vacía
+                const emptyNestedInstance = {};
+                
+                if (occurrenceField.fields && Array.isArray(occurrenceField.fields)) {
+                    occurrenceField.fields.forEach(field => {
+                        if (field.type !== 'occurrence' && field.name) {
+                            emptyNestedInstance[field.name] = "";
+                        } else if (field.type === 'occurrence') {
+                            // Incluir ocurrencia anidada vacía
+                            emptyNestedInstance[field.id || field.name] = [];
+                        }
+                    });
+                }
+                
+                // Solo agregar la instancia vacía si tiene al menos un campo
+                if (Object.keys(emptyNestedInstance).length > 0) {
+                    result.push(emptyNestedInstance);
+                }
+            }
+            
+            return result;
+        };
+        
         // Preservamos la estructura original del JSON
         const buildStructuredJSON = () => {
             // Resultado final en el orden exacto definido por los índices
@@ -1338,15 +1518,34 @@ const ConfigManager = {
             // Primero obtenemos todos los elementos en un arreglo y los ordenamos por índice
             const elements = requestStructure.elements || [];
             
+            // Ordenar elementos por índice para mantener el orden original
+            const sortedElements = [...elements].sort((a, b) => {
+                const indexA = typeof a.index === 'number' ? a.index : Infinity;
+                const indexB = typeof b.index === 'number' ? b.index : Infinity;
+                return indexA - indexB;
+            });
+            
             // Procesamos cada elemento (campos y ocurrencias de primer nivel)
-            elements.forEach(element => {
-                // Para campos simples
+            sortedElements.forEach(element => {
+                // Para campos simples de primer nivel
                 if (element.type === 'field' && element.name) {
                     result[element.name] = getFieldValueFromDOM(element.name);
                 }
-                // Para ocurrencias
-                else if (element.type === 'occurrence' && element.id) {
-                    const occName = element.name || element.id;
+                // Para ocurrencias de primer nivel
+                else if (element.type === 'occurrence') {
+                    const occName = element.name || element.id || `occurrence_${element.index}`;
+                    
+                    // Almacenar el contador de ocurrencias si existe
+                    if (element.countField) {
+                        // Buscar el campo de contador en el DOM
+                        const countFieldValue = getFieldValueFromDOM(element.countField);
+                        // Si existe, guardarlo antes de la ocurrencia
+                        if (countFieldValue) {
+                            result[element.countField] = countFieldValue;
+                        }
+                    }
+                    
+                    // Inicializar el array para esta ocurrencia
                     result[occName] = [];
                     
                     // Buscar instancias de esta ocurrencia
@@ -1364,21 +1563,61 @@ const ConfigManager = {
                             
                             // Procesamos los campos de la instancia ordenados por índice
                             if (element.fields && Array.isArray(element.fields)) {
+                                // Ordenar campos por índice
+                                const sortedFields = [...element.fields].sort((a, b) => {
+                                    const indexA = typeof a.index === 'number' ? a.index : Infinity;
+                                    const indexB = typeof b.index === 'number' ? b.index : Infinity;
+                                    return indexA - indexB;
+                                });
+                                
                                 // Iteramos sobre los campos en el orden original según índice
-                                element.fields.forEach(field => {
+                                sortedFields.forEach(field => {
                                     // Para campos normales
                                     if (field.type !== 'occurrence' && field.name) {
                                         instanceData[field.name] = getInstanceFieldValue(instanceId, field.name);
                                     }
                                     // Para ocurrencias anidadas
-                                    else if (field.type === 'occurrence' && field.id) {
-                                        const nestedOccName = field.name || field.id;
-                                        instanceData[nestedOccName] = [];
-                                        
-                                        // Crear instancia vacía para la ocurrencia anidada
+                                    else if (field.type === 'occurrence') {
+                                        const nestedOccName = field.name || field.id || `nested_${field.index}`;
+                                        // Usar la función recursiva para procesar ocurrencias anidadas
+                                        instanceData[nestedOccName] = processNestedOccurrence(field, instanceId);
+                                    }
+                                });
+                            }
+                            
+                            result[occName].push(instanceData);
+                        });
+                    } 
+                    // Si no hay instancias y es obligatorio tener al menos una, crear una vacía
+                    else if (element.required || element.count > 0) {
+                        const emptyInstance = {};
+                        
+                        // Procesamos los campos de la instancia ordenados por índice
+                        if (element.fields && Array.isArray(element.fields)) {
+                            // Ordenar campos por índice
+                            const sortedFields = [...element.fields].sort((a, b) => {
+                                const indexA = typeof a.index === 'number' ? a.index : Infinity;
+                                const indexB = typeof b.index === 'number' ? b.index : Infinity;
+                                return indexA - indexB;
+                            });
+                            
+                            // Iteramos sobre los campos en el orden original según índice
+                            sortedFields.forEach(field => {
+                                // Para campos normales
+                                if (field.type !== 'occurrence' && field.name) {
+                                    emptyInstance[field.name] = "";
+                                }
+                                // Para ocurrencias anidadas
+                                else if (field.type === 'occurrence') {
+                                    const nestedOccName = field.name || field.id || `nested_${field.index}`;
+                                    // Crear lista vacía para ocurrencia anidada
+                                    emptyInstance[nestedOccName] = [];
+                                    
+                                    // Si la ocurrencia anidada es obligatoria, crear una instancia vacía
+                                    if (field.required || field.count > 0) {
                                         const emptyNestedInstance = {};
                                         
-                                        // Procesar los campos de esta ocurrencia anidada 
+                                        // Procesar los campos de la ocurrencia anidada
                                         if (field.fields && Array.isArray(field.fields)) {
                                             field.fields.forEach(nestedField => {
                                                 if (nestedField.name) {
@@ -1387,49 +1626,19 @@ const ConfigManager = {
                                             });
                                         }
                                         
-                                        instanceData[nestedOccName].push(emptyNestedInstance);
+                                        // Solo agregar si tiene al menos un campo
+                                        if (Object.keys(emptyNestedInstance).length > 0) {
+                                            emptyInstance[nestedOccName].push(emptyNestedInstance);
+                                        }
                                     }
-                                });
-                            }
-                            
-                            result[occName].push(instanceData);
-                        });
-                    }
-                    // Si no hay instancias, crear al menos una vacía
-                    else {
-                        const emptyInstance = {};
-                        
-                        // Procesamos los campos de la instancia ordenados por índice
-                        if (element.fields && Array.isArray(element.fields)) {
-                            // Iteramos sobre los campos en el orden original según índice
-                            element.fields.forEach(field => {
-                                // Para campos normales
-                                if (field.type !== 'occurrence' && field.name) {
-                                    emptyInstance[field.name] = "";
-                                }
-                                // Para ocurrencias anidadas
-                                else if (field.type === 'occurrence' && field.id) {
-                                    const nestedOccName = field.name || field.id;
-                                    emptyInstance[nestedOccName] = [];
-                                    
-                                    // Crear instancia vacía para la ocurrencia anidada
-                                    const emptyNestedInstance = {};
-                                    
-                                    // Procesar los campos de esta ocurrencia anidada
-                                    if (field.fields && Array.isArray(field.fields)) {
-                                        field.fields.forEach(nestedField => {
-                                            if (nestedField.name) {
-                                                emptyNestedInstance[nestedField.name] = "";
-                                            }
-                                        });
-                                    }
-                                    
-                                    emptyInstance[nestedOccName].push(emptyNestedInstance);
                                 }
                             });
                         }
                         
-                        result[occName].push(emptyInstance);
+                        // Solo agregar la instancia vacía si tiene al menos un campo
+                        if (Object.keys(emptyInstance).length > 0) {
+                            result[occName].push(emptyInstance);
+                        }
                     }
                 }
             });
@@ -1438,7 +1647,9 @@ const ConfigManager = {
         };
         
         // Construir un objeto con el orden exacto de los elementos en la estructura
-        return buildStructuredJSON();
+        const result = buildStructuredJSON();
+        console.log("Collected request data:", result);
+        return result;
     }
 
 

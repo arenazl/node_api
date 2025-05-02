@@ -3,6 +3,12 @@
  * Servidor principal para la API de MQ Importer
  */
 
+const express = require('express');
+const cors = require('cors');
+const path = require('path');
+const fileUpload = require('express-fileupload');
+const fs = require('fs-extra');
+
 // Cargar variables de entorno desde .env si existe
 try {
   if (fs.existsSync(path.join(__dirname, '.env'))) {
@@ -12,12 +18,6 @@ try {
 } catch (err) {
   console.warn('No se pudo cargar el archivo .env:', err.message);
 }
-
-const express = require('express');
-const cors = require('cors');
-const path = require('path');
-const fileUpload = require('express-fileupload');
-const fs = require('fs-extra');
 
 // Cache para mejorar el rendimiento
 global.serviceCache = {
@@ -86,8 +86,20 @@ process.on('uncaughtException', (error) => {
 const FILE_UPLOAD_SIZE_LIMIT = parseInt(process.env.FILE_UPLOAD_SIZE_LIMIT || '50', 10); // En MB
 const REQUEST_TIMEOUT = parseInt(process.env.REQUEST_TIMEOUT || '120000', 10); // En ms
 
+// CORS Configuration
+const corsOptions = {
+  origin: process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+  credentials: true,
+  maxAge: 86400 // 24 hours in seconds
+};
+
 // Middleware
-app.use(cors());
+app.use(cors(corsOptions));
+
+// Handle OPTIONS preflight requests
+app.options('*', cors(corsOptions));
 app.use(express.json({ limit: `${FILE_UPLOAD_SIZE_LIMIT}mb` }));
 app.use(express.urlencoded({ extended: true, limit: `${FILE_UPLOAD_SIZE_LIMIT}mb` }));
 app.use(fileUpload({

@@ -606,8 +606,148 @@ function saveStructures(excelFilePath, outputDir) {
   return { headerFile, serviceFile };
 }
 
+/**
+ * Extrae un ejemplo de cabecera (header sample) de la 3ra solapa del Excel
+ * @param {string} filePath - Ruta del archivo Excel
+ * @param {string} serviceNumber - Número de servicio
+ * @returns {Object} Objeto con el ejemplo de cabecera { value: '00...' }
+ */
+function extractHeaderSample(filePath, serviceNumber) {
+  try {
+    console.log(`Extrayendo header sample para servicio ${serviceNumber} de ${filePath}`);
+    
+    // Leer archivo Excel
+    const workbook = XLSX.readFile(filePath, { cellDates: true, raw: true });
+    
+    // Verificar que exista al menos 3 solapas
+    if (workbook.SheetNames.length < 3) {
+      console.warn(`El archivo Excel no tiene 3 solapas, tiene ${workbook.SheetNames.length}`);
+      // Intentar con la última disponible
+      const lastSheetName = workbook.SheetNames[workbook.SheetNames.length - 1];
+      console.log(`Usando la última solapa disponible: ${lastSheetName}`);
+      
+      return findHeaderSampleInSheet(workbook, lastSheetName, serviceNumber);
+    }
+    
+    // Usar la tercera solapa (índice 2)
+    const sheetName = workbook.SheetNames[2];
+    console.log(`Usando la tercera solapa: ${sheetName}`);
+    
+    return findHeaderSampleInSheet(workbook, sheetName, serviceNumber);
+  } catch (error) {
+    console.error(`Error al extraer header sample: ${error.message}`);
+    return { value: "", error: error.message };
+  }
+}
+
+/**
+ * Busca un ejemplo de cabecera en una hoja específica del Excel
+ * @param {Object} workbook - Workbook de XLSX
+ * @param {string} sheetName - Nombre de la hoja
+ * @param {string} serviceNumber - Número de servicio
+ * @returns {Object} Objeto con el ejemplo de cabecera { value: '00...' }
+ */
+function findHeaderSampleInSheet(workbook, sheetName, serviceNumber) {
+  const worksheet = workbook.Sheets[sheetName];
+  
+  // Convertir hoja a matriz de datos (preservando tipos y espacios)
+  const data = XLSX.utils.sheet_to_json(worksheet, { 
+    header: 1, 
+    defval: null,
+    raw: true
+  });
+  
+  console.log(`Buscando línea que empiece con "00" en hoja ${sheetName}...`);
+  
+  // Buscar la primera línea que empiece con "00"
+  for (let rowIndex = 0; rowIndex < data.length; rowIndex++) {
+    const row = data[rowIndex];
+    if (!row || row.length === 0) continue;
+    
+    // Buscar el primer valor no vacío (columna A generalmente)
+    const firstCell = row[0];
+    
+    if (firstCell && String(firstCell).trim().startsWith('00')) {
+      console.log(`Encontrada línea en fila ${rowIndex + 1}: ${String(firstCell)}`);
+      
+      // Extraer el string completo de la fila para obtener las 102 posiciones
+      let rowString = '';
+      
+      // Concatenar todas las celdas de la fila
+      for (let i = 0; i < row.length; i++) {
+        if (row[i] !== null && row[i] !== undefined) {
+          rowString += String(row[i]);
+        }
+      }
+      
+      // Tomar las primeras 102 posiciones (o menos si no hay suficientes)
+      const headerSample = rowString.substring(0, 102);
+      console.log(`Header sample extraído (${headerSample.length} caracteres): ${headerSample}`);
+      
+      return { value: headerSample };
+    }
+  }
+  
+  console.warn(`No se encontró línea que empiece con "00" en la hoja ${sheetName}`);
+  return { value: "", error: "No se encontró línea que empiece con '00'" };
+}
+
+/**
+ * Guarda un ejemplo de cabecera en un archivo JSON
+ * @param {string} excelFilePath - Ruta del archivo Excel
+ * @param {string} serviceNumber - Número de servicio
+ * @param {string} outputDir - Directorio de salida (opcional)
+ * @returns {Object} Resultado de la operación
+ */
+function saveHeaderSample(excelFilePath, serviceNumber, outputDir = null) {
+  try {
+    // Si no se proporciona directorio, usar "headers" en el directorio raíz
+    if (!outputDir) {
+      outputDir = path.join(__dirname, '..', 'headers');
+    }
+    
+    // Crear directorio de headers si no existe
+    fs.ensureDirSync(outputDir);
+    
+    // Extraer el header sample
+    const headerSample = extractHeaderSample(excelFilePath, serviceNumber);
+    
+    // Si hay error y no hay valor, retornar el error
+    if (headerSample.error && !headerSample.value) {
+      return { 
+        success: false, 
+        error: headerSample.error,
+        headerSampleFile: null
+      };
+    }
+    
+    // Generar nombre de archivo
+    const headerSampleFile = path.join(outputDir, `${serviceNumber}_header_sample.json`);
+    
+    // Guardar en archivo JSON
+    fs.writeJsonSync(headerSampleFile, headerSample, { spaces: 2 });
+    
+    console.log(`Header sample guardado en ${headerSampleFile}`);
+    
+    return { 
+      success: true, 
+      headerSampleFile,
+      headerSample
+    };
+  } catch (error) {
+    console.error(`Error al guardar header sample: ${error.message}`);
+    return { 
+      success: false, 
+      error: error.message,
+      headerSampleFile: null
+    };
+  }
+}
+
 module.exports = {
   parseHeaderStructure,
   parseServiceStructure,
-  saveStructures
+  saveStructures,
+  extractHeaderSample,
+  saveHeaderSample
 };
