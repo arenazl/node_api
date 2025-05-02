@@ -1,12 +1,12 @@
 {
   "serviceNumber": "3088",
   "serviceName": "SERVICIO 3088 - Imputador Genérico para varias operaciones",
-  "canal": "PO",
+  "canal": "LO",
   "version": "v2",
-  "timestamp": "2025-05-02T06:13:25.280Z",
+  "timestamp": "2025-05-02T07:09:20.045Z",
   "header": {
     "LONGITUD DEL MENSAJE": "000643",
-    "CANAL": "PO",
+    "CANAL": "LO",
     "SERVICIO": "3050",
     "CÓDIGO DE RETORNO": "0000",
     "ID DEL MENSAJE": "000000076",
@@ -19,10 +19,10 @@
     "CAMPO COMPLEMENTARIO": ""
   },
   "request": {
-    "SVC3088-TIP-PEDIDO": "1",
+    "SVC3088-TIP-PEDIDO": "",
     "occ_1": [
       {
-        "SVC3088-NRO-OPER-SERV": "13",
+        "SVC3088-NRO-OPER-SERV": "5",
         "SVC3088-BCO-ORIG": "",
         "SVC3088-SUC-ORIG": "",
         "SVC3088-BCO-DEST": "",

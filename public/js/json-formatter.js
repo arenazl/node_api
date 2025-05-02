@@ -368,6 +368,36 @@ function escapeHtml(text) {
 }
 
 /**
+ * Función formatJson para usar con elementos pre existentes
+ * @param {HTMLElement} element - Elemento pre que contiene el JSON
+ */
+function formatJson(element) {
+  if (!element || !element.textContent) return;
+  
+  try {
+    // Parsear el JSON del elemento
+    const jsonData = JSON.parse(element.textContent);
+    
+    // Aplicar el formato
+    const formattedHtml = formatJsonSimple(jsonData, 0);
+    
+    // Actualizar el contenido
+    element.innerHTML = formattedHtml;
+    
+    // Hacer que sea editable si no lo es
+    if (!element.hasAttribute('contenteditable')) {
+      element.setAttribute('contenteditable', 'true');
+    }
+  } catch (e) {
+    console.error("Error al formatear JSON:", e);
+    // Si hay error, al menos asegurarse que sea editable
+    if (!element.hasAttribute('contenteditable')) {
+      element.setAttribute('contenteditable', 'true');
+    }
+  }
+}
+
+/**
  * Añade event listeners a los botones de colapso
  * @param {HTMLElement} container - Contenedor con los botones
  */

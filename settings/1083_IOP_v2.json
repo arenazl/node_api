@@ -1,12 +1,12 @@
 {
   "serviceNumber": "1083",
   "serviceName": "SERVICIO 1083 - Consulta de Impuestos",
-  "canal": "LO",
+  "canal": "IOP",
   "version": "v2",
-  "timestamp": "2025-05-02T07:28:18.737Z",
+  "timestamp": "2025-05-02T07:41:26.211Z",
   "header": {
     "LONGITUD DEL MENSAJE": "000181",
-    "CANAL": "LO",
+    "CANAL": "IOP",
     "SERVICIO": "1083",
     "CÓDIGO DE RETORNO": "0000",
     "ID DEL MENSAJE": "000000102",
@@ -19,10 +19,10 @@
     "CAMPO COMPLEMENTARIO": ""
   },
   "request": {
-    "SVC1083-TIP-PEDIDO": "01",
+    "SVC1083-TIP-PEDIDO": "",
     "SVC1083-NIC-ORIG": "",
-    "SVC1083-CO-OPER-IMP": "",
-    "SVC1083-C-MOD-PROD-ORIG": "",
+    "SVC1083-CO-OPER-IMP": "8908",
+    "SVC1083-C-MOD-PROD-ORIG": "908",
     "SVC1083-COD-TRAN-OPE": "",
     "SVC1083-FECHA-MOVI": "",
     "SVC1083-MONEDA-ORIG": "",

@@ -41,17 +41,35 @@
     <!-- Tabs Navigation -->
     <div class="tabs-container">
       <div class="tabs-nav">
+        <button class="tab-btn" data-tab="archivos">Archivos</button>
         <button class="tab-btn active" data-tab="cabecera">Cabecera</button>
         <button class="tab-btn" data-tab="requerimiento">Requerimiento</button>
         <button class="tab-btn" data-tab="respuesta">Respuesta</button>
         <button class="tab-btn" data-tab="json">Estructura</button>
         <button class="tab-btn" data-tab="configuracion">Configuración</button>
-        <button class="tab-btn" data-tab="archivos">Archivos</button>
         <button class="tab-btn" data-tab="servicios">Api</button>
       </div>
       
       <!-- Tab Content -->
       <div class="tab-content">
+
+        <div id="archivos" class="tab-pane">
+          <div class="files-container">
+            <table id="filesTable">
+              <thead>
+                <tr>
+                  <th>Archivo</th>
+                  <th>Fecha</th>
+                  <th>Acción</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Lista de archivos se insertará aquí -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
         <div id="cabecera" class="tab-pane active">
           <div class="table-container">
             <table id="headerTable">
@@ -214,22 +232,8 @@
             </div>
           </div>
         </div>
-        <div id="archivos" class="tab-pane">
-          <div class="files-container">
-            <table id="filesTable">
-              <thead>
-                <tr>
-                  <th>Archivo</th>
-                  <th>Fecha</th>
-                  <th>Acción</th>
-                </tr>
-              </thead>
-              <tbody>
-                <!-- Lista de archivos se insertará aquí -->
-              </tbody>
-            </table>
-          </div>
-        </div>
+
+    
         <div id="servicios" class="tab-pane">
           <div class="services-tabs">
             <div class="services-nav">
@@ -322,7 +326,7 @@
             </div>
             
             <div class="services-list-section">
-              <h3>Servicios Disponibles</h3>
+              <h3>Servicios Disponibles <button id="refreshServicesBtn" class="action-btn secondary-btn" style="font-size: 0.75rem; padding: 0.2rem 0.5rem; margin-left: 0.5rem;">Refrescar</button></h3>
               <table id="servicesTable">
                 <thead>
                   <tr>
@@ -361,7 +365,16 @@
   <script src="/js/json-formatter.js"></script>
   <script src="/js/main.js"></script>
   <script src="/js/service-tabs.js"></script>
+  
+  <!-- Modular configuration system -->
+  <script src="/js/config-utils.js"></script>
+  <script src="/js/config-service-loader.js"></script>
+  <script src="/js/config-occurrence-handler.js"></script>
+  <script src="/js/config-data-handler.js"></script>
+  <script src="/js/config-storage.js"></script>
+  <script src="/js/config-ui-manager.js"></script>
   <script src="/js/config-manager.js"></script>
+  
   <script src="/js/structure-search.js"></script>
   <script src="/js/tab-manager.js"></script>
   <script src="/js/example-stream.js"></script>
