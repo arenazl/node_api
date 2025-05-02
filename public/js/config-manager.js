@@ -13,6 +13,17 @@ const ConfigManager = {
     currentStructure: null,
     occurrenceCounter: 0,
     versionCounter: 1,
+    
+    // Helper function to normalize strings (remove accents and convert to lowercase)
+    normalizeString: function(str) {
+        if (!str) return '';
+        
+        // Convert to lowercase
+        const lowerCase = str.toLowerCase();
+        
+        // Remove accents
+        return lowerCase.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    },
 
     // Initialization
     init: function() {
@@ -669,9 +680,11 @@ const ConfigManager = {
     createFieldInput: function(field) {
         const fieldType = (field.fieldType || field.type || '').toLowerCase(); // Check both properties
         const fieldName = field.name;
+        const fieldValues = field.values || '';
+        const fieldDescription = field.description || '';
 
         // For fields with predefined values (select dropdown)
-        if (field.values && typeof field.values === 'string' && field.values.includes('=')) {
+        if (fieldValues && typeof fieldValues === 'string' && fieldValues.includes('=')) {
             const select = document.createElement('select');
             select.classList.add('config-field-input', 'form-control', 'form-control-sm'); // Add Bootstrap classes
 
@@ -680,7 +693,7 @@ const ConfigManager = {
             emptyOption.textContent = '-- Seleccione --';
             select.appendChild(emptyOption);
 
-            const valueLines = field.values.split('\n');
+            const valueLines = fieldValues.split('\n');
             valueLines.forEach(line => {
                 const match = line.match(/([^\s=]+)\s*=\s*(.*)/); // More robust regex
                 if (match) {
@@ -708,25 +721,132 @@ const ConfigManager = {
         // Basic placeholder
         input.placeholder = `Valor (max ${field.length || 'N/A'})`;
 
-        // Specific handling for numeric types (using pattern for basic client-side hint)
-        if (fieldType.includes('numerico') || fieldType.includes('numeric')) {
-            input.pattern = '[0-9]*'; // Hint for numeric input
+        // Check if the field is a date field with DD.MM.YYYY format
+        const isDDMMYYYYFormat = (fieldDescription && fieldDescription.includes('(DD.MM.YYYY)')) || 
+                                 (fieldValues && fieldValues.includes('(DD.MM.YYYY)'));
+        
+        // Check if the field is a date field with DD/MM/AAAA format
+        const isDDMMAAAAFormat = (field.length === 10 && 
+                                 (fieldName.toUpperCase().includes('FECHA') || 
+                                  fieldDescription.includes('DD/MM/AAAA')));
+
+        // Normalize field type for comparison (remove accents, convert to lowercase)
+        const normalizedType = this.normalizeString(fieldType);
+        
+        // Exact matching for field types to avoid "alfanumerico" matching "numerico"
+        const isNumeric = normalizedType === 'numerico' || normalizedType === 'numeric';
+        
+        // Determine if field is alphanumeric (exact matching)
+        const isAlphanumeric = normalizedType === 'alfanumerico' || normalizedType === 'alphanumeric';
+                
+        // Set properties based on field type
+        if (isNumeric) {
+            input.setAttribute('data-field-type', 'numeric');
             input.placeholder = `Número (max ${field.length || 'N/A'} dígitos)`;
-            // Add input event listener to strip non-numeric characters
-            input.addEventListener('input', function() {
-                this.value = this.value.replace(/[^0-9]/g, '');
-            });
+            input.pattern = '[0-9]*'; // HTML5 pattern for numeric validation
+        } else if (isAlphanumeric) {
+            input.setAttribute('data-field-type', 'alphanumeric');
+            input.placeholder = `Texto (max ${field.length || 'N/A'} caracteres)`;
+        } else if (isDDMMYYYYFormat) {
+            input.setAttribute('data-field-type', 'date-dots');
+            input.placeholder = 'DD.MM.YYYY';
+            input.pattern = '\\d{2}\\.\\d{2}\\.\\d{4}';
+        } else if (isDDMMAAAAFormat) {
+            input.setAttribute('data-field-type', 'date-slashes');
+            input.placeholder = 'DD/MM/AAAA';
+            input.pattern = '\\d{2}/\\d{2}/\\d{4}';
+        } else if (fieldName && fieldName.toUpperCase().includes('FECHA')) {
+            input.setAttribute('data-field-type', 'date-compact');
+            input.placeholder = 'AAAAMMDD';
+        } else if (fieldName && fieldName.toUpperCase().includes('HORA')) {
+            input.setAttribute('data-field-type', 'time');
+            input.placeholder = 'HHMMSS';
         }
 
-        // Special placeholders for date/time formats
-        if (fieldName && fieldName.toUpperCase().includes('FECHA')) {
-            input.placeholder = 'AAAAMMDD';
-            if (field.length === 10 && field.fieldType === 'alfanumerico') { // Handle DD/MM/AAAA format if specified
-                input.placeholder = 'DD/MM/AAAA';
-                input.pattern = '\\d{2}/\\d{2}/\\d{4}'; // Basic pattern hint
-            }
-        } else if (fieldName && fieldName.toUpperCase().includes('HORA')) {
-            input.placeholder = 'HHMMSS';
+        // Handle date fields with different formats
+        if (isDDMMYYYYFormat) {
+            // Add input event listener to enforce DD.MM.YYYY format
+            input.addEventListener('input', function(e) {
+                let value = this.value.replace(/[^0-9.]/g, ''); // Allow only digits and dots
+                
+                // Auto-add dots after day and month
+                if (value.length > 2 && value.charAt(2) !== '.') {
+                    if (value.length === 3) {
+                        value = value.substring(0, 2) + '.' + value.substring(2);
+                    } else {
+                        value = value.substring(0, 2) + '.' + value.substring(2).replace(/\./g, '');
+                    }
+                }
+                if (value.length > 5 && value.charAt(5) !== '.') {
+                    if (value.length === 6) {
+                        value = value.substring(0, 5) + '.' + value.substring(5);
+                    } else {
+                        value = value.substring(0, 5) + '.' + value.substring(5).replace(/\./g, '');
+                    }
+                }
+
+                // Enforce max length of 10 (DD.MM.YYYY)
+                if (value.length > 10) {
+                    value = value.substring(0, 10);
+                }
+                
+                this.value = value;
+            });
+        }
+        // Handle standard date formats
+        else if (isDDMMAAAAFormat) {
+            // Add input event listener to enforce DD/MM/AAAA format
+            input.addEventListener('input', function(e) {
+                let value = this.value.replace(/[^0-9/]/g, ''); // Allow only digits and slashes
+                
+                // Auto-add slashes after day and month
+                if (value.length > 2 && value.charAt(2) !== '/') {
+                    if (value.length === 3) {
+                        value = value.substring(0, 2) + '/' + value.substring(2);
+                    } else {
+                        value = value.substring(0, 2) + '/' + value.substring(2).replace(/\//g, '');
+                    }
+                }
+                if (value.length > 5 && value.charAt(5) !== '/') {
+                    if (value.length === 6) {
+                        value = value.substring(0, 5) + '/' + value.substring(5);
+                    } else {
+                        value = value.substring(0, 5) + '/' + value.substring(5).replace(/\//g, '');
+                    }
+                }
+
+                // Enforce max length of 10 (DD/MM/AAAA)
+                if (value.length > 10) {
+                    value = value.substring(0, 10);
+                }
+                
+                this.value = value;
+            });
+        }
+        // Handle numeric fields 
+        else if (isNumeric) {
+            // Add input, change, and blur events to enforce numeric input
+            input.addEventListener('input', function() {
+                const originalValue = this.value;
+                const numericValue = this.value.replace(/[^0-9]/g, '');
+                
+                if (originalValue !== numericValue) {
+                    // If non-numeric characters were stripped, update the input
+                    this.value = numericValue;
+                    
+                    // Alert the user
+                    if (originalValue.length > 0) {
+                        console.warn(`Valor no numérico detectado y corregido en campo: ${fieldName}`);
+                    }
+                }
+            });
+            
+            // Also validate on blur for good measure
+            input.addEventListener('blur', function() {
+                if (!/^\d*$/.test(this.value)) {
+                    this.value = this.value.replace(/[^0-9]/g, '');
+                }
+            });
         }
 
         return input;
@@ -1456,6 +1576,35 @@ const ConfigManager = {
             return input ? (input.value || "") : "";
         };
         
+        /**
+         * Verifica si una instancia está vacía (todos sus campos están vacíos)
+         * @param {Object} instance - Instancia a verificar
+         * @returns {boolean} true si todos los campos están vacíos, false si al menos un campo tiene valor
+         */
+        const isEmptyInstance = (instance) => {
+            // Si no hay instancia o no es un objeto, considerarlo vacío
+            if (!instance || typeof instance !== 'object') return true;
+            
+            // Verificar cada campo en la instancia
+            for (const key in instance) {
+                const value = instance[key];
+                
+                // Si es un arreglo (posible ocurrencia anidada)
+                if (Array.isArray(value)) {
+                    // Si tiene algún elemento no vacío, la instancia no está vacía
+                    const hasNonEmptyItem = value.some(item => !isEmptyInstance(item));
+                    if (hasNonEmptyItem) return false;
+                } 
+                // Si es un valor simple y no está vacío
+                else if (value && typeof value === 'string' && value.trim() !== '') {
+                    return false;
+                }
+            }
+            
+            // Si no encontramos ningún valor no vacío, la instancia está vacía
+            return true;
+        };
+        
         // Función recursiva para procesar ocurrencias anidadas
         const processNestedOccurrence = (occurrenceField, instanceId) => {
             const nestedOccName = occurrenceField.id || occurrenceField.name;
@@ -1484,29 +1633,14 @@ const ConfigManager = {
                         });
                     }
                     
-                    result.push(nestedInstanceData);
+                    // Solo agregar la instancia si no está vacía
+                    if (!isEmptyInstance(nestedInstanceData)) {
+                        result.push(nestedInstanceData);
+                    }
                 });
-            } else {
-                // No hay instancias, crear una vacía
-                const emptyNestedInstance = {};
-                
-                if (occurrenceField.fields && Array.isArray(occurrenceField.fields)) {
-                    occurrenceField.fields.forEach(field => {
-                        if (field.type !== 'occurrence' && field.name) {
-                            emptyNestedInstance[field.name] = "";
-                        } else if (field.type === 'occurrence') {
-                            // Incluir ocurrencia anidada vacía
-                            emptyNestedInstance[field.id || field.name] = [];
-                        }
-                    });
-                }
-                
-                // Solo agregar la instancia vacía si tiene al menos un campo
-                if (Object.keys(emptyNestedInstance).length > 0) {
-                    result.push(emptyNestedInstance);
-                }
             }
             
+            // Si no hay instancias o todas están vacías, devolver un arreglo vacío
             return result;
         };
         

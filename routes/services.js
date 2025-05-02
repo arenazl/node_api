@@ -16,6 +16,81 @@ const messageAnalyzer = require('../api/message-analyzer');
 const structuresDir = path.join(__dirname, '..', 'structures');
 
 /**
+ * Función para eliminar ocurrencias vacías de un objeto de respuesta
+ * @param {Object} responseData - Datos de respuesta a filtrar
+ * @returns {Object} - Datos de respuesta sin ocurrencias vacías
+ */
+function removeEmptyOccurrences(responseData) {
+  if (!responseData || typeof responseData !== 'object') {
+    return responseData;
+  }
+  
+  // Crear una copia profunda del objeto para no modificar el original
+  const result = JSON.parse(JSON.stringify(responseData));
+  
+  // Buscar campos que sean arrays (posibles ocurrencias)
+  for (const key in result) {
+    if (Array.isArray(result[key])) {
+      console.log(`Procesando ocurrencia ${key} con ${result[key].length} elementos`);
+      
+      // Función auxiliar para verificar si un valor es realmente significativo
+      // (no solo espacios, ceros o valores por defecto)
+      const isSignificantValue = (value) => {
+        if (value === null || value === undefined) return false;
+        
+        if (typeof value === 'string') {
+          // Eliminar espacios
+          const trimmedValue = value.trim();
+          if (trimmedValue === '') return false;
+          
+          // Verificar si solo contiene ceros
+          if (/^0+$/.test(trimmedValue)) return false;
+          
+          // Verificar si solo contiene espacios y ceros
+          if (/^[0\s]+$/.test(value)) return false;
+          
+          // Si contiene algún caracter que no sea un cero, espacio o caracter por defecto, es significativo
+          return /[^0\s]/.test(value);
+        }
+        
+        if (Array.isArray(value)) {
+          return value.length > 0 && value.some(item => 
+            typeof item === 'object' && 
+            Object.values(item).some(v => isSignificantValue(v))
+          );
+        }
+        
+        return false;
+      };
+      
+      // Filtrar elementos: mantener solo los que tienen al menos un campo con valor significativo
+      const filteredItems = result[key].filter(item => {
+        // Si no es un objeto o es null, no hay nada que evaluar
+        if (!item || typeof item !== 'object' || Array.isArray(item)) {
+          return false;
+        }
+        
+        // Verificar si el objeto tiene al menos un campo con valor significativo
+        return Object.values(item).some(fieldValue => isSignificantValue(fieldValue));
+      });
+      
+      console.log(`Ocurrencia ${key} filtrada: ${filteredItems.length} elementos (eliminados ${result[key].length - filteredItems.length})`);
+      
+      // Actualizar el array con los elementos filtrados
+      result[key] = filteredItems;
+      
+      // Si la ocurrencia queda vacía completamente, consideramos eliminarla
+      if (result[key].length === 0) {
+        console.log(`Eliminando completamente la ocurrencia vacía ${key}`);
+        delete result[key];
+      }
+    }
+  }
+  
+  return result;
+}
+
+/**
  * @route GET /api/services
  * @description Obtiene la lista de servicios disponibles
  */
@@ -83,20 +158,21 @@ router.post('/vuelta', async (req, res) => {
         console.warn("No se encontró estructura de respuesta para el servicio");
       }
       
+      // Filtrar ocurrencias vacías antes de retornar
+      const cleanResponseData = removeEmptyOccurrences(responseData);
+      
       // Construir resultado final
       const parsedData = {
         header: headerData,
-        response: responseData
+        response: cleanResponseData
       };
       
       // Añadir logs para debuggear
       console.log("Servicio de vuelta - headers:", JSON.stringify(headerData, null, 2));
-      console.log("Servicio de vuelta - response:", JSON.stringify(responseData, null, 2));
+      console.log("Servicio de vuelta - response filtrada:", JSON.stringify(cleanResponseData, null, 2));
       
-      // Devolver el responseData completo, que ya contiene tanto los campos básicos como las ocurrencias
-      // Esto preserva la estructura original con los campos fuera de las ocurrencias en el nivel superior
-      // y las ocurrencias como arrays en sus respectivas propiedades
-      return res.json(responseData);
+      // Devolver los datos de respuesta filtrados, sin ocurrencias vacías
+      return res.json(cleanResponseData);
     } catch (error) {
       throw new Error(`Error al procesar el stream: ${error.message}`);
     }
@@ -105,6 +181,81 @@ router.post('/vuelta', async (req, res) => {
     res.status(error.statusCode || 500).json({ 
       error: error.message 
     });
+  }
+});
+
+/**
+ * @route POST /api/services/process
+ * @description Procesa un servicio por número y stream (general)
+ */
+router.post('/process', async (req, res) => {
+  try {
+    const { service_number, stream } = req.body;
+    
+    if (!service_number) {
+      return res.status(400).json({ error: "Se requiere el número de servicio" });
+    }
+    
+    // Buscar estructuras del servicio
+    const { headerStructure, serviceStructure } = await findServiceByNumber(service_number);
+    
+    // Procesar el servicio
+    let result = {};
+    
+    // Si hay stream, analizarlo como respuesta
+    if (stream) {
+      try {
+        // Extraer cabecera
+        const headerLength = headerStructure.totalLength || 102;
+        const headerMessage = stream.substring(0, headerLength);
+        const headerData = messageAnalyzer.parseHeaderMessage(headerMessage, headerStructure);
+        
+        // Extraer cuerpo de la respuesta
+        const bodyMessage = stream.substring(headerLength);
+        const responseStructure = serviceStructure.response;
+        
+        // Procesar el cuerpo de la respuesta
+        let responseData = {};
+        if (responseStructure && responseStructure.elements) {
+          responseData = messageAnalyzer.parseDataMessage(bodyMessage, responseStructure);
+        }
+        
+        // Filtrar ocurrencias vacías antes de devolver resultado
+        const cleanResponseData = removeEmptyOccurrences(responseData);
+        
+        // Construir resultado
+        result = {
+          header: headerData,
+          response: cleanResponseData
+        };
+      } catch (error) {
+        console.error("Error al procesar stream:", error);
+        result = { error: error.message };
+      }
+    } else {
+      // Si no hay stream, generar un ejemplo de solicitud
+      const messageData = {
+        header: {
+          CANAL: "API",
+          SERVICIO: service_number,
+          USUARIO: "SISTEMA"
+        },
+        data: {},
+        section: "request"
+      };
+      
+      // Crear mensaje de ejemplo
+      const message = messageCreator.createMessage(headerStructure, serviceStructure, messageData, "request");
+      result = {
+        message: message,
+        info: "Ejemplo de solicitud generado"
+      };
+    }
+    
+    res.json({ result });
+  } catch (error) {
+    console.error(`Error al procesar servicio:`, error);
+    res.status(500).json({ error: error.message });
   }
 });
 
