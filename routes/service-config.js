@@ -78,6 +78,21 @@ router.get('/list', async (req, res) => {
   try {
     const { service_number } = req.query;
     
+    // IMPORTANTE: Forzar actualización de la caché de servicios cuando se carga la configuración
+    // Esto garantiza que los nuevos servicios cargados aparezcan inmediatamente
+    try {
+      console.log("[CONFIG] Forzando recarga de caché de servicios para actualizar la lista...");
+      // Importar el módulo de servicios para forzar recarga
+      const serviceRouter = require('./services');
+      
+      // Forzar recarga con forceRefresh = true
+      await serviceRouter.getAvailableServices(true);
+      console.log("[CONFIG] Caché de servicios actualizada exitosamente");
+    } catch (cacheError) {
+      console.error("[CONFIG] Error al recargar caché de servicios:", cacheError);
+      // Continuamos a pesar del error para no bloquear la funcionalidad principal
+    }
+    
     // Verificar si el directorio existe
     if (!fs.existsSync(configDir)) {
       return res.json({ configs: [] });

@@ -6,7 +6,8 @@ package-lock.json
 yarn.lock
 
 # Logs
-logs/
+logs/*
+!logs/.gitkeep
 *.log
 
 # Runtime data
@@ -16,12 +17,15 @@ pids/
 *.pid.lock
 
 # Temporary files
-tmp/
+tmp/*
+!tmp/.gitkeep
 temp/
 
 # File uploads and generated content
-uploads/
-structures/
+uploads/*
+!uploads/.gitkeep
+structures/*
+!structures/.gitkeep
 
 # Environment variables (never commit these)
 .env

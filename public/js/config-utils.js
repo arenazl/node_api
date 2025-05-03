@@ -16,12 +16,67 @@ const ConfigUtils = {
         return lowerCase.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
     },
 
-    // Helper function for notifications
+    // Helper function for notifications using Toastr or SweetAlert2
     showNotification: function(message, type) {
+        // Verificar si Toastr está disponible
+        if (typeof toastr !== 'undefined') {
+            // Configuración de Toastr
+            toastr.options = {
+                closeButton: true,
+                progressBar: true,
+                positionClass: "toast-top-right",
+                timeOut: 5000,
+                extendedTimeOut: 2000,
+                preventDuplicates: false,
+                newestOnTop: true,
+                showEasing: "swing",
+                hideEasing: "linear",
+                showMethod: "fadeIn",
+                hideMethod: "fadeOut"
+            };
+            
+            // Usar el método apropiado según el tipo
+            switch (type) {
+                case 'success':
+                    toastr.success(message, 'Éxito');
+                    break;
+                case 'error':
+                    toastr.error(message, 'Error');
+                    break;
+                case 'warning':
+                    toastr.warning(message, 'Advertencia');
+                    break;
+                default:
+                    toastr.info(message, 'Información');
+            }
+            return;
+        }
+        
+        // Si no está Toastr, intentar con SweetAlert2
+        if (typeof Swal !== 'undefined') {
+            // Asegurarse de que type sea un valor válido
+            let iconType = type || 'info';
+            // Mapear tipos a los iconos válidos de SweetAlert2
+            if (iconType === 'error') iconType = 'error';
+            else if (iconType === 'success') iconType = 'success';
+            else if (iconType === 'warning') iconType = 'warning';
+            else iconType = 'info'; // Valor por defecto
+            
+            Swal.fire({
+                title: iconType.charAt(0).toUpperCase() + iconType.slice(1),
+                text: message,
+                icon: iconType,
+                confirmButtonText: 'OK',
+                confirmButtonColor: '#2563eb'
+            });
+            return;
+        }
+        
+        // Si no hay bibliotecas de notificación, usar el método original
         const notification = document.getElementById('notification');
         if (!notification) {
             console.warn("Notification element not found!");
-            alert(`${type}: ${message}`); // Fallback to alert
+            alert(`${type}: ${message}`); // Fallback a alert como último recurso
             return;
         }
         notification.textContent = message;

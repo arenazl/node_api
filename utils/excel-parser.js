@@ -1,5 +1,5 @@
 /**
- * Funciones para parsear archivos Excel
+ * Funciones para parsear archivos Excel - VERSIÓN CON DETECCIÓN AUTOMÁTICA
  */
 
 const XLSX = require('xlsx');
@@ -237,11 +237,74 @@ function parseHeaderStructure(filePath) {
 }
 
 /**
- * Parsea la estructura de servicio desde un archivo Excel
+ * Parsea la estructura de servicio desde un archivo Excel - VERSIÓN ORIGINAL
  * @param {string} filePath - Ruta del archivo Excel
  * @returns {Object} Estructura de servicio
  */
 function parseServiceStructure(filePath) {
+  try {
+    console.log("[DEBUG-PARSER] ===== INICIANDO PARSEO DE SERVICIO =====");
+    console.log("[DEBUG-PARSER] Archivo:", filePath);
+    
+    // Intentar con el parser estándar (que funciona bien para SVC3088)
+    console.log("[DEBUG-PARSER] PASO 1: Probando con parser estándar original");
+    
+    try {
+      console.log("[DEBUG-PARSER] Ejecutando parser original...");
+      const structure = parseServiceStructureOriginal(filePath);
+      
+      // VERIFICACIÓN CLAVE: Si el request está vacío, puede ser un indicio de problemas con el parser
+      if (!structure.request || !structure.request.elements || structure.request.elements.length === 0) {
+        console.warn("[DEBUG-PARSER] ¡ATENCIÓN! El parser original no encontró elementos en request");
+        console.warn("[DEBUG-PARSER] Request está vacío, esto indica que el formato puede ser no estándar");
+        console.log("[DEBUG-PARSER] Campos en el request:", structure.request?.elements?.length || 0);
+        throw new Error("No hay elementos en request, probar enhanced");
+      }
+      
+      console.log("[DEBUG-PARSER] ✓ Parser original EXITOSO");
+      console.log("[DEBUG-PARSER] Campos en request:", structure.request.elements.length);
+      console.log("[DEBUG-PARSER] Campos en response:", structure.response.elements.length);
+      return structure;
+    } catch (originalError) {
+      // Si falla el parser original, intentar con el mejorado
+      console.log(`[DEBUG-PARSER] ✗ Parser original FALLÓ: ${originalError.message}`);
+      console.log("[DEBUG-PARSER] PASO 2: Usando parser enhanced como FALLBACK");
+      
+      try {
+        console.log("[DEBUG-PARSER] Cargando módulo excel-parser-enhanced...");
+        const enhancedParser = require('./excel-parser-enhanced');
+        console.log("[DEBUG-PARSER] Ejecutando parseServiceStructureDetailed...");
+        const enhancedResult = enhancedParser.parseServiceStructureDetailed(filePath);
+        console.log("[DEBUG-PARSER] ✓ Parser enhanced EXITOSO");
+        
+        if (enhancedResult.request && enhancedResult.request.elements) {
+          console.log("[DEBUG-PARSER] Campos en request (enhanced):", enhancedResult.request.elements.length);
+        }
+        
+        return enhancedResult;
+      } catch (enhancedError) {
+        console.error("[DEBUG-PARSER] ✗ Error también con enhanced parser:", enhancedError);
+        throw enhancedError;
+      }
+    }
+  } catch (error) {
+    console.error("Error general en parseServiceStructure:", error);
+    
+    return {
+      serviceNumber: "error",
+      serviceName: "Error al parsear estructura",
+      request: { elements: [], fieldCount: 0, occurrenceCount: 0, totalFieldCount: 0 },
+      response: { elements: [], fieldCount: 0, occurrenceCount: 0, totalFieldCount: 0 }
+    };
+  }
+}
+
+/**
+ * Versión original del parser - Funciona bien para SVC3088 y otros servicios estándar
+ * @param {string} filePath - Ruta del archivo Excel
+ * @returns {Object} Estructura de servicio
+ */
+function parseServiceStructureOriginal(filePath) {
   // Leer archivo Excel
   const workbook = XLSX.readFile(filePath, { cellDates: true });
   
@@ -342,9 +405,6 @@ function parseServiceStructure(filePath) {
     const fieldName = String(row[COL_FIELD_NAME] || '').trim();
     const fieldType = String(row[COL_TYPE] || '').trim();
     
-    // Registrar información del campo para depuración
-    console.log(`Parseando campo: ${fieldName}, tipo desde Excel: ${fieldType}`);
-    
     return {
       type: 'field',
       index: index,
@@ -389,8 +449,14 @@ function parseServiceStructure(filePath) {
     const lengthValue = String(row[COL_LENGTH] || '').trim();
     const normalizedFieldName = fieldName.toUpperCase();
     
-    // Detectar sección principal (REQUERIMIENTO/RESPUESTA)
-    if (normalizedFieldName === 'REQUERIMIENTO') {
+    // Detectar sección principal (REQUERIMIENTO/RESPUESTA/SOLICITUD)
+    // Primero verificamos en la columna A (índice 0)
+    const colAValue = row[0] ? String(row[0] || '').trim().toUpperCase() : "";
+    
+    // Requerimiento puede estar en columna A o B
+    if (colAValue.includes('REQUERIMIENTO') || colAValue.includes('SOLICITUD') ||
+        normalizedFieldName.includes('REQUERIMIENTO') || normalizedFieldName.includes('SOLICITUD')) {
+      console.log(`Detectada sección REQUERIMIENTO/SOLICITUD: "${colAValue || fieldName}" en fila ${rowIndex+1}`);
       currentSection = 'request';
       structure.request.totalLength = lengthValue.match(/^\d+$/) ? parseInt(lengthValue) : 0;
       occurrenceStack = [];
@@ -399,7 +465,10 @@ function parseServiceStructure(filePath) {
       continue;
     }
     
-    if (normalizedFieldName === 'RESPUESTA') {
+    // También verificar RESPUESTA en columna A
+    const colAValueResp = row[0] ? String(row[0] || '').trim().toUpperCase() : "";
+    if (colAValueResp === 'RESPUESTA' || normalizedFieldName.includes('RESPUESTA')) {
+      console.log(`Detectada sección RESPUESTA: "${colAValueResp || fieldName}" en fila ${rowIndex+1}`);
       currentSection = 'response';
       structure.response.totalLength = lengthValue.match(/^\d+$/) ? parseInt(lengthValue) : 0;
       occurrenceStack = [];
@@ -477,8 +546,20 @@ function parseServiceStructure(filePath) {
     }
     
     // Procesar campos
-    // Solo procesar filas que comienzan con SVC y tienen un valor numérico en la columna de longitud
-    if (fieldName.startsWith('SVC') && lengthValue.match(/^\d+$/)) {
+    // Detectar cualquier campo que tenga una longitud numérica válida y un tipo definido
+    if (lengthValue && lengthValue.match(/^\d+$/) && 
+        row[COL_TYPE] && row[COL_TYPE].toString().trim() !== '') {
+      
+      // Verificar que el campo tenga longitud válida
+      if (!lengthValue.match(/^\d+$/)) {
+        console.warn(`Advertencia: La longitud del campo "${fieldName}" no es un número válido: "${lengthValue}"`);
+        continue;
+      }
+      
+      // Si el campo no comienza con SVC, registrar que se detectó un campo no estándar
+      if (!fieldName.startsWith('SVC')) {
+        console.log(`Detectado campo con formato no estándar: "${fieldName}", longitud: ${lengthValue}, tipo: ${row[COL_TYPE]}`);
+      }
       const field = createField(row, currentIndex);
       currentIndex++;
       
@@ -502,7 +583,14 @@ function parseServiceStructure(filePath) {
     }
   }
   
-  // Reorganizar estructura para que las ocurrencias anidadas estén en la posición correcta
+  // VALIDACIÓN IMPORTANTE: Si no se encontraron elementos en request, es posible que haya un problema con el formato
+  if (structure.request.elements.length === 0) {
+    console.warn("[VALIDACIÓN] No se encontraron elementos en la sección request - posible problema de formato");
+    throw new Error("No hay elementos en la sección request, es posible que sea un formato no estándar");
+  }
+  
+  // VERSIÓN EXACTA ANTERIOR DEL REORGANIZADO PARA SVC3088:
+  // Este era el código que funcionaba bien antes
   for (const section of ['request', 'response']) {
     const sectionData = structure[section];
     
@@ -518,7 +606,7 @@ function parseServiceStructure(filePath) {
           element.fields.sort((a, b) => parseInt(a.index) - parseInt(b.index));
         }
         
-        // Si la ocurrencia tiene hijos, reorganizarlos
+        // Si la ocurrencia tiene hijos, reorganizarlos - ESTA ES LA PARTE CRÍTICA
         if (element.children && element.children.length > 0) {
           // Ordenar hijos por índice
           element.children.sort((a, b) => parseInt(a.index) - parseInt(b.index));
@@ -541,6 +629,8 @@ function parseServiceStructure(filePath) {
           
           // Eliminar propiedad children ya que los hijos ahora están en fields
           delete element.children;
+          
+          console.log(`[ESTRUCTURA-ORIGINAL] Ocurrencia ${element.id} tiene hijos anidados ahora integrados correctamente en fields`);
         }
       }
     }
@@ -621,22 +711,42 @@ function extractHeaderSample(filePath, serviceNumber) {
     
     // Verificar que exista al menos 3 solapas
     if (workbook.SheetNames.length < 3) {
-      console.warn(`El archivo Excel no tiene 3 solapas, tiene ${workbook.SheetNames.length}`);
-      // Intentar con la última disponible
-      const lastSheetName = workbook.SheetNames[workbook.SheetNames.length - 1];
-      console.log(`Usando la última solapa disponible: ${lastSheetName}`);
+      console.warn(`El archivo Excel no tiene 3 solapas, tiene ${workbook.SheetNames.length}. No se podrá extraer header sample.`);
       
-      return findHeaderSampleInSheet(workbook, lastSheetName, serviceNumber);
+      // Retornar un objeto indicando que no hay pestaña de cabecera pero que esto no es un error fatal
+      return { 
+        value: "", 
+        warning: "El archivo Excel no tiene la tercera pestaña donde se ubican los ejemplos", 
+        missingTab: true,
+        availableTabs: workbook.SheetNames.length,
+        nonFatalError: true // Indica explícitamente que este no es un error fatal
+      };
     }
     
     // Usar la tercera solapa (índice 2)
     const sheetName = workbook.SheetNames[2];
     console.log(`Usando la tercera solapa: ${sheetName}`);
     
-    return findHeaderSampleInSheet(workbook, sheetName, serviceNumber);
+    try {
+      return findHeaderSampleInSheet(workbook, sheetName, serviceNumber);
+    } catch (sheetError) {
+      // Si hay un error al procesar la tercera pestaña, aún así permitimos continuar
+      console.warn(`Error al procesar la tercera pestaña: ${sheetError.message}. El proceso continuará.`);
+      return {
+        value: "",
+        warning: `Error al procesar la tercera pestaña: ${sheetError.message}`,
+        processingError: true,
+        nonFatalError: true // Indica que este error tampoco es fatal
+      };
+    }
   } catch (error) {
     console.error(`Error al extraer header sample: ${error.message}`);
-    return { value: "", error: error.message };
+    return { 
+      value: "", 
+      error: error.message, 
+      missingTab: false,
+      nonFatalError: true // Este también es un error no fatal
+    };
   }
 }
 
@@ -717,7 +827,8 @@ function saveHeaderSample(excelFilePath, serviceNumber, outputDir = null) {
       return { 
         success: false, 
         error: headerSample.error,
-        headerSampleFile: null
+        headerSampleFile: null,
+        headerSample
       };
     }
     
@@ -744,6 +855,7 @@ function saveHeaderSample(excelFilePath, serviceNumber, outputDir = null) {
   }
 }
 
+// Exportar funciones
 module.exports = {
   parseHeaderStructure,
   parseServiceStructure,

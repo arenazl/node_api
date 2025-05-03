@@ -21,7 +21,23 @@ const ConfigServiceLoader = {
             return;
         }
 
-        fetch('/excel/files')
+        // Primero forzar recarga de la caché para obtener los servicios más recientes
+        console.log("Forzando recarga de caché de servicios antes de cargar la lista...");
+        
+        // Llamar al endpoint de refresh para forzar recarga de caché
+        fetch('/api/services/refresh')
+            .then(response => response.json())
+            .then(() => {
+                console.log("Caché de servicios recargada correctamente, obteniendo lista actualizada...");
+                // Después de forzar la recarga, obtener la lista actualizada
+                return fetch('/excel/files');
+            })
+            .catch(error => {
+                console.warn("Error al forzar recarga de caché:", error);
+                console.log("Continuando con caché existente...");
+                // Aún así intentamos cargar la lista aunque falle el refresh
+                return fetch('/excel/files');
+            })
             .then(response => response.json())
             .then(data => {
                 if (data.files && Array.isArray(data.files)) {

@@ -1,0 +1,195 @@
+/**
+ * Sobrescritura de colores para JSON
+ * 
+ * Este archivo asegura que todos los elementos JSON 
+ * usen los mismos colores claros independientemente de 
+ * dónde aparezcan en la aplicación.
+ * 
+ * Usa reglas de mayor especificidad para evitar conflictos.
+ */
+
+/* Colores para la sintaxis del JSON con alta especificidad */
+.json-container .json-key,
+pre .json-key,
+pre.json-editor .json-key,
+.json-input-container .json-key,
+.result-container .json-key,
+#jsonContent .json-key,
+#idaJsonInput .json-key,
+#idaResult .json-key,
+#vueltaResult .json-key {
+  color: #60a5fa !important; /* Azul más claro para claves */
+  font-weight: 600 !important;
+}
+
+.json-container .json-string,
+pre .json-string,
+pre.json-editor .json-string,
+.json-input-container .json-string,
+.result-container .json-string,
+#jsonContent .json-string,
+#idaJsonInput .json-string,
+#idaResult .json-string,
+#vueltaResult .json-string {
+  color: #fb7185 !important; /* Rosa claro para cadenas */
+}
+
+.json-container .json-number,
+pre .json-number,
+pre.json-editor .json-number,
+.json-input-container .json-number,
+.result-container .json-number,
+#jsonContent .json-number,
+#idaJsonInput .json-number,
+#idaResult .json-number,
+#vueltaResult .json-number {
+  color: #6ee7b7 !important; /* Verde claro para números */
+}
+
+.json-container .json-boolean,
+pre .json-boolean,
+pre.json-editor .json-boolean,
+.json-input-container .json-boolean,
+.result-container .json-boolean,
+#jsonContent .json-boolean,
+#idaJsonInput .json-boolean,
+#idaResult .json-boolean,
+#vueltaResult .json-boolean {
+  color: #60a5fa !important; /* Azul más claro para booleanos */
+  font-weight: 600 !important;
+}
+
+.json-container .json-null,
+pre .json-null,
+pre.json-editor .json-null,
+.json-input-container .json-null,
+.result-container .json-null,
+#jsonContent .json-null,
+#idaJsonInput .json-null,
+#idaResult .json-null,
+#vueltaResult .json-null {
+  color: #60a5fa !important; /* Azul más claro para null */
+  font-weight: 600 !important;
+}
+
+/* Clases específicas para tipos especiales */
+.json-container .json-key-header,
+pre .json-key-header,
+pre.json-editor .json-key-header,
+.json-input-container .json-key-header,
+.result-container .json-key-header,
+#jsonContent .json-key-header,
+#idaJsonInput .json-key-header,
+#idaResult .json-key-header,
+#vueltaResult .json-key-header {
+  color: #fca5a5 !important; /* Rojo claro para claves de header */
+  font-weight: 600 !important;
+}
+
+.json-container .json-key-service,
+pre .json-key-service,
+pre.json-editor .json-key-service,
+.json-input-container .json-key-service,
+.result-container .json-key-service,
+#jsonContent .json-key-service,
+#idaJsonInput .json-key-service,
+#idaResult .json-key-service,
+#vueltaResult .json-key-service {
+  color: #93c5fd !important; /* Azul claro para claves de servicio */
+  font-weight: 600 !important;
+}
+
+.json-container .json-key-request,
+pre .json-key-request,
+pre.json-editor .json-key-request,
+.json-input-container .json-key-request,
+.result-container .json-key-request,
+#jsonContent .json-key-request,
+#idaJsonInput .json-key-request,
+#idaResult .json-key-request,
+#vueltaResult .json-key-request {
+  color: #5eead4 !important; /* Verde azulado claro para claves de request */
+  font-weight: 600 !important;
+}
+
+.json-container .json-key-response,
+pre .json-key-response,
+pre.json-editor .json-key-response,
+.json-input-container .json-key-response,
+.result-container .json-key-response,
+#jsonContent .json-key-response,
+#idaJsonInput .json-key-response,
+#idaResult .json-key-response,
+#vueltaResult .json-key-response {
+  color: #c4b5fd !important; /* Púrpura claro para claves de response */
+  font-weight: 600 !important;
+}
+
+.json-container .json-elements-array,
+pre .json-elements-array,
+pre.json-editor .json-elements-array,
+.json-input-container .json-elements-array,
+.result-container .json-elements-array,
+#jsonContent .json-elements-array,
+#idaJsonInput .json-elements-array,
+#idaResult .json-elements-array,
+#vueltaResult .json-elements-array {
+  color: #fdba74 !important; /* Naranja claro para arrays de elementos */
+  font-weight: 600 !important;
+}
+
+.json-container .json-header-fields,
+pre .json-header-fields,
+pre.json-editor .json-header-fields,
+.json-input-container .json-header-fields,
+.result-container .json-header-fields,
+#jsonContent .json-header-fields,
+#idaJsonInput .json-header-fields,
+#idaResult .json-header-fields,
+#vueltaResult .json-header-fields {
+  color: #fcd34d !important; /* Amarillo claro para fields de cabecera */
+  font-weight: 600 !important;
+}
+
+/* Otros elementos JSON */
+.json-container .json-brackets,
+pre .json-brackets,
+pre.json-editor .json-brackets,
+.json-input-container .json-brackets,
+.result-container .json-brackets,
+#jsonContent .json-brackets,
+#idaJsonInput .json-brackets,
+#idaResult .json-brackets,
+#vueltaResult .json-brackets {
+  color: var(--text-color) !important;
+}
+
+.json-container .json-comma,
+pre .json-comma,
+pre.json-editor .json-comma,
+.json-input-container .json-comma,
+.result-container .json-comma,
+#jsonContent .json-comma,
+#idaJsonInput .json-comma,
+#idaResult .json-comma,
+#vueltaResult .json-comma {
+  color: var(--text-color) !important;
+}
+
+/* Asegurar que todos los enlaces e iconos en elementos JSON tienen un buen contraste */
+.json-container a,
+.json-editor a,
+.json-input-container a,
+.result-container a {
+  color: #93c5fd !important; /* Azul claro para enlaces */
+}
+
+/* Estilos para botones de colapsado en formato JSON */
+.json-collapse-btn {
+  background-color: #4f46e5 !important; /* Índigo claro */
+  color: white !important;
+}
+
+.json-collapse-btn:hover {
+  background-color: #6366f1 !important; /* Índigo más claro al hacer hover */
+}

@@ -161,37 +161,84 @@ function parseDataMessage(dataMessage, dataStructure, validateOccurrences = fals
         // Longitud restante del mensaje
         const remainingLength = dataMessage.length - position;
         
-        console.log(`Validando ocurrencias: ${occurrenceCountValue} ocurrencias de ${occurrenceLength} caracteres cada una (total: ${expectedTotalLength})`);
-        console.log(`Longitud restante en el mensaje: ${remainingLength} caracteres`);
+        console.log(`[VALIDACIÓN] Servicio: ${dataStructure.serviceNumber || 'desconocido'}`);
+        console.log(`[VALIDACIÓN] Validando ocurrencias: ${occurrenceCountValue} ocurrencias de ${occurrenceLength} caracteres cada una`);
+        console.log(`[VALIDACIÓN] Total esperado: ${expectedTotalLength} caracteres (${occurrenceLength} x ${occurrenceCountValue})`);
+        console.log(`[VALIDACIÓN] Longitud restante en el mensaje: ${remainingLength} caracteres`);
+        console.log(`[VALIDACIÓN] Diferencia: ${remainingLength - expectedTotalLength} caracteres`);
         
         // Verificación estricta: si cantidad de registros es 0, no debería haber datos de ocurrencias
         if (occurrenceCountValue === 0 && remainingLength > 10) { // Permitimos un pequeño margen para espacios de relleno
+            console.error(`[ERROR VALIDACIÓN] El campo "cantidad de registros" es 0 pero hay ${remainingLength} caracteres de datos`);
             throw new Error(`Error de validación: El campo "cantidad de registros" es 0 pero hay ${remainingLength} caracteres de datos de ocurrencias. Si hay ocurrencias, este campo debe ser mayor a 0.`);
         }
         // Verificación normal para casos donde cantidad de registros > 0
         else if (occurrenceCountValue > 0) {
             // Verificar si coincide
             if (remainingLength < expectedTotalLength) {
+                console.error(`[ERROR VALIDACIÓN] Longitud insuficiente: ${remainingLength} < ${expectedTotalLength}`);
                 throw new Error(`Error de validación: La longitud de las ocurrencias (${remainingLength}) es menor que la esperada (${expectedTotalLength}) según la cantidad declarada (${occurrenceCountValue})`);
             } else if (remainingLength > expectedTotalLength && remainingLength - expectedTotalLength > 10) {
                 // Permitimos una pequeña diferencia para casos de relleno
+                console.error(`[ERROR VALIDACIÓN] Longitud excesiva: ${remainingLength} > ${expectedTotalLength}`);
                 throw new Error(`Error de validación: La longitud de las ocurrencias (${remainingLength}) es mayor que la esperada (${expectedTotalLength}) según la cantidad declarada (${occurrenceCountValue})`);
+            } else {
+                console.log(`[VALIDACIÓN EXITOSA] Longitud de ocurrencias correcta: ${remainingLength} ≈ ${expectedTotalLength}`);
             }
         }
     }
   
   // Reiniciar posición para segunda pasada si no se procesaron las ocurrencias
   if (firstOccurrenceElement) {
-    // Segunda pasada: procesar las ocurrencias
-    // Extraer datos de ocurrencia usando la cantidad declarada en el campo
+    // Segunda pasada: procesar las ocurrencias usando exactamente la cantidad declarada en el contador
     const occurrenceCount = occurrenceCountValue !== null ? occurrenceCountValue : firstOccurrenceElement.count;
     
-    const { occurrenceData, newPosition } = parseOccurrence(
-      dataMessage, position, firstOccurrenceElement, occurrenceCount
-    );
+    console.log(`[PROCESAMIENTO] Procesando EXACTAMENTE ${occurrenceCount} ocurrencias declaradas en el contador`);
     
-    // Agregar al objeto de datos
-    data[firstOccurrenceElement.id || `occurrence_${firstOccurrenceElement.index}`] = occurrenceData;
+  // Procesar ocurrencias - pasar el índice de inicio como referencia para preservar orden
+  // Un parámetro adicional 'true' indica mantener los índices exactos para ocurrencias sanitizadas
+  const { occurrenceData, newPosition } = parseOccurrence(
+    dataMessage, position, firstOccurrenceElement, occurrenceCount, true
+  );
+    
+    // Verificación adicional: asegurar que el número de ocurrencias en el JSON coincida exactamente con el contador
+    if (occurrenceData.length !== occurrenceCount) {
+      console.error(`[ERROR] Número incorrecto de ocurrencias procesadas: ${occurrenceData.length} (esperado: ${occurrenceCount})`);
+      
+      // Ajustar el array para que tenga exactamente el número correcto de ocurrencias
+      if (occurrenceData.length < occurrenceCount) {
+        // Faltan ocurrencias, agregar ocurrencias vacías
+        const template = occurrenceData.length > 0 ? Object.keys(occurrenceData[0]).reduce((obj, key) => {
+          obj[key] = '';
+          return obj;
+        }, {}) : {};
+        
+        while (occurrenceData.length < occurrenceCount) {
+          console.log(`[CORRECCIÓN] Agregando ocurrencia vacía #${occurrenceData.length + 1}`);
+          occurrenceData.push({...template});
+        }
+      } else if (occurrenceData.length > occurrenceCount) {
+        // Sobran ocurrencias, eliminar las excedentes
+        console.log(`[CORRECCIÓN] Eliminando ${occurrenceData.length - occurrenceCount} ocurrencias excedentes`);
+        occurrenceData.length = occurrenceCount;
+      }
+      
+      console.log(`[VERIFICACIÓN] Ahora hay exactamente ${occurrenceData.length} ocurrencias en el JSON`);
+    }
+    
+    // Agregar al objeto de datos - Mantener la clave original exacta
+    const occKey = firstOccurrenceElement.id || `occurrence_${firstOccurrenceElement.index}`;
+    data[occKey] = occurrenceData;
+    
+    // Añadir una propiedad especial para ayudar a la UI con la visualización
+    if (firstOccurrenceElement.children) {
+      data._nestedOccurrenceMap = {};
+      // Mapear las ocurrencias anidadas para que la UI pueda mostrarlas en su lugar correcto
+      firstOccurrenceElement.children.forEach(child => {
+        data._nestedOccurrenceMap[child.index] = child.id;
+      });
+      console.log(`[OCURRENCIAS] Agregado mapa de ocurrencias anidadas: ${JSON.stringify(data._nestedOccurrenceMap)}`);
+    }
     
     // Actualizar posición
     position = newPosition;
@@ -233,9 +280,10 @@ function parseDataMessage(dataMessage, dataStructure, validateOccurrences = fals
  * @param {number} startPosition - Posición inicial
  * @param {Object} occurrenceElement - Elemento de ocurrencia
  * @param {number} count - Cantidad de ocurrencias
+ * @param {boolean} preserveOrder - Si es true, preserva el índice original en la estructura para mantener el orden
  * @returns {Object} Datos de ocurrencia y nueva posición
  */
-function parseOccurrence(message, startPosition, occurrenceElement, count) {
+function parseOccurrence(message, startPosition, occurrenceElement, count, preserveOrder = false) {
   const occurrenceData = [];
   let position = startPosition;
   
@@ -245,10 +293,49 @@ function parseOccurrence(message, startPosition, occurrenceElement, count) {
   // Calcular longitud de una ocurrencia
   const occurrenceLength = calculateOccurrenceLength(fields);
   
-  // Procesar cada ocurrencia
+  console.log(`[OCURRENCIAS] Procesando ${count} ocurrencias de ${occurrenceLength} caracteres cada una`);
+  console.log(`[OCURRENCIAS] Posición inicial: ${startPosition}, mensaje restante: ${message.length - startPosition} caracteres`);
+  
+  // Procesar exactamente el número de ocurrencias declarado en el campo cantidad
   for (let i = 0; i < count; i++) {
     const occurrenceItem = {};
     let itemPosition = position;
+    
+    // Verificar si hay suficiente mensaje restante para esta ocurrencia
+    if (position + occurrenceLength > message.length) {
+      console.warn(`[OCURRENCIAS] Advertencia: No hay suficientes datos para la ocurrencia ${i+1}/${count}`);
+      
+      // Aún así creamos una ocurrencia con los datos que hay o vacía si no hay nada
+      // Esto garantiza que el número de ocurrencias mostradas coincida con el contador declarado
+      
+      // Si no hay datos suficientes, generamos valores vacíos para los campos
+      for (const field of fields) {
+        if (field.type === 'field') {
+          occurrenceItem[field.name] = '';
+        } else if (field.type === 'occurrence') {
+          occurrenceItem[`occurrence_${field.index}`] = [];
+        }
+      }
+      
+      // Agregar la ocurrencia vacía o parcial y saltamos al siguiente bucle
+      occurrenceData.push(occurrenceItem);
+      continue;
+    }
+    
+    // Preservar el índice original si se solicita (para ocurrencias sanitizadas)
+    if (preserveOrder) {
+      // Agregar el índice original para mantener el orden en las ocurrencias sanitizadas
+      // Extraer el índice original de la estructura para mantener los huecos
+      if (occurrenceElement && occurrenceElement.index !== undefined) {
+        // Usar el índice base de la definición + offset para mantener el orden exacto
+        occurrenceItem.index = parseInt(occurrenceElement.index) + i;
+        console.log(`[SANITIZADO] Agregado índice ${occurrenceItem.index} a ocurrencia para mantener orden original exacto (base: ${occurrenceElement.index}, offset: ${i})`);
+      } else {
+        // Fallback al índice de bucle
+        occurrenceItem.index = i;
+        console.log(`[SANITIZADO] Agregado índice ${i} a ocurrencia sin información de estructura`);
+      }
+    }
     
     // Procesar campos de la ocurrencia
     for (const field of fields) {
@@ -269,13 +356,16 @@ function parseOccurrence(message, startPosition, occurrenceElement, count) {
         // Procesar ocurrencia anidada
         const nestedOccurrenceCount = field.count;
         
-        // Extraer datos de ocurrencia anidada
+        // Extraer datos de ocurrencia anidada - pasar el flag preserveOrder
         const { occurrenceData: nestedData, newPosition } = parseOccurrence(
-          message, itemPosition, field, nestedOccurrenceCount
+          message, itemPosition, field, nestedOccurrenceCount, preserveOrder
         );
         
-        // Agregar al objeto de datos
-        occurrenceItem[`occurrence_${field.index}`] = nestedData;
+        // Agregar al objeto de datos - mantener el índice original exacto
+        // Esto es crítico para ocurrencias como índice 14, 18, 21 (donde hay huecos)
+        const nestedOccKey = `occurrence_${field.index}`;
+        occurrenceItem[nestedOccKey] = nestedData;
+        console.log(`[SANITIZADO] Ocurrencia anidada agregada con key exacta: ${nestedOccKey}`);
         
         // Actualizar posición
         itemPosition = newPosition;

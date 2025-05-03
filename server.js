@@ -201,5 +201,38 @@ const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`Monitoreo de salud: http://localhost:${PORT}/health`);
 });
 
+// Inicializar EventBus de WebSockets para comunicación en tiempo real
+try {
+  const io = require('socket.io')(server, {
+    cors: {
+      origin: '*',
+      methods: ['GET', 'POST'],
+      credentials: true
+    }
+  });
+
+  // Configurar eventos de Socket.IO
+  io.on('connection', (socket) => {
+    console.log(`Cliente conectado: ${socket.id}`);
+    
+    // Cuando un cliente solicita una actualización forzada
+    socket.on('refresh:services', () => {
+      console.log(`Cliente ${socket.id} solicitó actualización de servicios`);
+      io.emit('services:refreshed', { timestamp: new Date().toISOString() });
+    });
+    
+    socket.on('disconnect', () => {
+      console.log(`Cliente desconectado: ${socket.id}`);
+    });
+  });
+  
+  // Hacer disponible el objeto io globalmente para los otros módulos
+  global.io = io;
+  console.log('Sistema de eventos en tiempo real inicializado correctamente');
+} catch (socketError) {
+  console.warn('No se pudo inicializar el sistema de eventos en tiempo real:', socketError.message);
+  console.warn('Las actualizaciones automáticas podrían no funcionar correctamente');
+}
+
 // Configurar timeout para solicitudes utilizando la variable de entorno
 server.timeout = REQUEST_TIMEOUT; // Valor por defecto: 2 minutos

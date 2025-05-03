@@ -1,12 +1,12 @@
 {
   "serviceNumber": "3088",
   "serviceName": "SERVICIO 3088 - Imputador Genérico para varias operaciones",
-  "canal": "PA",
+  "canal": "BB",
   "version": "v2",
-  "timestamp": "2025-05-03T01:00:19.892Z",
+  "timestamp": "2025-05-03T15:33:45.485Z",
   "header": {
     "LONGITUD DEL MENSAJE": "000643",
-    "CANAL": "PA",
+    "CANAL": "BB",
     "SERVICIO": "3050",
     "CÓDIGO DE RETORNO": "0000",
     "ID DEL MENSAJE": "000000076",
@@ -19,19 +19,19 @@
     "CAMPO COMPLEMENTARIO": ""
   },
   "request": {
-    "SVC3088-TIP-PEDIDO": "1",
+    "SVC3088-TIP-PEDIDO": "",
     "occ_1": [
       {
-        "SVC3088-NRO-OPER-SERV": "113",
-        "SVC3088-BCO-ORIG": "11",
-        "SVC3088-SUC-ORIG": "22",
-        "SVC3088-BCO-DEST": "33",
-        "SVC3088-SUC-DEST": "44",
-        "SVC3088-NRO-ORDEN": "55",
+        "SVC3088-NRO-OPER-SERV": "",
+        "SVC3088-BCO-ORIG": "86787",
+        "SVC3088-SUC-ORIG": "67867",
+        "SVC3088-BCO-DEST": "67867",
+        "SVC3088-SUC-DEST": "",
+        "SVC3088-NRO-ORDEN": "",
         "SVC3088-FECHA-PROC": "",
         "SVC3088-FECHA-MOVI": "",
         "SVC3088-FECHA-VALOR": "",
-        "SVC3088-CALC-COMIS": "0",
+        "SVC3088-CALC-COMIS": "",
         "SVC3088-CONCEPTO": "",
         "SVC3088-CANT-CUENTAS": "",
         "occ_14": [],

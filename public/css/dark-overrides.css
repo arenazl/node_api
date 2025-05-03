@@ -1,0 +1,175 @@
+/* Correcciones para asegurar que no haya fondos blancos en modo oscuro */
+
+/* Corrección específica para el panel de configuraciones guardadas */
+.saved-configs-panel {
+  background-color: var(--dark-bg) !important;
+}
+
+.saved-config-item {
+  background-color: var(--card-bg) !important;
+  border-color: var(--border-color) !important;
+}
+
+/* Selector general para entradas de texto */
+input[type="text"],
+input[type="search"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="tel"],
+input[type="url"],
+input[type="date"],
+textarea,
+select,
+option {
+  background-color: var(--card-bg) !important;
+  color: var(--text-color) !important;
+  border-color: var(--border-color) !important;
+}
+
+/* Corregir el fondo del panel de búsqueda y configuraciones */
+.search-container input,
+.saved-configs-panel,
+.saved-configs-list,
+.saved-config-item,
+#configServiceSelect,
+#canalInput,
+.config-field-input {
+  background-color: var(--card-bg) !important;
+  color: var(--text-color) !important;
+}
+
+/* Asegurar que el panel de configuraciones tenga fondo oscuro */
+.config-container {
+  background-color: var(--light-bg) !important;
+}
+
+/* Estilos para etiquetas y texto dentro del panel de configuración */
+.config-container label,
+.config-details,
+.config-service-name,
+.service-name {
+  color: var(--text-color) !important;
+}
+
+/* Corrección para bordes y elementos específicos */
+.autocomplete-item {
+  border-bottom-color: var(--border-color) !important;
+}
+
+/* Estilos para textos secundarios */
+.config-details,
+.text-center,
+.empty-message td {
+  color: var(--text-secondary) !important;
+}
+
+/* Asegurar que cualquier modelo/ventana emergente también tenga tema oscuro */
+.modal-content {
+  background-color: var(--card-bg) !important;
+  color: var(--text-color) !important;
+}
+
+/* Sobrescribir cualquier estilo inline que pueda causar fondos blancos */
+[style*="background-color: white"],
+[style*="background-color:#fff"],
+[style*="background-color: #ffffff"],
+[style*="background: white"] {
+  background-color: var(--card-bg) !important;
+}
+
+/* Corregir el borde de los elementos autocomplete */
+.autocomplete-item {
+  border-bottom: 1px solid var(--border-color) !important;
+}
+
+/* Correcciones para elementos dinámicos generados por JavaScript */
+.config-field-input,
+select.form-control,
+select.form-control-sm,
+.form-control,
+.form-control-sm,
+div[data-simplebar],
+.config-container [data-simplebar] .simplebar-content {
+  background-color: var(--card-bg) !important;
+  color: var(--text-color) !important;
+  border-color: var(--border-color) !important;
+}
+
+/* Elementos específicos para modal de configuración */
+#confirmModal .modal-content,
+.swal2-popup,
+.swal2-content {
+  background-color: var(--card-bg) !important;
+  color: var(--text-color) !important;
+}
+
+/* Asegura que los selects y opciones tengan el color correcto */
+select option {
+  background-color: var(--card-bg) !important;
+  color: var(--text-color) !important;
+}
+
+/* Asegurar que todos los botones usen la fuente Montserrat */
+button,
+.btn,
+#autoFillBtn,
+.action-btn,
+.service-button,
+.add-occurrence-btn,
+.delete-instance-btn,
+.main-tab-btn,
+.subtab-btn,
+.config-tab-btn,
+.services-tab-btn {
+  font-family: 'Montserrat', sans-serif !important;
+}
+
+/* Selector de fuentes oculto pero disponible si se necesita nuevamente */
+.font-selector-container {
+  display: none; /* Ocultar el selector */
+  background-color: var(--accent-color);
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  border-radius: var(--radius);
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow);
+}
+
+.font-selector-container label {
+  margin-right: 0.5rem;
+  color: white;
+  font-weight: 500;
+}
+
+.font-selector {
+  background-color: white !important;
+  color: #333 !important;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.25rem;
+  font-weight: 500;
+  cursor: pointer;
+  min-width: 12rem;
+}
+
+/* Estilos para mensajes de error en tablas */
+.error-message {
+  color: #ef4444 !important; /* Rojo para errores */
+  font-weight: 500;
+  font-style: italic;
+  background-color: rgba(220, 38, 38, 0.1) !important; /* Fondo rojo semi-transparente */
+  padding: 1rem !important;
+  border-left: 4px solid #dc2626 !important; /* Borde izquierdo rojo */
+}
+
+/* Estilo para mensajes de advertencia */
+.warning-message {
+  color: #f59e0b !important; /* Ámbar para advertencias */
+  font-weight: 500;
+  font-style: italic;
+  background-color: rgba(245, 158, 11, 0.1) !important; /* Fondo ámbar semi-transparente */
+  padding: 1rem !important;
+  border-left: 4px solid #f59e0b !important; /* Borde izquierdo ámbar */
+}

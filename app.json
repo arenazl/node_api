@@ -1,0 +1,38 @@
+{
+  "name": "MQ Importer API",
+  "description": "API para importación y procesamiento de mensajes MQ",
+  "repository": "https://github.com/yourusername/mq-importer-api",
+  "logo": "https://node-js-sample.herokuapp.com/node.svg",
+  "keywords": ["node", "express", "api", "mq"],
+  "env": {
+    "NODE_ENV": {
+      "description": "Entorno de ejecución (production/development)",
+      "value": "production"
+    },
+    "FILE_UPLOAD_SIZE_LIMIT": {
+      "description": "Límite de tamaño para subida de archivos en MB",
+      "value": "50"
+    },
+    "REQUEST_TIMEOUT": {
+      "description": "Tiempo máximo de espera para solicitudes en milisegundos",
+      "value": "120000"
+    },
+    "ALLOWED_ORIGINS": {
+      "description": "Orígenes permitidos para CORS, separados por comas",
+      "value": "*"
+    }
+  },
+  "buildpacks": [
+    {
+      "url": "heroku/nodejs"
+    }
+  ],
+  "formation": {
+    "web": {
+      "quantity": 1,
+      "size": "eco"
+    }
+  },
+  "addons": [],
+  "success_url": "/"
+}

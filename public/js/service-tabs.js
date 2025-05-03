@@ -106,12 +106,82 @@ document.addEventListener('DOMContentLoaded', function() {
                 const charCount = inputValue.length;
                 
                 // Detectar ocurrencias analizando el string
-                // Buscamos el contador de registros en posición 102 (después de la cabecera)
                 let occurrenceCount = 0;
-                if (charCount > 102 + 2) { // Asegurarnos que hay al menos 2 caracteres después de la cabecera
-                    // El contador de registros está en posición 102-103 (2 dígitos)
-                    const countStr = inputValue.substring(102, 104);
-                    occurrenceCount = parseInt(countStr) || 0;
+                const headerLength = 102; // Longitud estándar de la cabecera
+                
+                if (charCount > headerLength + 4) { // Asegurarnos que hay suficiente espacio para la cabecera, estado y contador
+                    // Intentamos buscar el contador de ocurrencias en diferentes posiciones del string
+                    // Primero buscamos en todas las posiciones cercanas a la cabecera (posiciones 100-110)
+                    for (let i = 100; i <= 110; i++) {
+                        if (i + 2 > inputValue.length) continue;
+                        
+                        const possibleCounter = inputValue.substring(i, i + 2);
+                        const parsedCount = parseInt(possibleCounter);
+                        
+                        // Si es un número y parece un contador válido (no demasiado grande)
+                        if (!isNaN(parsedCount) && parsedCount > 0 && parsedCount < 100) {
+                            console.log(`[DETECCIÓN AVANZADA] Posible contador: "${possibleCounter}" (${parsedCount}) en posición ${i}`);
+                            
+                            // Verificar si después del contador hay datos consistentes
+                            const dataAfterCounter = inputValue.substring(i + 2);
+                            // Si hay suficientes datos después del contador para albergar ocurrencias
+                            if (dataAfterCounter.length > parsedCount * 20) { // Asumimos al menos 20 chars por ocurrencia
+                                occurrenceCount = parsedCount;
+                                console.log(`[DETECCIÓN CONFIRMADA] Contador de ${parsedCount} ocurrencias en posición ${i}`);
+                                break;
+                            }
+                        }
+                    }
+                    
+                    // Si aún no encontramos ocurrencias, intentar con los métodos originales
+                    if (occurrenceCount === 0) {
+                        console.log("[DETECCIÓN FALLBACK] Usando métodos originales para detectar ocurrencias");
+                        
+                        // Primera posibilidad: Posición después del estado (offset 2 desde el fin de la cabecera)
+                        let countStr = inputValue.substring(headerLength + 2, headerLength + 4);
+                        console.log(`[DETECCIÓN] Intento 1: "${countStr}" en posición ${headerLength + 2}`);
+                        occurrenceCount = parseInt(countStr) || 0;
+                        
+                        // Segunda posibilidad: Directamente después de la cabecera
+                        if (occurrenceCount === 0) {
+                            countStr = inputValue.substring(headerLength, headerLength + 2);
+                            console.log(`[DETECCIÓN] Intento 2: "${countStr}" en posición ${headerLength}`);
+                            occurrenceCount = parseInt(countStr) || 0;
+                        }
+                        
+                        // Tercera posibilidad: 3 posiciones después de la cabecera
+                        if (occurrenceCount === 0) {
+                            countStr = inputValue.substring(headerLength + 3, headerLength + 5);
+                            console.log(`[DETECCIÓN] Intento 3: "${countStr}" en posición ${headerLength + 3}`);
+                            occurrenceCount = parseInt(countStr) || 0;
+                        }
+                    }
+                    
+                    // Inteligencia adicional para detectar ocurrencias por longitud y estructura
+                    if (occurrenceCount === 0) {
+                        // Analizar la longitud y estructura del mensaje para estimar ocurrencias
+                        // Longitud de datos después de la cabecera
+                        const bodyLength = charCount - headerLength;
+                        
+                        // Buscar patrones repetitivos que podrían indicar ocurrencias
+                        // (Este es un enfoque alternativo que usaría patrones conocidos en el cuerpo)
+                        console.log(`[ANÁLISIS] Longitud de cuerpo: ${bodyLength}. Analizando patrones...`);
+                        
+                        // Si encontramos varios bloques del mismo tamaño, podrían ser ocurrencias
+                        // Este enfoque es más avanzado y requeriría análisis adicional
+                        
+                        // Por ahora, intentamos una estimación basada en posibles bloques de 80-120 caracteres
+                        // Esta es una estimación muy básica, se podría mejorar con más análisis
+                        if (bodyLength > 120) { // Si hay suficiente datos para al menos una ocurrencia
+                            const possibleLength = Math.floor(bodyLength / 100); // 100 es un tamaño de ocurrencia estimado
+                            if (possibleLength > 0) {
+                                occurrenceCount = possibleLength;
+                                console.log(`[ESTIMACIÓN] Posibles ocurrencias por longitud: ${occurrenceCount}`);
+                            }
+                        }
+                    }
+                    
+                    console.log(`[RESULTADO] Contador de registros detectado: ${occurrenceCount} ocurrencias`);
                 }
                 
                 // Actualizar el contador con caracteres y ocurrencias
@@ -343,25 +413,101 @@ function updateServicesTable(services) {
     });
 }
 
-// Helper function to show notifications
-function showNotification(message, type = 'info') {
-    const notification = document.getElementById('notification');
-    if (!notification) {
-        console.warn("Elemento 'notification' no encontrado para mostrar:", message);
-        alert(`${type.toUpperCase()}: ${message}`);
-        return;
-    }
-    notification.textContent = message;
-    notification.className = `notification alert alert-${type}`;
-    notification.style.display = 'block';
-    notification.style.position = 'fixed';
-    notification.style.top = '10px';
-    notification.style.right = '10px';
-    notification.style.zIndex = '1050';
+// Variable para almacenar referencias a las notificaciones activas
+let activeNotifications = {};
 
-    setTimeout(() => {
-        notification.style.display = 'none';
-    }, 5000);
+// Helper function to show notifications with Toastr
+function showNotification(message, type = 'info') {
+    // Limpiar notificaciones previas del mismo tipo o notificaciones de "carga" cuando se muestra un resultado
+    if (type === 'success' || type === 'error') {
+        // Si es una notificación de éxito o error, cerrar todas las notificaciones de info
+        if (typeof toastr !== 'undefined') {
+            toastr.clear();
+        }
+    }
+    
+    // Verificar si Toastr está disponible
+    if (typeof toastr !== 'undefined') {
+        // Configuración de Toastr
+        toastr.options = {
+            closeButton: true,
+            progressBar: true,
+            positionClass: "toast-top-right",
+            timeOut: type === 'info' ? 3000 : 5000, // Notificaciones "info" duran menos
+            extendedTimeOut: 2000,
+            preventDuplicates: true, // Evitar duplicados
+            newestOnTop: true,
+            showEasing: "swing",
+            hideEasing: "linear",
+            showMethod: "fadeIn",
+            hideMethod: "fadeOut"
+        };
+        
+        // Limpiar notificación previa del mismo tipo
+        if (activeNotifications[type]) {
+            toastr.clear(activeNotifications[type]);
+        }
+        
+        // Usar el método apropiado según el tipo
+        let notification;
+        switch (type) {
+            case 'success':
+                notification = toastr.success(message, 'Éxito');
+                break;
+            case 'error':
+                notification = toastr.error(message, 'Error');
+                break;
+            case 'warning':
+                notification = toastr.warning(message, 'Advertencia');
+                break;
+            default:
+                notification = toastr.info(message, 'Información');
+        }
+        
+        // Guardar referencia a la notificación
+        activeNotifications[type] = notification;
+    } else {
+        // Fallback al método original si Toastr no está disponible
+        const notification = document.getElementById('notification');
+        if (!notification) {
+            console.warn("Elemento 'notification' no encontrado para mostrar:", message);
+            // Usar SweetAlert si está disponible, de lo contrario usar alert
+            if (typeof Swal !== 'undefined') {
+                // Cerrar notificación anterior si existe
+                Swal.close();
+                
+                Swal.fire({
+                    title: type.charAt(0).toUpperCase() + type.slice(1),
+                    text: message,
+                    icon: type,
+                    confirmButtonText: 'OK',
+                    timer: type === 'info' ? 3000 : 5000,
+                    timerProgressBar: true
+                });
+            } else {
+                alert(`${type.toUpperCase()}: ${message}`);
+            }
+            return;
+        }
+        
+        // Limpiar cualquier temporizador existente
+        if (notification.timeoutId) {
+            clearTimeout(notification.timeoutId);
+        }
+        
+        notification.textContent = message;
+        notification.className = `notification alert alert-${type}`;
+        notification.style.display = 'block';
+        notification.style.position = 'fixed';
+        notification.style.top = '10px';
+        notification.style.right = '10px';
+        notification.style.zIndex = '1050';
+
+        // Guardar un nuevo temporizador
+        notification.timeoutId = setTimeout(() => {
+            notification.style.display = 'none';
+        }, type === 'info' ? 3000 : 5000);
+    }
 }
 
 /**
@@ -437,7 +583,23 @@ function loadConfigurationData(configId) {
 
 // Helper function to load all service selectors initially
 function loadAllServiceSelectors() {
-    fetch('/api/services')
+    // Primero forzar recarga de la caché para obtener los servicios más recientes
+    console.log("Forzando recarga de caché de servicios en la pestaña API...");
+    
+    // Llamar al endpoint de refresh para forzar recarga de caché
+    fetch('/api/services/refresh')
+        .then(response => response.json())
+        .then(() => {
+            console.log("Caché de servicios recargada correctamente, obteniendo lista actualizada...");
+            // Después de forzar la recarga, obtener la lista actualizada
+            return fetch('/api/services');
+        })
+        .catch(error => {
+            console.warn("Error al forzar recarga de caché:", error);
+            console.log("Continuando con caché existente...");
+            // Aún así intentamos cargar la lista aunque falle el refresh
+            return fetch('/api/services');
+        })
         .then(response => {
             if (!response.ok) throw new Error(`Error ${response.status}: ${response.statusText}`);
             return response.json();
@@ -958,8 +1120,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 window.sessionStorage.setItem('lastServiceNumber', serviceNumber);
             }
             
-            // Mostrar notificación de carga
+            // Mostrar notificación de carga y botón en estado de carga
             showNotification('Generando stream de ejemplo...', 'info');
+            generateExampleBtn.disabled = true;
+            generateExampleBtn.innerHTML = '<span class="loading-spinner"></span> Generando...';
             
             // LIMPIAR CUALQUIER EJEMPLO ANTERIOR Y ESTABLECER CAMPO VACÍO
             const streamDataInput = document.getElementById('streamData');
@@ -973,40 +1137,93 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
             
-            try {
-                // USAR NUESTRA NUEVA FUNCIÓN SIMPLE DIRECTAMENTE SIN DEPENDER DE LA ESTRUCTURA
-                // Esta función genera ejemplos con un número aleatorio de ocurrencias (2-5)
-                // y establece el campo cantidad de registros correctamente
-                if (typeof window.generateSimpleExample === 'function') {
-                    const exampleString = window.generateSimpleExample(serviceNumber);
-                    
-                    if (streamDataInput && exampleString) {
-                        streamDataInput.value = exampleString;
+            // La función ahora es asíncrona y devuelve una promesa
+            if (typeof window.generateSimpleExample === 'function') {
+                window.generateSimpleExample(serviceNumber)
+                    .then(exampleString => {
+                        if (streamDataInput && exampleString) {
+                            streamDataInput.value = exampleString;
+                            
+                            // Actualizar contador con caracteres y ocurrencias
+                            const totalLength = exampleString.length;
+            // Contar exactamente cuántas ocurrencias se han generado
+            let occurrenceCount = 0;
+            
+            // Leer el contador de registros del cuerpo (posición después del header)
+            const headerLength = exampleString.length >= 102 ? 102 : 0;
+            if (exampleString.length > headerLength + 2) {
+                // La posición del contador de registros varía, probar diferentes posiciones
+                let foundCounter = false;
+                
+                // Posiciones habituales donde puede estar el contador
+                const possiblePositions = [
+                    headerLength, // Justo después del header
+                    headerLength + 2, // Después del header y código de estado
+                    headerLength + 3  // Otra posición posible
+                ];
+                
+                for (let pos of possiblePositions) {
+                    if (pos + 2 <= exampleString.length) {
+                        const countStr = exampleString.substring(pos, pos + 2);
+                        const parsedCount = parseInt(countStr);
                         
-                        // Actualizar contador con caracteres y ocurrencias
-                        const totalLength = exampleString.length;
-                        // Extraer el contador de ocurrencias del string generado (posición 102-103)
-                        let occurrenceCount = 0;
-                        if (exampleString.length > 102 + 2) {
-                            const countStr = exampleString.substring(102, 104);
-                            occurrenceCount = parseInt(countStr) || 0;
+                        if (!isNaN(parsedCount) && parsedCount > 0 && parsedCount < 100) {
+                            console.log(`Contador de registros encontrado: "${countStr}" (${parsedCount}) en posición ${pos}`);
+                            occurrenceCount = parsedCount;
+                            foundCounter = true;
+                            break;
                         }
-                        
-                        const streamCharCount = document.getElementById('streamCharCount');
-                        if (streamCharCount) {
-                            streamCharCount.textContent = `${totalLength} (${occurrenceCount} ocurrencias)`;
-                        }
-                        
-                        showNotification(`Ejemplo generado correctamente (${totalLength} caracteres)`, 'success');
-                    } else {
-                        throw new Error('No se pudo establecer el ejemplo generado');
                     }
-                } else {
-                    throw new Error('Función generadora de ejemplos no disponible');
                 }
-            } catch (error) {
-                console.error('Error al generar ejemplo:', error);
-                showNotification(`Error: ${error.message}`, 'error');
+                
+                // Si no se encontró en posiciones habituales, buscar en un rango más amplio
+                if (!foundCounter) {
+                    for (let pos = headerLength; pos < headerLength + 10; pos++) {
+                        if (pos + 2 <= exampleString.length) {
+                            const countStr = exampleString.substring(pos, pos + 2);
+                            const parsedCount = parseInt(countStr);
+                            
+                            if (!isNaN(parsedCount) && parsedCount > 0 && parsedCount < 100) {
+                                console.log(`Contador de registros encontrado (búsqueda extendida): "${countStr}" (${parsedCount}) en posición ${pos}`);
+                                occurrenceCount = parsedCount;
+                                break;
+                            }
+                        }
+                    }
+                }
+                
+                // Buscar en generador si hay un valor específico
+                if (window.lastGeneratedOccurrenceCount && window.lastGeneratedOccurrenceCount > 0) {
+                    console.log(`Usando contador de ocurrencias desde generador: ${window.lastGeneratedOccurrenceCount}`);
+                    occurrenceCount = window.lastGeneratedOccurrenceCount;
+                }
+                
+                console.log(`Se detectaron ${occurrenceCount} ocurrencias en el mensaje generado`);
+            }
+                            
+                            const streamCharCount = document.getElementById('streamCharCount');
+                            if (streamCharCount) {
+                                streamCharCount.textContent = `${totalLength} (${occurrenceCount} ocurrencias)`;
+                            }
+                            
+                            showNotification(`Ejemplo generado dinámicamente (${totalLength} caracteres)`, 'success');
+                        } else {
+                            throw new Error('No se pudo establecer el ejemplo generado');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error al generar ejemplo:', error);
+                        showNotification(`Error: ${error.message}`, 'error');
+                    })
+                    .finally(() => {
+                        // Restaurar el botón a su estado original
+                        generateExampleBtn.disabled = false;
+                        generateExampleBtn.textContent = 'Generar Ejemplo';
+                    });
+            } else {
+                showNotification('Función generadora de ejemplos no disponible', 'error');
+                generateExampleBtn.disabled = false;
+                generateExampleBtn.textContent = 'Generar Ejemplo';
             }
         });
     }

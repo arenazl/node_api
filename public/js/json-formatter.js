@@ -1,5 +1,9 @@
 /**
  * Formateador de JSON con colores y opciones de colapso
+ * 
+ * Este formateador usa colores claros optimizados para fondo oscuro
+ * y está diseñado para ser utilizado en toda la aplicación para mantener
+ * una visualización consistente.
  */
 
 /**
@@ -373,6 +377,23 @@ function escapeHtml(text) {
  */
 function formatJson(element) {
   if (!element || !element.textContent) return;
+  
+  // Verificar primero si el contenido parece ser texto de ayuda/placeholder
+  const content = element.textContent.trim();
+  if (
+    content.includes("Seleccione") || 
+    content.includes("La respuesta") || 
+    content.includes("se mostrará aquí")
+  ) {
+    // Es texto de ayuda, no intentar formatear como JSON
+    console.log('formatJson: Ignorando texto de ayuda');
+    
+    // Sólo asegurarse que sea editable si necesario
+    if (!element.hasAttribute('contenteditable')) {
+      element.setAttribute('contenteditable', 'true');
+    }
+    return;
+  }
   
   try {
     // Parsear el JSON del elemento

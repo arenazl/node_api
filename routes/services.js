@@ -15,79 +15,35 @@ const messageAnalyzer = require('../api/message-analyzer');
 // Directorio de estructuras
 const structuresDir = path.join(__dirname, '..', 'structures');
 
+// Importar el fixer de índices para ocurrencias
+const occurrenceFixer = require('../utils/occurrence-fixer');
+
 /**
- * Función para eliminar ocurrencias vacías de un objeto de respuesta
- * @param {Object} responseData - Datos de respuesta a filtrar
- * @returns {Object} - Datos de respuesta sin ocurrencias vacías
+ * Función para garantizar que se mantengan los índices y las relaciones parentId exactas
+ * @param {Object} responseData - Datos de respuesta
+ * @returns {Object} - Datos de respuesta con índices y relaciones parentId corregidas
  */
 function removeEmptyOccurrences(responseData) {
-  if (!responseData || typeof responseData !== 'object') {
-    return responseData;
+  console.log("[SERVICIO] Aplicando corrección simple para índices y relaciones parentId");
+  
+  // Usar directamente el response data como una estructura simple para corregir sus índices
+  // Creamos una estructura temporal compatible con el fixer
+  const tempStructure = {
+    request: { elements: [] },
+    response: { elements: [] }
+  };
+  
+  // Si el objeto recibido es un array, lo tratamos como los elementos de request o response
+  if (Array.isArray(responseData)) {
+    tempStructure.response.elements = responseData;
+  } else if (responseData && typeof responseData === 'object') {
+    // Si es un objeto, lo fijamos directamente
+    return occurrenceFixer.fixOccurrenceIndices({ response: responseData }).response;
   }
   
-  // Crear una copia profunda del objeto para no modificar el original
-  const result = JSON.parse(JSON.stringify(responseData));
-  
-  // Buscar campos que sean arrays (posibles ocurrencias)
-  for (const key in result) {
-    if (Array.isArray(result[key])) {
-      console.log(`Procesando ocurrencia ${key} con ${result[key].length} elementos`);
-      
-      // Función auxiliar para verificar si un valor es realmente significativo
-      // (no solo espacios, ceros o valores por defecto)
-      const isSignificantValue = (value) => {
-        if (value === null || value === undefined) return false;
-        
-        if (typeof value === 'string') {
-          // Eliminar espacios
-          const trimmedValue = value.trim();
-          if (trimmedValue === '') return false;
-          
-          // Verificar si solo contiene ceros
-          if (/^0+$/.test(trimmedValue)) return false;
-          
-          // Verificar si solo contiene espacios y ceros
-          if (/^[0\s]+$/.test(value)) return false;
-          
-          // Si contiene algún caracter que no sea un cero, espacio o caracter por defecto, es significativo
-          return /[^0\s]/.test(value);
-        }
-        
-        if (Array.isArray(value)) {
-          return value.length > 0 && value.some(item => 
-            typeof item === 'object' && 
-            Object.values(item).some(v => isSignificantValue(v))
-          );
-        }
-        
-        return false;
-      };
-      
-      // Filtrar elementos: mantener solo los que tienen al menos un campo con valor significativo
-      const filteredItems = result[key].filter(item => {
-        // Si no es un objeto o es null, no hay nada que evaluar
-        if (!item || typeof item !== 'object' || Array.isArray(item)) {
-          return false;
-        }
-        
-        // Verificar si el objeto tiene al menos un campo con valor significativo
-        return Object.values(item).some(fieldValue => isSignificantValue(fieldValue));
-      });
-      
-      console.log(`Ocurrencia ${key} filtrada: ${filteredItems.length} elementos (eliminados ${result[key].length - filteredItems.length})`);
-      
-      // Actualizar el array con los elementos filtrados
-      result[key] = filteredItems;
-      
-      // Si la ocurrencia queda vacía completamente, consideramos eliminarla
-      if (result[key].length === 0) {
-        console.log(`Eliminando completamente la ocurrencia vacía ${key}`);
-        delete result[key];
-      }
-    }
-  }
-  
-  return result;
+  // Aplicar fix y retornar los elementos corregidos
+  const fixed = occurrenceFixer.fixOccurrenceIndices(tempStructure);
+  return Array.isArray(responseData) ? fixed.response.elements : responseData;
 }
 
 /**
@@ -96,12 +52,14 @@ function removeEmptyOccurrences(responseData) {
  */
 router.get('/', async (req, res) => {
   try {
-    // Obtener todos los archivos de estructura
-    const services = await getAvailableServices();
-    console.log("Servicios disponibles:", services);
+    // Forzar recarga de la caché siempre que se solicite la lista de servicios
+    // Esto es crucial para asegurar que los nuevos servicios aparezcan inmediatamente
+    console.log("[SERVICIOS] Forzando recarga de caché para obtener lista actualizada...");
+    const services = await getAvailableServices(true); // forceRefresh = true
+    console.log("[SERVICIOS] Se encontraron", services.length, "servicios disponibles");
     res.json({ services });
   } catch (error) {
-    console.error("Error al obtener servicios:", error);
+    console.error("[SERVICIOS] Error al obtener servicios:", error);
     res.status(500).json({ 
       error: `Error al obtener la lista de servicios: ${error.message}` 
     });
@@ -426,8 +384,12 @@ const excelParser = require('../utils/excel-parser');
  */
 async function getAvailableServices(forceRefresh = false) {
   try {
+    // SIEMPRE forzar recarga cuando se solicita explícitamente
+    if (forceRefresh) {
+      console.log("Forzando recarga de caché por solicitud explícita");
+    }
     // Verificar si existe caché válida de servicios
-    if (global.serviceCache && global.serviceCache.services && global.serviceCache.lastUpdate && !forceRefresh) {
+    else if (global.serviceCache && global.serviceCache.services && global.serviceCache.lastUpdate) {
       // Verificar si la caché es reciente (menos de 5 minutos)
       const cacheAge = Date.now() - new Date(global.serviceCache.lastUpdate).getTime();
       if (cacheAge < 5 * 60 * 1000) { // 5 minutos en milisegundos
@@ -448,11 +410,27 @@ async function getAvailableServices(forceRefresh = false) {
     
     let excelFiles = [];
     try {
-      // Leer todos los archivos Excel del directorio
-      excelFiles = fs.readdirSync(uploadsDir)
-        .filter(file => file.endsWith('.xls') || file.endsWith('.xlsx'));
+      // Volver a usar fs.readdirSync pero con un mejor filtro para extensiones
+      const allFiles = fs.readdirSync(uploadsDir);
+      // Filtrar considerando mayúsculas y minúsculas
+      excelFiles = allFiles.filter(file => {
+        const ext = path.extname(file).toLowerCase();
+        return ext === '.xls' || ext === '.xlsx';
+      });
       
-      console.log(`Encontrados ${excelFiles.length} archivos Excel en uploads`);
+      // Log detallado de todos los archivos encontrados
+      console.log(`Encontrados ${excelFiles.length} archivos Excel en uploads:`);
+      excelFiles.forEach((file, index) => {
+        console.log(`  ${index + 1}. ${file}`);
+      });
+      
+      if (excelFiles.length === 0) {
+        // Si no se encuentran archivos, mostrar todos los archivos en el directorio para debugging
+        console.log("ALERTA: No se encontraron archivos Excel. Contenido del directorio:");
+        allFiles.forEach((file, index) => {
+          console.log(`  [${index + 1}] ${file} - Ext: ${path.extname(file)}`);
+        });
+      }
     } catch (readDirError) {
       console.error("Error al leer directorio de uploads:", readDirError);
       return []; // Retornar lista vacía si hay error al leer directorio
@@ -474,13 +452,80 @@ async function getAvailableServices(forceRefresh = false) {
         
         // Extraer número de servicio del nombre del archivo
         let serviceNumber = null;
-        const svoMatch = excelFile.match(/SVO(\d+)/i);
-        if (svoMatch && svoMatch[1]) {
-          serviceNumber = svoMatch[1];
+        
+        // Buscar diferentes patrones: SVO1234, SVC1234, SVO1234-, etc.
+        const servicePatterns = [
+          { regex: /SVO(\d+)(?:-|\s|$)/i, name: "SVO pattern with delimiter" }, // Captura SVO1010- o SVO1010 (seguido de espacio o fin)
+          { regex: /SVO(\d+)/i, name: "SVO pattern" },
+          { regex: /SVC(\d+)(?:-|\s|$)/i, name: "SVC pattern with delimiter" },
+          { regex: /SVC(\d+)/i, name: "SVC pattern" },
+          { regex: /[_-](\d{4})[_-]/i, name: "4-digit pattern" },
+          { regex: /(\d{4})_structure/i, name: "Structure file pattern" }
+        ];
+        
+        // Buscar primero con los patrones específicos SVO y SVC (son los más precisos)
+        const specificPatterns = servicePatterns.filter(p => p.name.includes('SVO') || p.name.includes('SVC'));
+        let foundMatch = false;
+        
+        // Primero intentar con patrones específicos
+        for (const pattern of specificPatterns) {
+          const match = excelFile.match(pattern.regex);
+          if (match && match[1]) {
+            serviceNumber = match[1];
+            console.log(`Número de servicio ${serviceNumber} extraído usando patrón específico ${pattern.name} de ${excelFile}`);
+            foundMatch = true;
+            break;
+          }
+        }
+        
+        // Si no se encontró con patrones específicos, probar con los demás
+        if (!foundMatch) {
+          // Recopilamos todos los posibles números de servicios y sus posiciones
+          const allMatches = [];
+          
+          // Buscar todos los patrones que no son específicos
+          const otherPatterns = servicePatterns.filter(p => !p.name.includes('SVO') && !p.name.includes('SVC'));
+          for (const pattern of otherPatterns) {
+            const match = excelFile.match(pattern.regex);
+            if (match && match[1]) {
+              // Verificar que sea un número de servicio válido (4 dígitos)
+              if (/^\d{4}$/.test(match[1])) {
+                // Calcular la posición del match en el string
+                const matchPosition = excelFile.indexOf(match[1]);
+                allMatches.push({
+                  number: match[1], 
+                  position: matchPosition,
+                  pattern: pattern.name
+                });
+              }
+            }
+          }
+          
+          // Si hay matches, ordenarlos primero: preferir los que no son años
+          // Luego por posición (preferir los que están después de SVO o similar)
+          if (allMatches.length > 0) {
+            // Ordenar - primero los que no sean años (2000-2030)
+            allMatches.sort((a, b) => {
+              // Verificar si es un año (2000-2030)
+              const aIsYear = a.number >= 2000 && a.number <= 2030;
+              const bIsYear = b.number >= 2000 && b.number <= 2030;
+              
+              // Priorizar los que no son años
+              if (aIsYear && !bIsYear) return 1;
+              if (!aIsYear && bIsYear) return -1;
+              
+              // Si ambos son años o no años, ordenar por posición
+              return a.position - b.position;
+            });
+            
+            // Usar el mejor match
+            serviceNumber = allMatches[0].number;
+            console.log(`Número de servicio ${serviceNumber} extraído usando ${allMatches[0].pattern} (posición ${allMatches[0].position}) de ${excelFile}`);
+          }
         }
         
         if (!serviceNumber) {
-          console.log(`Archivo ${excelFile} no contiene número de servicio, saltando...`);
+          console.log(`Archivo ${excelFile} no contiene número de servicio reconocible, saltando...`);
           continue; // Saltar si no se pudo extraer un número de servicio
         }
         

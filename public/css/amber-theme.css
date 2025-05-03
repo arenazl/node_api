@@ -1,0 +1,173 @@
+/* Tema Ámbar */
+:root {
+  /* Colores principales - estilo ámbar dorado */
+  --primary-color: #d97706;         /* Ámbar oscuro */
+  --primary-hover: #b45309;         /* Ámbar más oscuro para hover */
+  --secondary-color: #92400e;       /* Marrón oscuro */
+  --success-color: #10b981;         /* Verde mantenido */
+  --success-hover: #059669;         /* Verde más oscuro para hover */
+  --danger-color: #dc2626;          /* Rojo para errores */
+  
+  /* Backgrounds y bordes para tema ámbar */
+  --body-bg: #292524;               /* Marrón muy oscuro para fondo general */
+  --dark-bg: #44403c;               /* Marrón oscuro para contenedores */
+  --card-bg: #57534e;               /* Marrón grisáceo para tarjetas */
+  --light-bg: #78716c;              /* Marrón claro para contraste */
+  --border-color: #78716c;          /* Borde marrón */
+  
+  /* Textos */
+  --text-color: #f5f5f4;            /* Texto principal (casi blanco) */
+  --text-secondary: #d6d3d1;        /* Texto secundario (gris claro) */
+  
+  /* Efectos */
+  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+  --radius: 0.5rem;
+  --font-family: 'Montserrat', -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --transition: all 0.2s ease-in-out;
+  
+  /* Sidebar */
+  --sidebar-bg: linear-gradient(180deg, #d97706 0%, #92400e 100%); /* Gradiente ámbar */
+  --sidebar-text: white;
+  
+  /* Acentos */
+  --accent-color: #f59e0b;          /* Ámbar brillante para acentos */
+  --accent-hover: #d97706;          /* Ámbar más oscuro para hover */
+  
+  /* Colores específicos para tablas */
+  --table-header-bg: #92400e;       /* Marrón oscuro para cabecera de tabla */
+  --table-header-text: white;       /* Texto blanco para cabecera */
+  --table-row-hover: #44403c;       /* Marrón oscuro para hover */
+  --table-border: #78716c;          /* Borde marrón */
+  --table-bg: #57534e;              /* Fondo de tabla marrón grisáceo */
+  --table-row-even: #44403c;        /* Filas pares un poco más oscuras */
+}
+
+/* Sobreescribir colores para JSON en tema ámbar */
+.json-key {
+  color: #fbbf24; /* Amarillo ámbar para claves */
+}
+
+.json-key-header {
+  color: #f87171; /* Rojo claro para claves de header */
+}
+
+.json-key-service {
+  color: #fbbf24; /* Amarillo ámbar para claves de servicio */
+}
+
+.json-key-request {
+  color: #34d399; /* Verde claro para claves de request */
+}
+
+.json-key-response {
+  color: #c4b5fd; /* Púrpura claro para claves de response */
+}
+
+.json-string {
+  color: #f87171; /* Rojo claro para cadenas */
+}
+
+.json-number {
+  color: #34d399; /* Verde claro para números */
+}
+
+.json-boolean {
+  color: #60a5fa; /* Azul claro para booleanos */
+}
+
+.json-null {
+  color: #60a5fa; /* Azul claro para null */
+}
+
+.json-brackets {
+  color: var(--text-color);
+}
+
+.json-comma {
+  color: var(--text-color);
+}
+
+/* Forzar colores de fondo */
+body {
+  background-color: var(--body-bg) !important;
+}
+
+.container {
+  background-color: var(--dark-bg) !important;
+}
+
+/* Ajustar color de fondo de elementos específicos */
+.file-upload {
+  background-color: var(--card-bg) !important;
+}
+
+.table-container {
+  border-color: var(--border-color) !important;
+}
+
+table {
+  background-color: var(--table-bg) !important;
+  border-color: var(--border-color) !important;
+}
+
+th {
+  background-color: var(--table-header-bg) !important;
+}
+
+tr:nth-child(even) {
+  background-color: var(--table-row-even) !important;
+}
+
+tr:hover {
+  background-color: var(--table-row-hover) !important;
+}
+
+select, input, textarea {
+  background-color: var(--card-bg) !important;
+  color: var(--text-color) !important;
+  border-color: var(--border-color) !important;
+}
+
+.json-container {
+  background-color: var(--card-bg) !important;
+  color: var(--text-color) !important;
+}
+
+/* Ajustes específicos para ocurrencias en tema ámbar */
+.occurrence-row {
+  background-color: rgba(245, 158, 11, 0.15) !important;
+}
+
+.occurrence-row:hover {
+  background-color: rgba(245, 158, 11, 0.25) !important;
+}
+
+.occurrence-row td {
+  color: #fbbf24 !important; /* Amarillo ámbar brillante */
+}
+
+.occurrence-row .collapse-btn {
+  background-color: var(--primary-color) !important;
+}
+
+.occurrence-end {
+  background-color: rgba(245, 158, 11, 0.1) !important;
+  border-bottom: 1px dashed var(--primary-color) !important;
+}
+
+/* Estilos para los niveles de color en temas ámbar */
+.level-color-0 {
+  border-left: 3px solid var(--primary-color) !important;
+}
+
+.level-color-1 {
+  border-left: 3px solid #f59e0b !important; /* Ámbar */
+}
+
+.level-color-2 {
+  border-left: 3px solid #d97706 !important; /* Ámbar más oscuro */
+}
+
+.level-color-3 {
+  border-left: 3px solid #92400e !important; /* Marrón */
+}

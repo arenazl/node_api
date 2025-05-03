@@ -26,7 +26,22 @@ try {
  * @route GET /api
  * @description Información general de la API
  */
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
+  // IMPORTANTE: Forzar actualización de la caché de servicios cuando se accede a la API
+  // Esto garantiza que los nuevos servicios cargados aparezcan inmediatamente
+  try {
+    console.log("[API] Forzando recarga de caché de servicios para actualizar la lista...");
+    // Importar el módulo de servicios para forzar recarga
+    const serviceRouter = require('./services');
+    
+    // Forzar recarga con forceRefresh = true
+    await serviceRouter.getAvailableServices(true);
+    console.log("[API] Caché de servicios actualizada exitosamente");
+  } catch (cacheError) {
+    console.error("[API] Error al recargar caché de servicios:", cacheError);
+    // Continuamos a pesar del error para no bloquear la funcionalidad principal
+  }
+
   res.json({
     message: "API de procesamiento de mensajes MQ",
     endpoints: {

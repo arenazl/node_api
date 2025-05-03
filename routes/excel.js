@@ -97,10 +97,43 @@ router.post('/upload', async (req, res) => {
     // Guardar las estructuras en un solo archivo
     const structureInfo = saveStructures(headerStructure, serviceStructure);
     
+    // Crear un mensaje de evento que incluya el número de servicio para notificar a la UI
+    // Esta es la parte crucial que asegura que los componentes se actualicen automáticamente
+    const eventPayload = {
+      filename: path.basename(filePath),
+      structure_file: structureInfo.structure_file,
+      service_number: serviceStructure.serviceNumber || null,
+      timestamp: new Date().toISOString()
+    };
+    
+    // Publicar al frontend los eventos de FILE_UPLOADED y SERVICES_REFRESHED
+    // Este es el mecanismo principal de actualización automática
+    if (global.io) {
+      // Si tenemos Socket.IO disponible, emitir eventos
+      console.log('[EXCEL] Emitiendo eventos de actualización via Socket.IO');
+      global.io.emit('file:uploaded', eventPayload);
+      global.io.emit('services:refreshed', eventPayload);
+    } else {
+      // Sin Socket.IO, podemos usar un enfoque basado en archivo temporal
+      // para notificar a los componentes que deben actualizarse (enfoque fallback)
+      console.log('[EXCEL] Socket.IO no disponible, guardando evento en archivo temporal');
+      try {
+        const eventFile = path.join(__dirname, '..', 'tmp', 'last_event.json');
+        fs.writeFileSync(eventFile, JSON.stringify({
+          type: 'file:uploaded',
+          payload: eventPayload,
+          timestamp: new Date().toISOString()
+        }, null, 2));
+      } catch (eventError) {
+        console.warn('[EXCEL] No se pudo guardar evento:', eventError);
+      }
+    }
+    
     // Devolver respuesta
     res.json({
       filename: path.basename(filePath),
       structure_file: structureInfo.structure_file,
+      service_number: serviceStructure.serviceNumber || null,
       message: "Archivo Excel procesado correctamente"
     });
     
@@ -361,13 +394,52 @@ function saveStructures(headerStructure, serviceStructure, excelFilePath) {
     fs.mkdirSync(structuresDir, { recursive: true });
   }
   
+  // IMPORTANTE: Procesamiento en DOS ETAPAS
+  // 1. Primero aplicamos el fixer de ocurrencias para corregir índices y relaciones parentId
+  // 2. Luego aplicamos el sanitizador de ocurrencias para preservar la estructura exacta
+  console.log("[ESTRUCTURA] Aplicando procesamiento de ocurrencias en dos etapas");
+  
+  try {
+    // ETAPA 1: Corrección de índices y relaciones parentId
+    console.log("[ESTRUCTURA] ETAPA 1: Aplicando fix directo para índices y relaciones parentId");
+    const occurrenceFixer = require('../utils/occurrence-fixer');
+    
+    // Aplicar la corrección directamente a toda la estructura
+    const structureFixed = occurrenceFixer.fixOccurrenceIndices(serviceStructure);
+    
+    // Reemplazar la estructura con la versión corregida
+    serviceStructure = structureFixed;
+    
+    console.log("[ESTRUCTURA] Índices y relaciones parentId corregidas exitosamente");
+    
+    // ETAPA 2: Sanitización de ocurrencias para preservar la estructura exacta
+    console.log("[ESTRUCTURA] ETAPA 2: Aplicando sanitizador de ocurrencias");
+    const occurrenceSanitizer = require('../utils/occurrence-sanitizer');
+    
+    // Aplicar sanitización a las secciones request y response por separado
+    if (serviceStructure.request) {
+      serviceStructure.request = occurrenceSanitizer.sanitizeOccurrences(serviceStructure.request);
+      console.log("[ESTRUCTURA] Request sanitizado correctamente");
+    }
+    
+    if (serviceStructure.response) {
+      serviceStructure.response = occurrenceSanitizer.sanitizeOccurrences(serviceStructure.response);
+      console.log("[ESTRUCTURA] Response sanitizado correctamente");
+    }
+    
+    console.log("[ESTRUCTURA] Procesamiento de ocurrencias completado exitosamente");
+  } catch (error) {
+    console.warn(`[ADVERTENCIA] Error en el procesamiento de ocurrencias: ${error.message}`);
+    console.warn("Se continuará con el procesamiento normal");
+  }
+  
   // Crear estructura combinada sin duplicar propiedades
   const combinedStructure = {
     header_structure: headerStructure,
     service_structure: serviceStructure
   };
   
-  // Guardar el archivo
+  // Guardar el archivo con formato indentado para mejor legibilidad
   fs.writeFileSync(structureFilePath, JSON.stringify(combinedStructure, null, 2));
   
   return {
@@ -498,7 +570,7 @@ async function getStructure(structureFile) {
  */
 async function processExcelFile(filePath) {
   try {
-    // Extraer estructuras
+    // Extraer estructuras usando el parser universal
     const headerStructure = excelParser.parseHeaderStructure(filePath);
     const serviceStructure = excelParser.parseServiceStructure(filePath);
     
@@ -506,7 +578,12 @@ async function processExcelFile(filePath) {
     const structureInfo = saveStructures(headerStructure, serviceStructure, filePath);
     
     // Extraer y guardar el header sample si hay un número de servicio válido
-    let headerSampleInfo = null;
+    // Pero no fallar si no es posible obtener el header sample
+    let headerSampleInfo = {
+      success: true,
+      headerSample: { value: "", missingTab: true }
+    };
+    
     if (serviceStructure && serviceStructure.serviceNumber) {
       try {
         // Crear directorio de headers si no existe
@@ -518,12 +595,18 @@ async function processExcelFile(filePath) {
         // Extraer y guardar el header sample
         headerSampleInfo = excelParser.saveHeaderSample(filePath, serviceStructure.serviceNumber, headersDir);
         console.log(`Header sample extraído y guardado: ${JSON.stringify(headerSampleInfo)}`);
+        
+        // Verificar si solo falta la pestaña de header (no es un error fatal)
+        if (headerSampleInfo && headerSampleInfo.headerSample && headerSampleInfo.headerSample.missingTab) {
+          console.warn(`El archivo Excel no tiene pestaña de cabecera (${headerSampleInfo.headerSample.availableTabs} pestañas disponibles), pero el proceso continuará normalmente`);
+        }
       } catch (headerSampleError) {
         console.error(`Error al extraer header sample: ${headerSampleError.message}`);
-        // No fallar todo el proceso si solo falló la extracción del header sample
+        // IMPORTANTE: No fallamos en el proceso por error en el header sample
+        console.warn("Continuando el proceso a pesar del error en el header sample");
       }
     } else {
-      console.warn(`No se pudo extraer header sample: No se encontró número de servicio válido`);
+      console.warn(`No se pudo extraer header sample: No se encontró número de servicio válido. Continuando el proceso...`);
     }
     
     return { 

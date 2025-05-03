@@ -1,16 +1,16 @@
 /* Estilos para el editor JSON */
 
 .json-editor {
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-family: 'Montserrat', sans-serif;
   padding: 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-color);
   border-radius: 4px;
-  background-color: #f8f8f8;
+  background-color: var(--card-bg);
   min-height: 200px;
   white-space: pre-wrap;
   word-break: break-word;
   overflow: auto;
-  color: #333;
+  color: var(--text-color);
   line-height: 1.5;
   font-size: 14px;
   transition: border-color 0.3s, box-shadow 0.3s;
@@ -29,54 +29,89 @@
   position: relative;
   overflow: auto;
   max-height: 900px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-color);
   border-radius: 4px;
-  background-color: #f8f8f8;
+  background-color: var(--card-bg);
 }
 
-/* Colores para la sintaxis del JSON */
+/* Colores para la sintaxis del JSON - Optimizados para fondos oscuros */
 .json-key {
-  color: #0d47a1; /* Azul oscuro */
-  font-weight: bold;
+  color: #60a5fa; /* Azul más claro para claves */
+  font-weight: 600;
 }
 
 .json-string {
-  color: #2e7d32; /* Verde */
+  color: #fb7185; /* Rosa claro para cadenas */
 }
 
 .json-number {
-  color: #d32f2f; /* Rojo */
+  color: #6ee7b7; /* Verde claro para números */
 }
 
 .json-boolean {
-  color: #7b1fa2; /* Púrpura */
+  color: #60a5fa; /* Azul más claro para booleanos */
+  font-weight: 600;
 }
 
 .json-null {
-  color: #757575; /* Gris */
-  font-style: italic;
+  color: #60a5fa; /* Azul más claro para null */
+  font-weight: 600;
 }
 
 .json-brackets {
-  color: #555;
+  color: var(--text-color);
   font-weight: bold;
 }
 
 .json-comma {
-  color: #555;
+  color: var(--text-color);
 }
 
-/* Secciones especiales */
+/* Secciones especiales con colores optimizados para fondo oscuro */
 .json-header-section {
-  color: #0277bd; /* Azul */
+  color: #fca5a5; /* Rojo claro para cabecera */
+  font-weight: 600;
 }
 
 .json-request-section {
-  color: #689f38; /* Verde */
+  color: #5eead4; /* Verde azulado claro para request */
+  font-weight: 600;
 }
 
 .json-response-section {
-  color: #e65100; /* Naranja */
+  color: #c4b5fd; /* Púrpura claro para response */
+  font-weight: 600;
+}
+
+/* Colores específicos para propiedades importantes */
+.json-key-header {
+  color: #fca5a5; /* Rojo claro para claves de header */
+  font-weight: 600;
+}
+
+.json-key-service {
+  color: #93c5fd; /* Azul claro para claves de servicio */
+  font-weight: 600;
+}
+
+.json-key-request {
+  color: #5eead4; /* Verde azulado claro para claves de request */
+  font-weight: 600;
+}
+
+.json-key-response {
+  color: #c4b5fd; /* Púrpura claro para claves de response */
+  font-weight: 600;
+}
+
+.json-elements-array {
+  color: #fdba74; /* Naranja claro para arrays de elementos */
+  font-weight: 600;
+}
+
+.json-header-fields {
+  color: #fcd34d; /* Amarillo claro para fields de cabecera */
+  font-weight: 600;
 }
 
 /* Colapsar/expandir nodos */
@@ -91,7 +126,7 @@
   margin-right: 3px; /* Reducido de 5px */
   cursor: pointer;
   user-select: none;
-  font-family: monospace;
+  font-family: 'Montserrat', sans-serif;
   font-weight: bold;
   font-size: 11px; /* Reducido de 12px */
   transition: background-color 0.2s;
@@ -138,16 +173,17 @@
 
 /* Estilo para texto de resultado */
 #idaResult, #vueltaResult {
-  font-family: monospace;
+  font-family: 'Montserrat', sans-serif;
   padding: 12px;
-  background-color: #f0f7ff;
-  border: 1px solid #cce5ff;
+  background-color: var(--dark-bg);
+  border: 1px solid var(--border-color);
   border-radius: 4px;
   min-height: 100px;
   max-height: 400px;
   overflow: auto;
   white-space: pre-wrap;
   word-break: break-word;
+  color: var(--text-color);
 }
 
 /* Estilo para botón de procesar */
@@ -174,7 +210,7 @@
 /* Estilos para el panel de estructuras */
 .structures-panel {
   margin-top: 1.5rem;
-  background-color: #f8fafc;
+  background-color: var(--dark-bg);
   border-radius: var(--radius);
   border: 1px solid var(--border-color);
   padding: 1.5rem;
@@ -210,8 +246,8 @@
   align-items: center;
   padding: 0.75rem 1rem;
   margin: 0.5rem 0;
-  background-color: white;
-  border: 1px solid #e2e8f0;
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
   border-radius: var(--radius);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   transition: var(--transition);
@@ -248,7 +284,7 @@
   width: 100%;
   max-height: 300px;
   overflow-y: auto;
-  background-color: #fff;
+  background-color: var(--card-bg);
   border: 1px solid var(--border-color);
   border-radius: 0 0 var(--radius) var(--radius);
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -261,7 +297,7 @@
 }
 
 .autocomplete-item:hover {
-  background-color: #f1f5f9;
+  background-color: var(--dark-bg);
 }
 
 /* Estilos para la búsqueda */
@@ -302,11 +338,12 @@
 
 .json-container {
   flex: 1;
-  font-family: monospace;
-  background-color: #f8fafc;
+  font-family: 'Montserrat', sans-serif;
+  background-color: var(--dark-bg);
   padding: 1.5rem;
   border-radius: var(--radius);
   border: 1px solid var(--border-color);
   overflow: auto;
   max-height: 500px;
+  color: var(--text-color);
 }
