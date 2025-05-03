@@ -1,5 +1,65 @@
 // Event listeners for various UI components
+// Sistema de eventos Socket.IO
+let socket;
+
+// Inicializar Socket.IO
+function initSocketIO() {
+    // Verificar si ya hay una conexión
+    if (socket) return;
+    
+    try {
+        // Intentar conectar con el servidor Socket.IO
+        socket = io();
+        
+        // Evento de conexión exitosa
+        socket.on('connect', function() {
+            console.log('[Socket.IO] Conectado con el servidor, ID:', socket.id);
+        });
+        
+        // Escuchar eventos de configuraciones guardadas
+        socket.on('config:saved', function(data) {
+            console.log('[Socket.IO] Configuración guardada:', data);
+            
+            // Actualizar la lista de configuraciones si corresponde al servicio actual
+            const idaServiceSelect = document.getElementById('idaServiceSelect');
+            if (idaServiceSelect && idaServiceSelect.value === data.serviceNumber) {
+                console.log('[Socket.IO] Actualizando lista de configuraciones para el servicio:', data.serviceNumber);
+                loadConfigurationsForService(data.serviceNumber);
+            }
+        });
+        
+        // Eventos adicionales
+        socket.on('services:refreshed', function(data) {
+            console.log('[Socket.IO] Servicios actualizados:', data);
+            // Recargar selectores de servicios
+            loadAllServiceSelectors();
+        });
+        
+        // Manejar reconexiones
+        socket.on('reconnect', function(attemptNumber) {
+            console.log('[Socket.IO] Reconectado después de', attemptNumber, 'intentos');
+            loadAllServiceSelectors(); // Recargar datos después de reconectar
+        });
+        
+        // Manejar errores
+        socket.on('error', function(error) {
+            console.error('[Socket.IO] Error:', error);
+        });
+        
+        // Desconexión
+        socket.on('disconnect', function(reason) {
+            console.log('[Socket.IO] Desconectado:', reason);
+        });
+        
+    } catch (error) {
+        console.error('[Socket.IO] Error al inicializar:', error);
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+    // Inicializar Socket.IO
+    initSocketIO();
+    
     // Refresh button for services
     const refreshServicesBtn = document.getElementById('refreshServicesBtn');
     if (refreshServicesBtn) {

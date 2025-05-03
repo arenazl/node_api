@@ -54,6 +54,18 @@ router.post('/save', async (req, res) => {
     // Guardar configuración en archivo JSON
     await fs.writeJson(filePath, config, { spaces: 2 });
     
+    // Emitir evento de configuración guardada a través de Socket.IO
+    if (global.io) {
+      console.log(`[WebSocket] Emitiendo evento config:saved para servicio ${serviceNumber}`);
+      global.io.emit('config:saved', { 
+        serviceNumber,
+        canal: safeCanal,
+        version: safeVersion,
+        filename,
+        timestamp: config.timestamp
+      });
+    }
+    
     // Devolver respuesta exitosa
     res.json({
       success: true,

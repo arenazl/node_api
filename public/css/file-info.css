@@ -1,0 +1,67 @@
+/* Estilos para la barra de información de archivo cargado */
+.current-file-info {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  padding: 10px 15px;
+  margin: 15px 0;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  
+  /* Configuración sticky */
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.file-info-container {
+  display: flex;
+  align-items: center;
+}
+
+.file-icon {
+  font-size: 24px;
+  margin-right: 15px;
+  color: #4a6baa;
+}
+
+.file-details {
+  flex: 1;
+}
+
+.file-name-display {
+  font-size: 16px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 3px;
+}
+
+.file-meta {
+  font-size: 14px;
+  color: #6c757d;
+}
+
+/* Versión oscura para tema oscuro */
+body.dark-theme .current-file-info {
+  background-color: #2a2a2a;
+  border-color: #444;
+  color: #e0e0e0;
+}
+
+body.dark-theme .file-name-display {
+  color: #e0e0e0;
+}
+
+body.dark-theme .file-meta {
+  color: #b0b0b0;
+}
+
+/* Animación al aparecer */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.current-file-info.show {
+  animation: fadeIn 0.3s ease forwards;
+}

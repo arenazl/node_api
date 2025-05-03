@@ -40,12 +40,39 @@ document.addEventListener('DOMContentLoaded', () => {
   // Inicializar eventos de servicios
   initServiceEvents();
   
+  // Cargar información del último archivo si está disponible
+  loadLastFileInfo();
+  
   // Cargar lista de archivos y servicios después de inicializar la UI
   setTimeout(() => {
     loadFilesList();
     loadServicesList();
   }, 100);
 });
+
+/**
+ * Carga la información del último archivo procesado
+ * Ya no persiste entre recargas de página
+ */
+function loadLastFileInfo() {
+  // Esta función ya no carga información de localStorage
+  // Solo se muestra la info cuando se carga un archivo en la sesión actual
+  
+  // Asegurar que no haya información visible al iniciar
+  try {
+    const fileInfoContainer = document.getElementById('current-file-info');
+    if (fileInfoContainer) {
+      fileInfoContainer.style.display = 'none';
+      
+      // También limpiar localStorage para evitar que se muestre en sesiones futuras
+      localStorage.removeItem('currentFileName');
+      localStorage.removeItem('currentFileService');
+      localStorage.removeItem('fileInfoVisible');
+    }
+  } catch (e) {
+    console.warn('Error al restablecer la información del archivo:', e);
+  }
+}
 
 /**
  * Inicializa el comportamiento de las pestañas
@@ -298,10 +325,42 @@ async function uploadExcelFile(formData) {
           structure_file: data.structure_file,
           timestamp: new Date().toISOString()
         });
-        console.log("Evento FILE_UPLOADED publicado con service_number:", data.service_number);
-      }
-      
-      // Además, seleccionar el servicio recién cargado en todos los selectores si está disponible
+          console.log("Evento FILE_UPLOADED publicado con service_number:", data.service_number);
+        }
+        
+        // Mostrar información del archivo cargado en el header
+        const fileInfoContainer = document.getElementById('current-file-info');
+        const currentFileName = document.getElementById('currentFileName');
+        const currentFileService = document.getElementById('currentFileService');
+        
+        if (fileInfoContainer && currentFileName && currentFileService) {
+          // Mostrar el nombre del archivo original
+          currentFileName.textContent = formData.get('file').name;
+          
+          // Mostrar el número y nombre de servicio si están disponibles
+          if (data.service_number && data.service_name) {
+            currentFileService.textContent = `Servicio ${data.service_number} - ${data.service_name}`;
+          } else if (data.service_number) {
+            currentFileService.textContent = `Servicio ${data.service_number}`;
+          } else {
+            currentFileService.textContent = 'Servicio no identificado';
+          }
+          
+          // Mostrar el contenedor con animación
+          fileInfoContainer.style.display = 'block';
+          fileInfoContainer.classList.add('show');
+          
+          // Guardar en localStorage para persistir entre recargas
+          try {
+            localStorage.setItem('currentFileName', currentFileName.textContent);
+            localStorage.setItem('currentFileService', currentFileService.textContent);
+            localStorage.setItem('fileInfoVisible', 'true');
+          } catch (e) {
+            console.warn('No se pudo guardar información en localStorage:', e);
+          }
+        }
+        
+        // Además, seleccionar el servicio recién cargado en todos los selectores si está disponible
       if (data.service_number) {
         const selectors = ['idaServiceSelect', 'vueltaServiceSelect', 'configServiceSelect'];
         for (const selectorId of selectors) {

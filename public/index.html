@@ -23,6 +23,7 @@
   <link rel="stylesheet" href="/css/json-colors-override.css">
   <link rel="stylesheet" href="/css/theme-selector.css">
   <link rel="stylesheet" href="/css/progress-bar.css">
+  <link rel="stylesheet" href="/css/file-info.css">
   
   <!-- Toastr - para notificaciones elegantes -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
@@ -54,6 +55,17 @@
     <div class="header">
       <h1>Procesador de Mensajes Excel</h1>
       <p class="subtitle">Importación y procesamiento de archivos SVO</p>
+    </div>
+
+    <!-- Current File Information - Hidden initially -->
+    <div id="current-file-info" class="current-file-info" style="display: none;">
+      <div class="file-info-container">
+        <div class="file-icon">📄</div>
+        <div class="file-details">
+          <div class="file-name-display" id="currentFileName">Ningún archivo cargado</div>
+          <div class="file-meta" id="currentFileService"></div>
+        </div>
+      </div>
     </div>
 
     <!-- Main Tabs Navigation -->
@@ -423,6 +435,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
   
   <!-- App Scripts -->
   <script src="/js/json-formatter.js"></script>
@@ -439,6 +452,7 @@
   <script src="/js/config-ui-manager.js"></script>
   <script src="/js/config-manager.js"></script>
   
+  <script src="/js/app-events.js"></script>
   <script src="/js/structure-search.js"></script>
   <script src="/js/tab-manager.js"></script>
   <script src="/js/example-stream.js"></script>

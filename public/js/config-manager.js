@@ -248,6 +248,21 @@ const ConfigManager = {
             (savedConfig) => {
                 // Success callback - reload saved configs
                 this._loadSavedConfigurations();
+                
+                // Publicar evento para que otros componentes puedan reaccionar
+                if (window.EventBus && window.AppEvents) {
+                    console.log("Publicando evento CONFIG_SAVED con datos:", { 
+                        serviceNumber, 
+                        canal, 
+                        version: versionStr 
+                    });
+                    window.EventBus.publish(window.AppEvents.CONFIG_SAVED, {
+                        serviceNumber,
+                        serviceName,
+                        canal,
+                        version: versionStr
+                    });
+                }
             },
             (errorMessage) => {
                 // Error callback
