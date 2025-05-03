@@ -262,16 +262,16 @@
                     </select>
                   </div>
                   
+                  <div class="button-group" style="margin-bottom: 15px;">
+                    <button id="processIdaBtn" style="display: none;" class="service-button">Procesar Servicio de Ida</button>
+                    <button id="generateStringBtn" class="service-button secondary-btn">Generar String Fijo</button>
+                  </div>
+                  
                   <div class="form-group">
                     <label for="idaJsonInput">JSON a enviar:</label>
                     <div class="json-input-container">
                       <pre id="idaJsonInput" class="json-editor" contenteditable="true">{ }</pre>
                     </div>
-                  </div>
-                  
-                  <div class="button-group">
-                    <button id="processIdaBtn" style="display: none;" class="service-button">Procesar Servicio de Ida</button>
-                    <button id="generateStringBtn" class="service-button secondary-btn">Generar String Fijo</button>
                   </div>
                   
                   <div class="form-group">
@@ -304,22 +304,22 @@
                     </select>
                   </div>
                   
+                  <div class="button-group" style="margin-bottom: 15px;">
+                    <button id="processVueltaBtn" class="service-button">Procesar Servicio de Vuelta</button>
+                    <button id="generateExampleBtn" class="service-button secondary-btn">Generar Ejemplo</button>
+                  </div>
+
                   <div class="form-group">
                     <label for="streamData">Stream de datos:</label>
                     <textarea id="streamData" rows="8" placeholder="Ingrese el stream de datos a procesar"></textarea>
                     <div class="character-count">Cantidad de caracteres: <span id="streamCharCount">0</span></div>
                   </div>
-                  
-                  <div class="button-group">
-                    <button id="processVueltaBtn" class="service-button">Procesar Servicio de Vuelta</button>
-                    <button id="generateExampleBtn" class="service-button secondary-btn">Generar Ejemplo</button>
-                  </div>
                 </div>
                 
                 <div class="result-section">
                   <h4>Respuesta:</h4>
-                  <div class="result-container">
-                    <pre id="vueltaResult">La respuesta se mostrará aquí</pre>
+                  <div class="result-container" style="height: 400px; max-height: 400px; overflow: auto;">
+                    <pre id="vueltaResult" class="json-editor">La respuesta se mostrará aquí</pre>
                   </div>
                 </div>
               </div>
@@ -378,5 +378,6 @@
   <script src="/js/structure-search.js"></script>
   <script src="/js/tab-manager.js"></script>
   <script src="/js/example-stream.js"></script>
+  <script src="/js/simple-example-generator.js"></script>
 </body>
 </html>

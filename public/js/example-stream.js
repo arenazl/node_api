@@ -72,16 +72,66 @@ async function generateExampleFromStructure(structure, serviceNumber) {
     const headerLength = structure.header_structure?.totalLength || 102;
     const responseLength = structure.service_structure?.response?.totalLength || 0;
     
-    console.log(`Generando ejemplo para servicio ${serviceNumber}. Cabecera: ${headerLength}, Respuesta: ${responseLength}`);
+    // VERIFICACIÓN DE ESTRUCTURA COMPLETA
+    console.error(`==== ESTRUCTURA COMPLETA PARA SERVICIO ${serviceNumber} ====`);
+    console.error(`Header structure totalLength: ${headerLength}`);
+    
+    // Verificar si la estructura es válida
+    if (!structure.service_structure || !structure.service_structure.response) {
+        console.error("ERROR: No se encontró estructura de respuesta válida");
+        console.error("Estructura recibida:", JSON.stringify(structure, null, 2));
+        throw new Error(`Estructura inválida para servicio ${serviceNumber}. No se encontró service_structure.response`);
+    }
+    
+    // Verificar si hay elementos en la respuesta
+    if (!structure.service_structure.response.elements || structure.service_structure.response.elements.length === 0) {
+        console.error("ERROR: No hay elementos en la estructura de respuesta");
+        console.error("Estructura de respuesta:", JSON.stringify(structure.service_structure.response, null, 2));
+        throw new Error(`Estructura inválida para servicio ${serviceNumber}. No hay elementos definidos en la respuesta`);
+    }
+    
+    // Verificar si hay totalLength definido para la respuesta
+    if (!responseLength || responseLength <= 0) {
+        console.error(`ERROR: Valor inválido para responseLength: ${responseLength}`);
+        
+        // Intentar calcular manualmente
+        const calculatedResponseLength = calculateTotalResponseLength(structure.service_structure.response);
+        console.error(`Longitud de respuesta calculada manualmente: ${calculatedResponseLength}`);
+        
+        if (calculatedResponseLength > 0) {
+            console.error(`Usando longitud calculada en lugar de la definida en la estructura`);
+            responseLength = calculatedResponseLength;
+        } else {
+            throw new Error(`No se pudo determinar la longitud de la respuesta para servicio ${serviceNumber}`);
+        }
+    }
+    
+    console.error(`Generando ejemplo para servicio ${serviceNumber}. Cabecera: ${headerLength}, Respuesta: ${responseLength}`);
+    
+    // Longitud del cuerpo (excluyendo la cabecera)
+    let bodyLength = responseLength - headerLength;
+    
+    // Validación adicional
+    if (bodyLength <= 0) {
+        console.error(`ERROR: Longitud de cuerpo inválida (${bodyLength}). Usando valor por defecto.`);
+        bodyLength = 1000; // Valor por defecto razonable
+    }
+    
+    console.error(`Longitud calculada para el cuerpo: ${bodyLength} caracteres`);
     
     // Generar la cabecera (ahora es async)
     const header = await generateHeaderExample(structure, serviceNumber, headerLength);
+    console.log(`Cabecera generada: [${header}] (${header.length} caracteres)`);
     
     // Generar el cuerpo de respuesta
-    const responseBody = generateResponseExample(structure, responseLength - headerLength);
+    const responseBody = generateResponseExample(structure, bodyLength);
+    console.log(`Cuerpo generado: [${responseBody}] (${responseBody.length} caracteres)`);
     
     // Combinar cabecera y respuesta
-    return header + responseBody;
+    const fullResponse = header + responseBody;
+    console.log(`String completo generado: ${fullResponse.length} caracteres`);
+    
+    return fullResponse;
 }
 
 /**
@@ -173,51 +223,77 @@ async function generateHeaderExample(structure, serviceNumber, headerLength) {
  * @returns {string} - Cuerpo de respuesta de ejemplo.
  */
 function generateResponseExample(structure, responseBodyLength) {
-    // Verificar si estamos trabajando con el servicio 3088 u otro con estructura conocida
+    // Obtener las opciones de respuesta y la estructura
     const serviceNumber = structure.service_structure?.serviceNumber;
+    const responseStructure = structure.service_structure?.response;
     
-    // Inicializamos los valores de respuesta
+    // Verificar si tenemos una estructura de respuesta válida
+    if (!responseStructure || !responseStructure.elements) {
+        console.warn(`No se encontró estructura de respuesta válida para servicio ${serviceNumber}`);
+        return generateGenericResponseBody(serviceNumber, responseBodyLength);
+    }
+    
+    // Analizar la estructura para identificar campos importantes y ocurrencias
+    const { 
+        hasOccurrences,
+        occurrenceDef,
+        countField,
+        initialFields,
+        occurrenceLength 
+    } = analyzeResponseStructure(responseStructure);
+    
+    console.log(`Análisis de estructura para servicio ${serviceNumber}:`, {
+        hasOccurrences,
+        countFieldName: countField ? countField.name : 'Ninguno',
+        occurrenceLength,
+        initialFieldsCount: initialFields.length
+    });
+    
+    // Inicializamos el cuerpo de respuesta
     let responseBody = "";
     
-    // Si estamos trabajando específicamente con el servicio 3088
-    if (serviceNumber === "3088") {
-        console.log("Generando respuesta para servicio 3088");
+    // Generar un número de ocurrencias para este ejemplo de forma dinámica
+    // basándonos únicamente en la estructura, sin hardcodear servicios específicos
+    let occurrenceCount = 0;
+    if (hasOccurrences) {
+        // Para cualquier servicio con ocurrencias, SIEMPRE generar al menos 1 ocurrencia (mínimo 2, máximo 5)
+        // Esto asegura que el ejemplo siempre tenga ocurrencias para mostrar
+        occurrenceCount = Math.floor(Math.random() * 4) + 2; // Genera entre 2-5 ocurrencias
         
-        // 1. Valores iniciales fijos para los primeros campos
-        responseBody = 
-            "00" +                          // SVC3088-ESTADO (2 posiciones) - Finalizado correctamente
-            "05" +                          // SVC3088-CANT-REG (2 posiciones) - 5 registros de ejemplo
-            "0";                            // SVC3088-MAS-DATOS (1 posición) - No tiene más datos
+        // Asegurar que nunca sea 0, incluso si hubiera algún error en el cálculo random
+        if (occurrenceCount < 1) occurrenceCount = 2;
         
-        // 2. Añadir ocurrencias de ejemplo (5 registros con datos)
-        for (let i = 0; i < 5; i++) {
-            const inconsistencia = i === 0 ? "00" : (i === 1 ? "01" : "02");  // Diferentes códigos para variedad
-            const idOps = `OPS${String(12345 + i).padStart(5, '0')}`;         // Diferentes IDs
-            const nroOper = String(i + 1).padStart(5, '0');                   // Número de operación incremental
-            const mensError = i === 0 ? "OPERACION CORRECTA" : `ERROR TIPO ${i}`;
-            const mensErrorDetalle = i === 0 ? "OPERACION PROCESADA CORRECTAMENTE" : 
-                                          `DETALLE DEL ERROR: SE ENCONTRO UN PROBLEMA EN LA OPERACION TIPO ${i}`;
-            
-            // Crear el registro según la estructura de ocurrencias
-            const registro = 
-                inconsistencia.padEnd(2, ' ') +                    // SVC3088-INCONSIST-SAL (2 pos)
-                idOps.padEnd(30, ' ') +                            // SVC3088-CON-ID-OPS-SAL (30 pos)
-                nroOper.padEnd(5, ' ') +                           // SVC3088-NRO-OPER-SERV-SAL (5 pos)
-                mensError.padEnd(30, ' ') +                        // SVC3088-MENS-ERROR-SAL (30 pos)
-                mensErrorDetalle.padEnd(300, ' ');                 // SVC3088-MENS-ERROR-TRAMA (300 pos)
-            
-            responseBody += registro;
+        console.log(`Servicio ${serviceNumber}: Generando ${occurrenceCount} ocurrencias (cada una de ${occurrenceLength} caracteres)`);
+    }
+    
+    // Procesar los campos iniciales (antes de las ocurrencias)
+    for (const field of initialFields) {
+        const fieldLength = parseInt(field.length) || 0;
+        if (fieldLength <= 0) continue;
+        
+        let fieldValue;
+        
+        // Si es el campo de contador de ocurrencias, usar el valor real
+        if (countField && field.name === countField.name) {
+            fieldValue = String(occurrenceCount).padStart(fieldLength, '0');
+            console.log(`Campo contador de ocurrencias (${field.name}): ${fieldValue}`);
+        } else {
+            // Para otros campos, generar valores apropiados según el tipo
+            fieldValue = generateFieldValue(field, fieldLength);
         }
         
-    } else {
-        // Para otros servicios o cuando no hay estructura específica
-        responseBody = 
-            "00" +                      // Estado (éxito) - asumimos 2 posiciones
-            "01" +                      // Cantidad de registros - asumimos 2 posiciones
-            "0";                        // No hay más datos - asumimos 1 posición
-            
-        // Añadir datos de ejemplo genérico para otros servicios
-        responseBody += "DATOS_EJEMPLO_SERVICIO_" + serviceNumber;
+        responseBody += fieldValue;
+    }
+    
+    // Si hay ocurrencias, generarlas según la estructura
+    if (hasOccurrences && occurrenceDef && occurrenceCount > 0) {
+        console.log(`Generando ${occurrenceCount} ocurrencias de ${occurrenceLength} caracteres cada una`);
+        
+        // Generar cada ocurrencia
+        for (let i = 0; i < occurrenceCount; i++) {
+            const occurrenceValue = generateOccurrenceValue(occurrenceDef, i);
+            responseBody += occurrenceValue;
+        }
     }
     
     // Asegurar que el cuerpo tenga la longitud total requerida
@@ -227,12 +303,185 @@ function generateResponseExample(structure, responseBodyLength) {
     if (responseBody.length < responseBodyLength) {
         responseBody = responseBody.padEnd(responseBodyLength, ' ');
     } else if (responseBody.length > responseBodyLength) {
-        // Si es más largo, truncar (aunque no debería ocurrir si los cálculos son correctos)
-        console.warn(`ADVERTENCIA: Respuesta generada más larga (${responseBody.length}) que la esperada (${responseBodyLength}). Truncando.`);
-        responseBody = responseBody.substring(0, responseBodyLength);
+        // Sólo truncar si la diferencia es pequeña o si es claramente un error de cálculo
+        if (responseBody.length - responseBodyLength < 10 || responseBody.length > responseBodyLength * 1.5) {
+            console.warn(`ADVERTENCIA: Respuesta generada más larga (${responseBody.length}) que la esperada (${responseBodyLength}). Truncando.`);
+            responseBody = responseBody.substring(0, responseBodyLength);
+        } else {
+            // Si la diferencia es significativa, puede indicar un error en la estructura
+            console.error(`ERROR: La respuesta generada (${responseBody.length}) excede sustancialmente la longitud esperada (${responseBodyLength}).`);
+        }
     }
     
     return responseBody;
+}
+
+/**
+ * Analiza la estructura de respuesta para identificar los campos importantes.
+ * @param {Object} responseStructure - Estructura de respuesta del servicio.
+ * @returns {Object} - Objeto con información analizada.
+ */
+function analyzeResponseStructure(responseStructure) {
+    const elements = responseStructure.elements || [];
+    const initialFields = [];
+    let occurrenceDef = null;
+    let countField = null;
+    let hasOccurrences = false;
+    
+    // Buscar campos iniciales y ocurrencia
+    for (const element of elements) {
+        if (element.type === 'field') {
+            // Es un campo normal, añadirlo a los campos iniciales
+            initialFields.push(element);
+            
+            // Comprobar si es un posible campo de contador de registros
+            const fieldName = (element.name || '').toLowerCase();
+            if (fieldName.includes('cant') && fieldName.includes('reg')) {
+                countField = element;
+                console.log(`Campo contador de registros encontrado: ${element.name}`);
+            }
+        } else if (element.type === 'occurrence') {
+            // Encontramos la definición de ocurrencia
+            occurrenceDef = element;
+            hasOccurrences = true;
+            break; // Detenemos el procesamiento de elementos iniciales
+        }
+    }
+    
+    // Calcular la longitud de una ocurrencia si existe
+    let occurrenceLength = 0;
+    if (occurrenceDef && occurrenceDef.elements) {
+        occurrenceLength = calculateOccurrenceLength(occurrenceDef.elements);
+    }
+    
+    return {
+        hasOccurrences,
+        occurrenceDef,
+        countField,
+        initialFields,
+        occurrenceLength
+    };
+}
+
+/**
+ * Calcula la longitud total de una ocurrencia.
+ * @param {Array} elements - Elementos de la ocurrencia.
+ * @returns {number} - Longitud total en caracteres.
+ */
+function calculateOccurrenceLength(elements) {
+    let length = 0;
+    for (const element of elements) {
+        if (element.type === 'field') {
+            length += parseInt(element.length) || 0;
+        }
+    }
+    return length;
+}
+
+/**
+ * Genera un valor para un campo específico.
+ * @param {Object} field - Definición del campo.
+ * @param {number} length - Longitud del campo.
+ * @returns {string} - Valor generado para el campo.
+ */
+function generateFieldValue(field, length) {
+    const fieldName = field.name || '';
+    const fieldType = (field.fieldType || field.type || '').toLowerCase();
+    
+    // Generar valor apropiado según el tipo
+    if (fieldType === 'numerico') {
+        if (fieldName.toLowerCase().includes('estado')) {
+            return '00'; // Típico código de éxito
+        } else if (fieldName.toLowerCase().includes('mas-datos')) {
+            return '0';  // Típicamente no hay más datos
+        } else {
+            // Para otros campos numéricos, generar números aleatorios
+            return Array.from({length}, () => Math.floor(Math.random() * 10)).join('');
+        }
+    } else {
+        // Para campos alfanuméricos, usar el nombre como base
+        const baseName = fieldName.replace(/[^A-Za-z0-9]/g, '');
+        const prefix = baseName.substring(0, Math.min(length, baseName.length));
+        return prefix.padEnd(length, ' ');
+    }
+}
+
+/**
+ * Genera un valor completo para una ocurrencia.
+ * @param {Object} occurrenceDef - Definición de la ocurrencia.
+ * @param {number} index - Índice de la ocurrencia (0-based).
+ * @returns {string} - Valor generado para la ocurrencia.
+ */
+function generateOccurrenceValue(occurrenceDef, index) {
+    const elements = occurrenceDef.elements || [];
+    let occurrenceValue = '';
+    
+    for (const element of elements) {
+        if (element.type === 'field') {
+            const fieldLength = parseInt(element.length) || 0;
+            if (fieldLength <= 0) continue;
+            
+            let fieldValue = '';
+            const fieldName = element.name || '';
+            const fieldType = (element.fieldType || element.type || '').toLowerCase();
+            
+            // Generar valores específicos para campos comunes
+            if (fieldName.toLowerCase().includes('inconsist')) {
+                // Código de inconsistencia: 00=sin error, otros=con error
+                fieldValue = index === 0 ? '00' : String(index).padStart(2, '0');
+            } else if (fieldName.toLowerCase().includes('id-ops')) {
+                // ID de operación
+                fieldValue = `OPS${String(10000 + index).padStart(5, '0')}`;
+                fieldValue = fieldValue.padEnd(fieldLength, ' ');
+            } else if (fieldName.toLowerCase().includes('nro-oper')) {
+                // Número de operación
+                fieldValue = String(index + 1).padStart(fieldLength, '0');
+            } else if (fieldName.toLowerCase().includes('mens-error') && !fieldName.toLowerCase().includes('trama')) {
+                // Mensaje de error
+                fieldValue = index === 0 ? 'OPERACION CORRECTA' : `ERROR TIPO ${index}`;
+                fieldValue = fieldValue.padEnd(fieldLength, ' ');
+            } else if (fieldName.toLowerCase().includes('mens-error-trama')) {
+                // Detalle de error
+                fieldValue = index === 0 
+                    ? 'OPERACION PROCESADA CORRECTAMENTE'
+                    : `DETALLE DEL ERROR: SE ENCONTRO UN PROBLEMA EN LA OPERACION TIPO ${index}`;
+                fieldValue = fieldValue.padEnd(fieldLength, ' ');
+            } else {
+                // Para otros campos, generar según el tipo
+                if (fieldType === 'numerico') {
+                    fieldValue = String(Math.floor(Math.random() * Math.pow(10, fieldLength))).padStart(fieldLength, '0');
+                } else {
+                    // Campo alfanumérico
+                    const prefix = `${fieldName}_${index+1}`.substring(0, Math.min(fieldLength, fieldName.length + 3));
+                    fieldValue = prefix.padEnd(fieldLength, ' ');
+                }
+            }
+            
+            occurrenceValue += fieldValue;
+        }
+    }
+    
+    return occurrenceValue;
+}
+
+/**
+ * Genera un cuerpo de respuesta genérico cuando no hay estructura específica.
+ * @param {string} serviceNumber - Número del servicio.
+ * @param {number} responseBodyLength - Longitud deseada del cuerpo.
+ * @returns {string} - Cuerpo de respuesta genérico.
+ */
+function generateGenericResponseBody(serviceNumber, responseBodyLength) {
+    // Valores iniciales genéricos
+    const body =
+        "00" +                      // Estado (éxito) - asumimos 2 posiciones
+        "03" +                      // Cantidad de registros - asumimos 2 posiciones
+        "0";                        // No hay más datos - asumimos 1 posición
+        
+    // Añadir datos de ejemplo genérico
+    const baseBody = body + "DATOS_EJEMPLO_SERVICIO_" + serviceNumber;
+    
+    // Rellenar hasta la longitud requerida
+    return baseBody.padEnd(responseBodyLength, ' ');
 }
 
 /**
@@ -276,6 +525,58 @@ function getFechaActual() {
     const month = String(fecha.getMonth() + 1).padStart(2, '0');
     const day = String(fecha.getDate()).padStart(2, '0');
     return `${year}${month}${day}`;
+}
+
+/**
+ * Calcula la longitud total de la respuesta sumando campos y ocurrencias.
+ * @param {Object} responseStructure - Estructura de respuesta del servicio.
+ * @returns {number} - Longitud total calculada en caracteres.
+ */
+function calculateTotalResponseLength(responseStructure) {
+    if (!responseStructure || !responseStructure.elements) {
+        return 0;
+    }
+    
+    let totalLength = 0;
+    let occurrenceCount = 0;
+    let occurrenceLength = 0;
+    
+    // Primera pasada: calcular campos antes de ocurrencias y encontrar info de ocurrencias
+    for (const element of responseStructure.elements) {
+        if (element.type === 'field') {
+            const fieldLength = parseInt(element.length) || 0;
+            totalLength += fieldLength;
+            
+            // Si es un campo de cantidad de registros, guardar el valor
+            const fieldName = (element.name || '').toLowerCase();
+            if (fieldName.includes('cant') && fieldName.includes('reg')) {
+                // Por defecto usamos 3 ocurrencias para el cálculo si no hay valor específico
+                occurrenceCount = 3; 
+                console.error(`Campo cantidad de registros encontrado: ${element.name}, usando ${occurrenceCount} ocurrencias para cálculo`);
+            }
+        } else if (element.type === 'occurrence') {
+            // Encontramos definición de ocurrencia, calcular su longitud
+            if (element.elements) {
+                occurrenceLength = calculateOccurrenceLength(element.elements);
+            }
+            
+            // Si no tenemos count específico del campo, usar el de la ocurrencia o un valor por defecto
+            if (occurrenceCount === 0) {
+                occurrenceCount = parseInt(element.count) || 3;
+            }
+            
+            break; // No procesamos más allá de la primera ocurrencia
+        }
+    }
+    
+    // Añadir longitud de ocurrencias
+    if (occurrenceCount > 0 && occurrenceLength > 0) {
+        const totalOccurrenceLength = occurrenceCount * occurrenceLength;
+        totalLength += totalOccurrenceLength;
+        console.error(`Calculando ${occurrenceCount} ocurrencias de ${occurrenceLength} caracteres: ${totalOccurrenceLength}`);
+    }
+    
+    return totalLength;
 }
 
 // Exportar funciones para uso en otros archivos

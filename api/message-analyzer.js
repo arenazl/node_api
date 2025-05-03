@@ -103,18 +103,30 @@ function determineSection(headerData, serviceStructure) {
  * Analiza la parte de datos del mensaje
  * @param {string} dataMessage - Mensaje de datos
  * @param {Object} dataStructure - Estructura de datos
+ * @param {boolean} validateOccurrences - Si es true, valida la coherencia de ocurrencias
  * @returns {Object} Datos analizados
  */
-function parseDataMessage(dataMessage, dataStructure) {
+function parseDataMessage(dataMessage, dataStructure, validateOccurrences = false) {
+  if (!dataStructure || !dataStructure.elements) {
+    throw new Error('Estructura de datos inválida o no proporcionada');
+  }
+  
   const data = {};
   let position = 0;
   
-  // Procesar elementos de la sección
+  // Variables para validación de ocurrencias
+  let occurrenceCountField = null;
+  let occurrenceCountValue = null;
+  let firstOccurrenceElement = null;
+  
+  // Primera pasada: identificar campos importantes y procesar campos previos a ocurrencias
   for (const element of dataStructure.elements) {
     if (element.type === 'field') {
       // Procesar campo
       const fieldName = element.name;
-      const fieldLength = element.length;
+      const fieldLength = parseInt(element.length) || 0;
+      
+      if (fieldLength <= 0) continue;
       
       // Extraer valor del mensaje
       const fieldValue = dataMessage.substring(position, position + fieldLength).trim();
@@ -122,23 +134,93 @@ function parseDataMessage(dataMessage, dataStructure) {
       // Agregar al objeto de datos
       data[fieldName] = fieldValue;
       
+      // Identificar campo de cantidad de registros si existe
+      if (validateOccurrences && 
+          fieldName.toLowerCase().includes('cant') && 
+          fieldName.toLowerCase().includes('reg')) {
+        occurrenceCountField = element;
+        occurrenceCountValue = parseInt(fieldValue) || 0;
+        console.log(`Campo contador de ocurrencias encontrado: ${fieldName} = ${occurrenceCountValue}`);
+      }
+      
       // Avanzar posición
       position += fieldLength;
     } else if (element.type === 'occurrence') {
-      // Procesar ocurrencia
-      const occurrenceId = element.id;
-      const occurrenceCount = element.count;
+      // Marcar la primera ocurrencia pero no procesarla aún
+      firstOccurrenceElement = element;
+      break;
+    }
+  }
+  
+    // Si estamos validando ocurrencias y encontramos un campo de contador y una definición de ocurrencia
+    if (validateOccurrences && occurrenceCountValue !== null && firstOccurrenceElement) {
+        // Calcular longitud esperada de ocurrencias
+        const occurrenceLength = calculateOccurrenceLength(firstOccurrenceElement.fields || firstOccurrenceElement.elements || []);
+        const expectedTotalLength = occurrenceLength * occurrenceCountValue;
+        
+        // Longitud restante del mensaje
+        const remainingLength = dataMessage.length - position;
+        
+        console.log(`Validando ocurrencias: ${occurrenceCountValue} ocurrencias de ${occurrenceLength} caracteres cada una (total: ${expectedTotalLength})`);
+        console.log(`Longitud restante en el mensaje: ${remainingLength} caracteres`);
+        
+        // Verificación estricta: si cantidad de registros es 0, no debería haber datos de ocurrencias
+        if (occurrenceCountValue === 0 && remainingLength > 10) { // Permitimos un pequeño margen para espacios de relleno
+            throw new Error(`Error de validación: El campo "cantidad de registros" es 0 pero hay ${remainingLength} caracteres de datos de ocurrencias. Si hay ocurrencias, este campo debe ser mayor a 0.`);
+        }
+        // Verificación normal para casos donde cantidad de registros > 0
+        else if (occurrenceCountValue > 0) {
+            // Verificar si coincide
+            if (remainingLength < expectedTotalLength) {
+                throw new Error(`Error de validación: La longitud de las ocurrencias (${remainingLength}) es menor que la esperada (${expectedTotalLength}) según la cantidad declarada (${occurrenceCountValue})`);
+            } else if (remainingLength > expectedTotalLength && remainingLength - expectedTotalLength > 10) {
+                // Permitimos una pequeña diferencia para casos de relleno
+                throw new Error(`Error de validación: La longitud de las ocurrencias (${remainingLength}) es mayor que la esperada (${expectedTotalLength}) según la cantidad declarada (${occurrenceCountValue})`);
+            }
+        }
+    }
+  
+  // Reiniciar posición para segunda pasada si no se procesaron las ocurrencias
+  if (firstOccurrenceElement) {
+    // Segunda pasada: procesar las ocurrencias
+    // Extraer datos de ocurrencia usando la cantidad declarada en el campo
+    const occurrenceCount = occurrenceCountValue !== null ? occurrenceCountValue : firstOccurrenceElement.count;
+    
+    const { occurrenceData, newPosition } = parseOccurrence(
+      dataMessage, position, firstOccurrenceElement, occurrenceCount
+    );
+    
+    // Agregar al objeto de datos
+    data[firstOccurrenceElement.id || `occurrence_${firstOccurrenceElement.index}`] = occurrenceData;
+    
+    // Actualizar posición
+    position = newPosition;
+    
+    // Procesar elementos restantes después de ocurrencias (si hay)
+    const occurrenceIndex = dataStructure.elements.indexOf(firstOccurrenceElement);
+    if (occurrenceIndex >= 0 && occurrenceIndex < dataStructure.elements.length - 1) {
+      // Hay elementos después de la ocurrencia
+      const remainingElements = dataStructure.elements.slice(occurrenceIndex + 1);
       
-      // Extraer datos de ocurrencia
-      const { occurrenceData, newPosition } = parseOccurrence(
-        dataMessage, position, element, occurrenceCount
-      );
-      
-      // Agregar al objeto de datos
-      data[`occurrence_${element.index}`] = occurrenceData;
-      
-      // Actualizar posición
-      position = newPosition;
+      for (const element of remainingElements) {
+        if (element.type === 'field') {
+          // Procesar campo
+          const fieldName = element.name;
+          const fieldLength = parseInt(element.length) || 0;
+          
+          if (fieldLength <= 0) continue;
+          
+          // Extraer valor del mensaje
+          const fieldValue = dataMessage.substring(position, position + fieldLength).trim();
+          
+          // Agregar al objeto de datos
+          data[fieldName] = fieldValue;
+          
+          // Avanzar posición
+          position += fieldLength;
+        }
+        // No procesamos más ocurrencias por ahora (podría extenderse si es necesario)
+      }
     }
   }
   

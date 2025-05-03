@@ -131,51 +131,73 @@ router.post('/vuelta', async (req, res) => {
     // Buscar estructuras del servicio
     const { headerStructure, serviceStructure } = await findServiceByNumber(service_number);
     
-    // Procesar el stream de entrada
-    try {
-      // Forzar la sección a "response" para el servicio de vuelta
-      // Esto es importante porque por defecto puede intentar interpretar como request
-      const section = "response";
-      
-      // Analizar mensaje explícitamente como una respuesta
-      console.log(`Procesando stream de ${stream.length} caracteres como RESPUESTA`);
-      
-      // Extraer cabecera
-      const headerLength = headerStructure.totalLength || 102;
-      const headerMessage = stream.substring(0, headerLength);
-      const headerData = messageAnalyzer.parseHeaderMessage(headerMessage, headerStructure);
-      
-      // Extraer cuerpo de la respuesta
-      const bodyMessage = stream.substring(headerLength);
-      const responseStructure = serviceStructure.response;
-      
-      // Procesar el cuerpo de la respuesta
-      let responseData = {};
-      if (responseStructure && responseStructure.elements) {
-        // Usar directamente el parseDataMessage para procesar la respuesta
-        responseData = messageAnalyzer.parseDataMessage(bodyMessage, responseStructure);
-      } else {
-        console.warn("No se encontró estructura de respuesta para el servicio");
+      // Procesar el stream de entrada
+      try {
+        // Forzar la sección a "response" para el servicio de vuelta
+        // Esto es importante porque por defecto puede intentar interpretar como request
+        const section = "response";
+        
+        // Analizar mensaje explícitamente como una respuesta
+        console.log(`Procesando stream de ${stream.length} caracteres como RESPUESTA`);
+        
+        // Extraer cabecera
+        const headerLength = headerStructure.totalLength || 102;
+        const headerMessage = stream.substring(0, headerLength);
+        const headerData = messageAnalyzer.parseHeaderMessage(headerMessage, headerStructure);
+        
+        // Extraer cuerpo de la respuesta
+        const bodyMessage = stream.substring(headerLength);
+        const responseStructure = serviceStructure.response;
+        
+        // Procesar el cuerpo de la respuesta
+        let responseData = {};
+        if (responseStructure && responseStructure.elements) {
+          try {
+            // Usar el parseDataMessage para procesar la respuesta CON VALIDACIÓN DE OCURRENCIAS
+            responseData = messageAnalyzer.parseDataMessage(
+              bodyMessage, 
+              responseStructure,
+              true // Activar validación de ocurrencias
+            );
+            
+            console.log("Validación de ocurrencias exitosa");
+          } catch (validationError) {
+            // Capturar errores específicos de validación
+            if (validationError.message.includes('Error de validación')) {
+              return res.status(400).json({ 
+                error: validationError.message,
+                validationFailed: true,
+                errorType: 'VALIDATION_ERROR'
+              });
+            }
+            throw validationError; // Reenviar otros errores
+          }
+        } else {
+          console.warn("No se encontró estructura de respuesta para el servicio");
+        }
+        
+        // Filtrar ocurrencias vacías antes de retornar
+        const cleanResponseData = removeEmptyOccurrences(responseData);
+        
+        // Construir resultado final
+        const parsedData = {
+          header: headerData,
+          response: cleanResponseData
+        };
+        
+        // Añadir logs para debuggear
+        console.log("Servicio de vuelta - headers:", JSON.stringify(headerData, null, 2));
+        console.log("Servicio de vuelta - response filtrada:", JSON.stringify(cleanResponseData, null, 2));
+        
+        // Devolver los datos de respuesta filtrados, sin ocurrencias vacías
+        return res.json(cleanResponseData);
+      } catch (error) {
+        console.error("Error al procesar el stream:", error);
+        return res.status(500).json({ 
+          error: `Error al procesar el stream: ${error.message}`,
+          errorType: 'PROCESSING_ERROR' 
+        });
       }
-      
-      // Filtrar ocurrencias vacías antes de retornar
-      const cleanResponseData = removeEmptyOccurrences(responseData);
-      
-      // Construir resultado final
-      const parsedData = {
-        header: headerData,
-        response: cleanResponseData
-      };
-      
-      // Añadir logs para debuggear
-      console.log("Servicio de vuelta - headers:", JSON.stringify(headerData, null, 2));
-      console.log("Servicio de vuelta - response filtrada:", JSON.stringify(cleanResponseData, null, 2));
-      
-      // Devolver los datos de respuesta filtrados, sin ocurrencias vacías
-      return res.json(cleanResponseData);
-    } catch (error) {
-      throw new Error(`Error al procesar el stream: ${error.message}`);
-    }
     
   } catch (error) {
     res.status(error.statusCode || 500).json({ 
