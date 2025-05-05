@@ -62,11 +62,11 @@ async function loadServiceStructure(serviceNumber) {
 }
 
 /**
- * Genera un string de ejemplo basado en la estructura del servicio.
- * @param {Object} structure - Estructura del servicio.
- * @param {string} serviceNumber - Número del servicio.
- * @returns {Promise<string>} - Promise que resuelve al string de ejemplo generado.
- */
+* Genera un string de ejemplo basado en la estructura del servicio.
+* @param {Object} structure - Estructura del servicio.
+* @param {string} serviceNumber - Número del servicio.
+* @returns {Promise<string>} - Promise que resuelve al string de ejemplo generado.
+*/
 async function generateExampleFromStructure(structure, serviceNumber) {
     // Obtener las longitudes de la estructura
     const headerLength = structure.header_structure?.totalLength || 102;
@@ -131,7 +131,55 @@ async function generateExampleFromStructure(structure, serviceNumber) {
     const fullResponse = header + responseBody;
     console.log(`String completo generado: ${fullResponse.length} caracteres`);
     
+    // Validar que el string generado cumpla con los requisitos mínimos
+    validateGeneratedString(fullResponse, serviceNumber, structure);
+    
     return fullResponse;
+}
+
+/**
+ * Valida que el string generado cumpla con la estructura básica esperada
+ * @param {string} str - String generado 
+ * @param {string} serviceNumber - Número de servicio
+ * @param {Object} structure - Estructura del servicio
+ */
+function validateGeneratedString(str, serviceNumber, structure) {
+    // Requisitos mínimos a verificar
+    const headerLength = structure.header_structure?.totalLength || 102;
+    
+    // 1. Verificar longitud mínima
+    if (str.length < headerLength + 10) {
+        throw new Error(`String generado demasiado corto: ${str.length} caracteres. Mínimo esperado: ${headerLength + 10}`);
+    }
+    
+    // 2. Verificar que la cabecera comience con el formato correcto (longitud de mensaje)
+    if (!/^\d{8}/.test(str)) {
+        throw new Error("String generado no tiene formato válido: No comienza con 8 dígitos para longitud de mensaje");
+    }
+    
+    // 3. Verificar que después de la cabecera haya un código de estado válido (2 dígitos)
+    if (str.length >= headerLength + 2) {
+        const statusCode = str.substring(headerLength, headerLength + 2);
+        if (!/^\d{2}$/.test(statusCode)) {
+            throw new Error(`Código de estado "${statusCode}" después de la cabecera no es válido (deben ser 2 dígitos)`);
+        }
+    }
+    
+    // 4. Verificar que después del estado haya un contador de registros válido (2 dígitos)
+    if (str.length >= headerLength + 4) {
+        const registryCountStr = str.substring(headerLength + 2, headerLength + 4);
+        const registryCount = parseInt(registryCountStr);
+        
+        if (isNaN(registryCount)) {
+            throw new Error(`Contador de registros "${registryCountStr}" no es un valor numérico válido`);
+        }
+        
+        // Guardar el contador de ocurrencias detectado para uso en la UI
+        window.lastGeneratedOccurrenceCount = registryCount;
+        console.log(`Contador de ocurrencias guardado: ${registryCount}`);
+    }
+    
+    console.log(`String generado validado correctamente para servicio ${serviceNumber}`);
 }
 
 /**

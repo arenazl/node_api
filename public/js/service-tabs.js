@@ -8,8 +8,21 @@ function initSocketIO() {
     if (socket) return;
     
     try {
-        // Intentar conectar con el servidor Socket.IO
-        socket = io();
+        // Verificar si la función io existe
+        if (typeof io === 'undefined') {
+            console.error('[Socket.IO] Error: La biblioteca Socket.IO no está cargada correctamente');
+            return;
+        }
+        
+        // Obtener el puerto actual de la URL
+        const currentPort = window.location.port || (window.location.protocol === 'https:' ? '443' : '80');
+        
+        // Mostrar en la consola a qué URL se intentará conectar
+        const socketURL = window.location.protocol + '//' + window.location.hostname + ':' + currentPort;
+        console.log('[Socket.IO] Intentando conectar a:', socketURL);
+        
+        // Intentar conectar con el servidor Socket.IO en el mismo host y puerto que la aplicación
+        socket = io(socketURL);
         
         // Evento de conexión exitosa
         socket.on('connect', function() {
@@ -683,6 +696,83 @@ function loadAllServiceSelectors() {
 }
 
 // ==========================================================================
+// VALIDADOR DE STRINGS PARA SERVICIOS DE VUELTA
+// ==========================================================================
+
+/**
+ * Valida un string antes de enviarlo al servidor para procesamiento
+ * @param {string} str - El string a validar
+ * @param {string} serviceNumber - El número de servicio seleccionado
+ * @returns {boolean} - True si el string cumple con los requisitos mínimos
+ */
+function validateReturnString(str, serviceNumber) {
+    // Verificar que el string no esté vacío
+    if (!str || typeof str !== 'string' || str.trim() === '') {
+        showNotification('El string de entrada está vacío', 'error');
+        return false;
+    }
+    
+    // Verificar longitud mínima (20 caracteres)
+    if (str.length < 20) {
+        showNotification('El string es demasiado corto para ser procesado. Debe tener al menos 20 caracteres.', 'error');
+        return false;
+    }
+    
+    // Verificar si parece contener una cabecera válida (al menos 100 caracteres)
+    // La mayoría de los servicios tienen cabeceras de 102 caracteres
+    if (str.length < 100) {
+        showNotification('El string no contiene una cabecera completa. La longitud mínima esperada para la cabecera es de 102 caracteres.', 'error');
+        return false; // Ahora bloqueamos strings sin cabecera completa
+    }
+    
+    // Verificar si el string contiene caracteres válidos para una estructura formal
+    // Para una estructura formal de mensaje, el inicio debería tener cierto patrón numérico
+    // La mayoría de mensajes válidos comienzan con números que indican longitud
+    const validHeaderPattern = /^\d{8}/;
+    if (!validHeaderPattern.test(str)) {
+        showNotification('El string no tiene un formato válido de mensaje. No cumple con la estructura de cabecera esperada.', 'error');
+        return false;
+    }
+    
+    // Verificar que el cuerpo después de la cabecera tenga una estructura mínima válida
+    // Tras la cabecera (posición 102) debería haber un código de estado de 2 dígitos
+    if (str.length > 102) {
+        const statusCode = str.substring(102, 104);
+        if (!/^\d{2}$/.test(statusCode)) {
+            showNotification(`El código de estado "${statusCode}" después de la cabecera no es válido. Debe ser un valor numérico de 2 dígitos.`, 'error');
+            return false;
+        }
+    }
+    
+    // Verificaciones avanzadas según el servicio
+    try {
+        // Verificar si hay suficientes datos después de la cabecera y el estado
+        if (str.length < 108) { // 102 (cabecera) + 2 (estado) + 2 (contador) + 2 (mínimo datos)
+            showNotification('El string no contiene suficientes datos después de la cabecera para ser procesado.', 'error');
+            return false;
+        }
+        
+        // Para servicios específicos, podríamos añadir validaciones adicionales
+        if (serviceNumber === '3088') {
+            // Verificaciones adicionales específicas para 3088
+            const registryCountStr = str.substring(104, 106);
+            const registryCount = parseInt(registryCountStr);
+            
+            if (isNaN(registryCount)) {
+                showNotification(`El contador de registros "${registryCountStr}" no es un valor numérico válido para el servicio 3088.`, 'error');
+                return false;
+            }
+        }
+    } catch (error) {
+        console.error("Error en validación avanzada:", error);
+        showNotification(`Error al validar la estructura del mensaje: ${error.message}`, 'error');
+        return false;
+    }
+    
+    return true;
+}
+
+// ==========================================================================
 // LÓGICA PARA GENERAR STRING FIJO (Incorporado desde service-tabs-new.js)
 // ==========================================================================
 
@@ -1018,21 +1108,26 @@ document.addEventListener('DOMContentLoaded', function() {
             const streamDataInput = document.getElementById('streamData');
             let streamData = streamDataInput ? streamDataInput.value : '';
             
-                // Si el campo está vacío, intentar usar el último string generado
-                if (!streamData) {
-                    const lastGeneratedString = window.sessionStorage.getItem('lastGeneratedString');
-                    if (lastGeneratedString) {
-                        streamData = lastGeneratedString;
-                        // Mostrar el string generado en el campo de entrada
-                        if (streamDataInput) {
-                            streamDataInput.value = lastGeneratedString;
-                        }
-                        console.log("Usando el último string generado almacenado", streamData.length);
-                    } else {
-                        showNotification('Ingrese datos de stream para procesar o genere un string en la pestaña de Ida', 'error');
-                        return;
+            // Si el campo está vacío, intentar usar el último string generado
+            if (!streamData) {
+                const lastGeneratedString = window.sessionStorage.getItem('lastGeneratedString');
+                if (lastGeneratedString) {
+                    streamData = lastGeneratedString;
+                    // Mostrar el string generado en el campo de entrada
+                    if (streamDataInput) {
+                        streamDataInput.value = lastGeneratedString;
                     }
+                    console.log("Usando el último string generado almacenado", streamData.length);
+                } else {
+                    showNotification('Ingrese datos de stream para procesar o genere un string en la pestaña de Ida', 'error');
+                    return;
                 }
+            }
+            
+            // Validar el string antes de enviarlo al servidor
+            if (!validateReturnString(streamData, serviceNumber)) {
+                return; // La función de validación ya muestra la notificación de error
+            }
             
             // Actualizar contador de caracteres y ocurrencias antes de procesar
             const streamCharCount = document.getElementById('streamCharCount');
@@ -1067,6 +1162,40 @@ document.addEventListener('DOMContentLoaded', function() {
                         // Intentar obtener el mensaje de error detallado
                         const errorData = await response.json().catch(() => null);
                         if (errorData && errorData.error) {
+                            // Detectar si es un error de validación de estructura
+                            if (errorData.errorType === 'STRUCTURE_VALIDATION_ERROR') {
+                                // Mostrar error de estructura con SweetAlert si está disponible
+                                if (typeof Swal !== 'undefined') {
+                                    // Configuración mejorada de Sweet Alert para errores de validación
+                                    Swal.fire({
+                                        title: 'Error de validación',
+                                        html: `El string proporcionado no cumple con la estructura esperada:<br><br>${errorData.error}`,
+                                        icon: 'error',
+                                        confirmButtonText: 'Entendido',
+                                        confirmButtonColor: '#3085d6',
+                                        allowOutsideClick: true,
+                                        allowEscapeKey: true,
+                                        showCloseButton: true,
+                                        customClass: {
+                                            confirmButton: 'btn btn-primary',
+                                            closeButton: 'btn btn-secondary'
+                                        },
+                                        buttonsStyling: true
+                                    });
+                                } else {
+                                    // Fallback a notificación estándar si SweetAlert no está disponible
+                                    showNotification(`Error de validación: ${errorData.error}`, 'error');
+                                }
+                                // También mostrar el error en el área de resultados
+                                const resultContainer = document.getElementById('vueltaResult');
+                                if (resultContainer) {
+                                    resultContainer.textContent = `Error de validación: ${errorData.error}`;
+                                    resultContainer.classList.add('error-message');
+                                }
+                                
+                                // Aquí detenemos la ejecución y no propagamos el error
+                                return;
+                            }
                             throw new Error(errorData.error);
                         }
                         throw new Error(`Error ${response.status} al procesar servicio`);
@@ -1074,6 +1203,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     return response.json();
                 })
                 .then(data => {
+                    // Si no hay data (por ejemplo, si se detuvo en la validación), no hacer nada
+                    if (!data) return;
+                    
                 // Mostrar el resultado JSON formateado en la sección de resultados
                 const resultContainer = document.getElementById('vueltaResult');
                 if (resultContainer) {

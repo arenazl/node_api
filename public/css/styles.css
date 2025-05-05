@@ -86,8 +86,11 @@ body {
   box-shadow: var(--shadow);
   padding: 0.5rem;
   flex: 1;
-  display: flex;
-  flex-direction: column;
+  /* overflow: hidden !important; */ /* Comentado para evitar que se corten las tablas */
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  min-height: 100vh; /* Altura mínima para asegurar que el contenedor se expanda lo suficiente */
 }
 
 .header {
@@ -118,9 +121,9 @@ body {
 
 /* Estilos para la carga de archivos */
 .file-upload {
-  margin-bottom: 2rem;
+  margin-bottom: 0.5rem; /* Reducido de 2rem a 0.5rem para disminuir el espacio */
   text-align: center;
-  padding: 2rem;
+  padding: 1.5rem; /* Reducido de 2rem a 1.5rem para hacerlo más compacto */
   background-color: var(--light-bg);
   border-radius: var(--radius);
   border: 1px dashed var(--border-color);
@@ -178,6 +181,10 @@ body {
 
 input[type="file"] {
   display: none;
+}
+
+.d-none{
+  display: none !important;
 }
 
 .file-name {
@@ -249,11 +256,6 @@ button:disabled {
   flex-direction: column;
 }
 
-.tab-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
 
 .tab-pane {
   flex: 1;
@@ -388,16 +390,36 @@ button:disabled {
   display: none !important;
   animation: fadeIn 0.3s ease-in-out;
   flex: 1;
+  overflow: visible;
+  height: auto;
+  min-height: 400px; /* Altura mínima para garantizar visibilidad de contenido */
 }
 
 .subtab-pane.active {
   display: flex !important;
   flex-direction: column;
+  overflow: visible; /* Asegura que todo el contenido sea visible */
+  padding-bottom: 20px; /* Espacio adicional al final para evitar cortes */
 }
 
 /* Ajustes adicionales para el panel de estructuras */
+/* Estilos específicos para la pestaña de carga */
+.carga-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0; /* Eliminar espacio entre elementos */
+  padding: 0; /* Eliminar padding interno */
+  margin: 0; /* Eliminar márgenes */
+}
+
 .carga-content .structures-panel {
   display: none !important;
+}
+
+/* Eliminar espacio entre panel de carga y tabla */
+.carga-content .table-container {
+  margin-top: 0;
+  border-top: none;
 }
 
 .subtab-pane.active[id="subtab-json"] ~ .structures-panel,
@@ -428,6 +450,42 @@ button:disabled {
   margin-bottom: 1.5rem;
   border-radius: var(--radius);
   box-shadow: var(--shadow);
+  min-height: 300px; /* Altura mínima para mostrar contenido suficiente */
+  max-height: calc(100vh - 250px); /* Altura máxima aumentada para mostrar más contenido */
+  overflow-y: auto; /* Scroll vertical cuando sea necesario */
+  position: relative; /* Para el scroll correcto */
+  display: block; /* Cambiado de flex a block para el scroll adecuado */
+}
+
+/* Ajuste específico para tablas en la pestaña de carga */
+.carga-content .table-container,
+.carga-content .subtab-pane,
+.carga-content .tab-pane {
+  max-height: none !important; /* Sin límite de altura para mostrar todo el contenido */
+  height: auto !important; /* Altura automática según el contenido */
+  overflow: visible !important; /* Asegura que todo el contenido sea visible */
+  display: block !important; /* Usa display block para mejor comportamiento */
+  min-height: auto !important; /* Sin altura mínima */
+  position: static !important; /* Evita problemas de posicionamiento */
+  margin-bottom: 30px !important; /* Espacio adicional al final */
+}
+
+/* Forzar la tabla a mostrarse completa */
+.carga-content table {
+  display: table !important;
+  height: auto !important;
+  overflow: visible !important;
+}
+
+/* Forzar tbody a mostrar todas las filas */
+.carga-content tbody {
+  display: table-row-group !important;
+  overflow: visible !important;
+}
+
+/* Forzar filas de tabla a mostrarse completas */
+.carga-content tr {
+  display: table-row !important;
 }
 
 table {
@@ -438,9 +496,8 @@ table {
   border: 1px solid var(--table-border);
   border-radius: var(--radius);
   overflow: hidden;
-  flex: 1;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
   background-color: var(--table-bg);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
 th, td {
@@ -468,9 +525,7 @@ tr:hover {
   background-color: var(--table-row-hover);
 }
 
-tr:nth-child(even) {
-  background-color: var(--table-row-even);
-}
+/* Eliminado tr:nth-child(even) para evitar confusión con los estilos de ocurrencias */
 
 tr:last-child td {
   border-bottom: none;
@@ -480,6 +535,7 @@ tr:last-child td {
 .occurrence-row {
   background-color: rgba(13, 148, 136, 0.1);
   position: relative;
+  border-top: 2px solid #0d9488; /* Borde superior más visible */
 }
 
 .occurrence-row:hover {
@@ -512,12 +568,27 @@ tr:last-child td {
   transform: scale(1.1);
 }
 
+/* Mejorar la visibilidad de la línea final de ocurrencia */
 .occurrence-end {
-  background-color: rgba(13, 148, 136, 0.05);
-  border-bottom: 1px dashed var(--table-header-bg);
-  height: 0.5rem;
+  background-color: #3f3e3e !important; /* Color de fondo estandarizado para todos los finales de ocurrencia */
+  border-bottom: 2px dashed #6366f1 !important; /* Borde inferior con color consistente */
+  height: 8px !important; /* Altura aumentada para mejor visibilidad */
   padding: 0 !important;
+  margin-bottom: 8px !important; /* Espacio adicional después de la ocurrencia */
+  display: table-row !important; /* Forzar que se muestre como fila */
+  visibility: visible !important; /* Asegurar que sea visible */
+  width: 100% !important; /* Asegurar que ocupe todo el ancho */
 }
+
+/* Forzar visualización de finales de ocurrencia en la pestaña de carga */
+.carga-content .occurrence-end {
+  display: table-row !important;
+  visibility: visible !important;
+  height: 8px !important;
+  background-color: #3f3e3e !important; /* Mismo color para consistencia */
+  border-bottom: 2px dashed #6366f1 !important; /* Mismo estilo de borde */
+}
+
 
 .occurrence-field-row:hover {
   background-color: rgba(13, 148, 136, 0.08);
@@ -1241,6 +1312,89 @@ select option {
   box-shadow: var(--shadow);
 }
 
+/* Estilos para la pestaña de archivos */
+#archivos .service-panel {
+  padding: 1.5rem;
+  background-color: var(--card-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+#archivos .files-container {
+  max-height: none;
+  overflow: visible;
+}
+
+#serviceFilesTable {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 1px solid var(--table-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-top: 1rem;
+}
+
+.version-btn {
+  background-color: var(--accent-color);
+  color: white;
+  border: none;
+  padding: 0.5rem 0.875rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: var(--transition);
+  font-weight: 500;
+}
+
+.version-btn:hover {
+  background-color: var(--accent-hover);
+  transform: translateY(-1px);
+}
+
+/* Estilos para el modal de versiones */
+.versions-container {
+  max-height: 400px;
+  overflow-y: auto;
+  margin-top: 1rem;
+}
+
+#serviceVersionsTable {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 1px solid var(--table-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+#versionsModal .modal-content {
+  width: 80%;
+  max-width: 800px;
+}
+
+#serviceVersionTitle {
+  font-weight: bold;
+  color: var(--primary-color);
+}
+
+.excel-btn {
+  background-color: #107C41; /* Color verde de Excel */
+  color: white;
+  border: none;
+  padding: 0.5rem 0.875rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: var(--transition);
+  font-weight: 500;
+}
+
+.excel-btn:hover {
+  background-color: #0D6738; /* Verde Excel más oscuro */
+  transform: translateY(-1px);
+}
+
 .services-list-section h3 {
   margin-bottom: 1rem;
   color: var(--primary-color);
@@ -1441,13 +1595,6 @@ th:nth-child(6), td:nth-child(6) { width: 14%; }
   gap: 0.75rem;
 }
 
-.secondary-btn {
-  background-color: var(--secondary-color);
-}
-
-.secondary-btn:hover {
-  background-color: #374151;
-}
 
 /* Estilos para la pestaña de configuración */
 /* Eliminados estilos personalizados para SimpleBar ya que ahora usamos nuestra propia implementación */
@@ -1538,6 +1685,144 @@ textarea:focus,
   background-color: rgb(0 150 136 / 14%) !important;
 }
 
+/* Estilos para Swagger API Documentation */
+.swagger-container {
+  padding: 1rem;
+  background-color: var(--card-bg);
+  border-radius: var(--radius);
+  margin-bottom: 1rem;
+}
+
+.swagger-intro {
+  margin-bottom: 1.5rem;
+}
+
+.swagger-intro p {
+  color: var(--text-color);
+  font-size: var(--font-size-base);
+  line-height: 1.6;
+}
+
+.swagger-endpoints {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.endpoint {
+  background-color: var(--light-bg);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  border-left: 4px solid var(--primary-color);
+  box-shadow: var(--shadow);
+}
+
+.endpoint-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: var(--font-size-lg);
+  margin-bottom: 1rem;
+  color: var(--text-color);
+  font-weight: 600;
+}
+
+.http-method {
+  display: inline-block;
+  padding: 0.35rem 0.75rem;
+  border-radius: 4px;
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.http-method {
+  background-color: #3b82f6; /* Default blue color */
+  color: white;
+}
+
+.http-method.get {
+  background-color: #10b981; /* Green for GET */
+}
+
+.http-method.post {
+  background-color: #3b82f6; /* Blue for POST */
+}
+
+.http-method.put {
+  background-color: #f59e0b; /* Orange for PUT */
+}
+
+.http-method.delete {
+  background-color: #ef4444; /* Red for DELETE */
+}
+
+.endpoint-description p {
+  margin-bottom: 1rem;
+  font-size: var(--font-size-base);
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.endpoint-description h5 {
+  margin: 1.5rem 0 0.75rem;
+  color: var(--primary-color);
+  font-weight: 600;
+  font-size: var(--font-size-base);
+}
+
+.param-table-container {
+  margin: 1rem 0;
+  overflow-x: auto;
+}
+
+.param-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.param-table th,
+.param-table td {
+  padding: 0.625rem 0.875rem;
+  font-size: var(--font-size-sm);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.param-table th {
+  background-color: var(--table-header-bg);
+  color: var(--table-header-text);
+  font-weight: 600;
+  text-align: left;
+}
+
+.param-table tr:last-child td {
+  border-bottom: none;
+}
+
+.code-example {
+  margin: 1rem 0;
+  background-color: var(--dark-bg);
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+}
+
+.code-block {
+  margin: 0;
+  padding: 1rem;
+  font-family: 'Courier New', monospace;
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-x: auto;
+}
+
 /* Estilos para elementos de generación de string fijo */
 .button-group {
   display: flex;
@@ -1546,9 +1831,6 @@ textarea:focus,
   flex-wrap: wrap;
 }
 
-.secondary-btn {
-  background-color: var(--secondary-color);
-}
 
 .secondary-btn:hover {
   background-color: #374151;
@@ -1586,4 +1868,23 @@ textarea:focus,
   font-family: 'Montserrat', sans-serif;
   font-weight: bold;
   color: var(--primary-color);
+}
+
+/* Estilos para mensajes de error en el resultado */
+.error-message {
+  color: var(--danger-color) !important;
+  background-color: rgba(220, 38, 38, 0.1);
+  border: 1px solid var(--danger-color);
+  padding: 10px;
+  border-radius: var(--radius);
+  font-weight: 500;
+}
+
+/* Destacar mensaje de validación */
+.result-container .error-message {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  padding: 1rem;
+  margin: 0.5rem 0;
+  box-shadow: 0 0 8px rgba(220, 38, 38, 0.2);
 }

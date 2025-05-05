@@ -11,6 +11,7 @@ const router = express.Router();
 // Importar módulos de la API
 const messageCreator = require('../api/message-creator');
 const messageAnalyzer = require('../api/message-analyzer');
+const stringValidator = require('./string-validator');
 
 // Directorio de estructuras
 const structuresDir = path.join(__dirname, '..', 'structures');
@@ -89,8 +90,24 @@ router.post('/vuelta', async (req, res) => {
     // Buscar estructuras del servicio
     const { headerStructure, serviceStructure } = await findServiceByNumber(service_number);
     
-      // Procesar el stream de entrada
-      try {
+    // Usar el validador de strings para verificar si cumple con la estructura mínima
+    const validationResult = stringValidator.validateReturnString(stream, {
+      header_structure: headerStructure,
+      service_structure: serviceStructure
+    });
+    
+    // Si no es válido, retornar error de validación y detener la ejecución
+    if (!validationResult.isValid) {
+      console.error(`Error de validación: ${validationResult.error}`);
+      return res.status(400).json({
+        error: validationResult.error,
+        validationFailed: true,
+        errorType: 'STRUCTURE_VALIDATION_ERROR'
+      });
+    }
+    
+    // Si el string pasó la validación, entonces procesarlo
+    try {
         // Forzar la sección a "response" para el servicio de vuelta
         // Esto es importante porque por defecto puede intentar interpretar como request
         const section = "response";
@@ -100,11 +117,33 @@ router.post('/vuelta', async (req, res) => {
         
         // Extraer cabecera
         const headerLength = headerStructure.totalLength || 102;
+        
+        // Validar que el stream tiene suficiente longitud para la cabecera completa
+        if (stream.length < headerLength) {
+          console.error(`Error de validación: Stream no contiene una cabecera completa. Se requieren ${headerLength} caracteres.`);
+          return res.status(400).json({
+            error: `El string proporcionado no contiene una cabecera completa. Se requieren ${headerLength} caracteres para la cabecera.`,
+            validationFailed: true,
+            errorType: 'STRUCTURE_VALIDATION_ERROR'
+          });
+        }
+        
         const headerMessage = stream.substring(0, headerLength);
         const headerData = messageAnalyzer.parseHeaderMessage(headerMessage, headerStructure);
         
         // Extraer cuerpo de la respuesta
         const bodyMessage = stream.substring(headerLength);
+        
+        // Verificar que hay contenido en el cuerpo
+        if (!bodyMessage || bodyMessage.trim().length === 0) {
+          console.error("Error de validación: El stream no contiene datos en el cuerpo después de la cabecera");
+          return res.status(400).json({
+            error: "El string proporcionado no contiene datos en el cuerpo después de la cabecera",
+            validationFailed: true,
+            errorType: 'STRUCTURE_VALIDATION_ERROR'
+          });
+        }
+        
         const responseStructure = serviceStructure.response;
         
         // Procesar el cuerpo de la respuesta
@@ -649,13 +688,26 @@ async function getAvailableServices(forceRefresh = false) {
       // Aún retornamos la lista sin ordenar
     }
     
+    // Filtrar servicios duplicados por número antes de devolver
+    const uniqueServices = [];
+    const serviceNumbers = new Set();
+    
+    for (const service of services) {
+      if (!serviceNumbers.has(service.service_number)) {
+        serviceNumbers.add(service.service_number);
+        uniqueServices.push(service);
+      }
+    }
+    
+    console.log(`Filtrados ${services.length - uniqueServices.length} servicios duplicados`);
+    
     // Actualizar caché global
     if (global.serviceCache) {
-      global.serviceCache.services = services;
+      global.serviceCache.services = uniqueServices;
       global.serviceCache.lastUpdate = new Date().toISOString();
     }
     
-    return services;
+    return uniqueServices;
   } catch (error) {
     console.error("Error general al obtener servicios:", error);
     return []; // Siempre devolvemos un array, incluso en caso de error

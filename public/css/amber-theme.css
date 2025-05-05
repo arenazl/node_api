@@ -9,7 +9,7 @@
   --danger-color: #dc2626;          /* Rojo para errores */
   
   /* Backgrounds y bordes para tema ámbar */
-  --body-bg: #292524;               /* Marrón muy oscuro para fondo general */
+  --body-bg: #57534ec2 !important;;               /* Marrón muy oscuro para fondo general */
   --dark-bg: #44403c;               /* Marrón oscuro para contenedores */
   --card-bg: #57534e;               /* Marrón grisáceo para tarjetas */
   --light-bg: #78716c;              /* Marrón claro para contraste */
@@ -114,9 +114,7 @@ th {
   background-color: var(--table-header-bg) !important;
 }
 
-tr:nth-child(even) {
-  background-color: var(--table-row-even) !important;
-}
+/* Eliminado tr:nth-child(even) para evitar confusión con los estilos de ocurrencias */
 
 tr:hover {
   background-color: var(--table-row-hover) !important;
@@ -150,9 +148,21 @@ select, input, textarea {
   background-color: var(--primary-color) !important;
 }
 
+/* Mejorar la visibilidad de la línea final de ocurrencia */
 .occurrence-end {
-  background-color: rgba(245, 158, 11, 0.1) !important;
-  border-bottom: 1px dashed var(--primary-color) !important;
+  background-color: #3f3e3e !important; /* Color estandarizado para todos los temas */
+  border-bottom: 2px dashed #6366f1 !important; /* Borde consistente */
+  height: 8px !important; /* Altura aumentada para mejor visibilidad */
+  padding: 0 !important;
+  margin-bottom: 8px !important; /* Espacio adicional después de la ocurrencia */
+  display: table-row !important; /* Forzar visualización */
+  visibility: visible !important;
+  width: 100% !important;
+}
+
+/* Asegurar que todos los finales de ocurrencia tengan el mismo color */
+tr.occurrence-end {
+  background-color: #6f5f44  !important;
 }
 
 /* Estilos para los niveles de color en temas ámbar */
@@ -171,3 +181,5 @@ select, input, textarea {
 .level-color-3 {
   border-left: 3px solid #92400e !important; /* Marrón */
 }
+
+/* Nota: Los estilos para current-file-info fueron centralizados en file-info.css */

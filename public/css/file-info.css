@@ -1,17 +1,107 @@
 /* Estilos para la barra de información de archivo cargado */
 .current-file-info {
-  background-color: #f8f9fa;
   border-radius: 8px;
-  border: 1px solid #ddd;
   padding: 10px 15px;
   margin: 15px 0;
   transition: all 0.3s ease;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   
   /* Configuración sticky */
   position: sticky;
   top: 0;
   z-index: 100;
+  
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+
+/* Estilo base (tema claro) */
+body:not(.theme-dark):not(.theme-amber) .current-file-info {
+  background: linear-gradient(to right, #f5f7fa, #e9f0f6);
+  border-left: 4px solid #4a6baa;
+  border-top: 1px solid #ddd;
+  border-right: 1px solid #ddd;
+  border-bottom: 1px solid #ddd;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+}
+
+body:not(.theme-dark):not(.theme-amber) .file-icon {
+  color: #4a6baa;
+}
+
+body:not(.theme-dark):not(.theme-amber) .file-name-display {
+  color: #2c3e50;
+}
+
+body:not(.theme-dark):not(.theme-amber) .file-meta {
+  color: #6c757d;
+}
+
+/* Estilo en tema oscuro */
+body.theme-dark:not(.theme-amber) .current-file-info {
+  background: linear-gradient(to right, #2a2d3e, #242736);
+  border-left: 4px solid #6366f1;
+  border-top: 1px solid #3a3f55;
+  border-right: 1px solid #3a3f55;
+  border-bottom: 1px solid #3a3f55;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
+}
+
+body.theme-dark:not(.theme-amber) .file-icon {
+  color: #6366f1;
+}
+
+body.theme-dark:not(.theme-amber) .file-name-display {
+  color: #e0e0e0;
+}
+
+body.theme-dark:not(.theme-amber) .file-meta {
+  color: #b0b0b0;
+}
+
+/* Estilo en tema ámbar */
+body.theme-amber .current-file-info {
+  background: linear-gradient(to right, #2d2b2a, #32302e);
+  border-left: 4px solid #ff9e3d;
+  border-top: 1px solid #3d3c3a;
+  border-right: 1px solid #3d3c3a;
+  border-bottom: 1px solid #3d3c3a;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
+}
+
+body.theme-amber .file-icon {
+  color: #ff9e3d;
+}
+
+body.theme-amber .file-name-display {
+  color: #e0e0e0;
+}
+
+body.theme-amber .file-meta {
+  color: #b0b0b0;
+}
+
+/* Ajuste para cuando aparece con animación */
+.current-file-info.show {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+/* Estilos responsivos adicionales */
+@media (max-width: 768px) {
+  .current-file-info {
+    padding: 8px 12px;
+    margin: 10px 0;
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .current-file-info {
+    padding: 6px 10px;
+    margin: 8px 0;
+    font-size: 0.85rem;
+  }
 }
 
 .file-info-container {
@@ -22,7 +112,6 @@
 .file-icon {
   font-size: 24px;
   margin-right: 15px;
-  color: #4a6baa;
 }
 
 .file-details {
@@ -32,28 +121,7 @@
 .file-name-display {
   font-size: 16px;
   font-weight: 600;
-  color: #2c3e50;
   margin-bottom: 3px;
-}
-
-.file-meta {
-  font-size: 14px;
-  color: #6c757d;
-}
-
-/* Versión oscura para tema oscuro */
-body.dark-theme .current-file-info {
-  background-color: #2a2a2a;
-  border-color: #444;
-  color: #e0e0e0;
-}
-
-body.dark-theme .file-name-display {
-  color: #e0e0e0;
-}
-
-body.dark-theme .file-meta {
-  color: #b0b0b0;
 }
 
 /* Animación al aparecer */

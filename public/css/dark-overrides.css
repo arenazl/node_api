@@ -173,3 +173,5 @@ button,
   padding: 1rem !important;
   border-left: 4px solid #f59e0b !important; /* Borde izquierdo ámbar */
 }
+
+/* Estilos específicos para current-file-info fueron movidos a file-info.css */

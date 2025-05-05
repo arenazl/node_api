@@ -15,18 +15,18 @@ const confirmNoBtn = document.getElementById('confirmNo');
 const confirmCloseBtn = document.querySelector('.close');
 const confirmMessage = document.getElementById('confirmMessage');
 
-// Tablas
-const headerTable = document.getElementById('headerTable').querySelector('tbody');
-const requestTable = document.getElementById('requestTable').querySelector('tbody');
-const responseTable = document.getElementById('responseTable').querySelector('tbody');
-const filesTable = document.getElementById('filesTable').querySelector('tbody');
+// Tablas - Verificamos que existan antes de acceder a ellas
+const headerTable = document.getElementById('headerTable')?.querySelector('tbody') || null;
+const requestTable = document.getElementById('requestTable')?.querySelector('tbody') || null;
+const responseTable = document.getElementById('responseTable')?.querySelector('tbody') || null;
+const filesTable = document.getElementById('filesTable')?.querySelector('tbody') || null;
 const jsonContent = document.getElementById('jsonContent');
 
 // Elementos de servicios
 const serviceNumberInput = document.getElementById('serviceNumber');
 const streamDataInput = document.getElementById('streamData');
 const processServiceBtn = document.getElementById('processServiceBtn');
-const servicesTable = document.getElementById('servicesTable').querySelector('tbody');
+const servicesTable = document.getElementById('servicesTable')?.querySelector('tbody') || null;
 const serviceResult = document.getElementById('serviceResult');
 
 // Variables globales
@@ -109,10 +109,10 @@ excelFileInput.addEventListener('change', async () => {
   if (excelFileInput.files && excelFileInput.files.length > 0) {
     fileNameDisplay.textContent = excelFileInput.files[0].name;
     
-    // Mostrar el progreso
-    const uploadProgress = document.getElementById('uploadProgress');
-    if (uploadProgress) {
-      uploadProgress.style.display = 'block';
+    // Mostrar el overlay de progreso completo
+    const progressOverlay = document.getElementById('progressOverlay');
+    if (progressOverlay) {
+      progressOverlay.classList.remove('hide');
     }
     
     // Procesar el archivo automáticamente
@@ -158,11 +158,12 @@ excelFileInput.addEventListener('change', async () => {
                 formData.append('update', 'true');
                 await uploadExcelFile(formData);
               } else {
-                // Cancelar la subida y esconder la barra de progreso
-                showNotification('Subida cancelada por el usuario', 'info');
-                if (uploadProgress) {
-                  uploadProgress.style.display = 'none';
-                }
+      // Cancelar la subida y esconder el overlay de progreso
+      showNotification('Subida cancelada por el usuario', 'info');
+      const progressOverlay = document.getElementById('progressOverlay');
+      if (progressOverlay) {
+        progressOverlay.classList.add('hide');
+      }
                 // Reiniciar el campo de archivo para permitir seleccionar el mismo archivo de nuevo
                 if (excelFileInput) {
                   excelFileInput.value = '';
@@ -187,9 +188,10 @@ excelFileInput.addEventListener('change', async () => {
     } catch (error) {
       showNotification(error.message, 'error');
       
-      // Ocultar el progreso
-      if (uploadProgress) {
-        uploadProgress.style.display = 'none';
+      // Ocultar el overlay de progreso
+      const progressOverlay = document.getElementById('progressOverlay');
+      if (progressOverlay) {
+        progressOverlay.classList.add('hide');
       }
     }
   } else {
@@ -225,11 +227,11 @@ confirmNoBtn.addEventListener('click', () => {
     fileNameDisplay.textContent = 'Ningún archivo seleccionado';
   }
   
-  // Ocultar la barra de progreso
-  const uploadProgress = document.getElementById('uploadProgress');
-  if (uploadProgress) {
-    uploadProgress.style.display = 'none';
-  }
+    // Ocultar el overlay de progreso
+    const progressOverlay = document.getElementById('progressOverlay');
+    if (progressOverlay) {
+      progressOverlay.classList.add('hide');
+    }
 });
 
 confirmCloseBtn.addEventListener('click', () => {
@@ -242,10 +244,10 @@ confirmCloseBtn.addEventListener('click', () => {
     fileNameDisplay.textContent = 'Ningún archivo seleccionado';
   }
   
-  // Ocultar la barra de progreso
-  const uploadProgress = document.getElementById('uploadProgress');
-  if (uploadProgress) {
-    uploadProgress.style.display = 'none';
+  // Ocultar el overlay de progreso
+  const progressOverlay = document.getElementById('progressOverlay');
+  if (progressOverlay) {
+    progressOverlay.classList.add('hide');
   }
 });
 
@@ -325,42 +327,30 @@ async function uploadExcelFile(formData) {
           structure_file: data.structure_file,
           timestamp: new Date().toISOString()
         });
-          console.log("Evento FILE_UPLOADED publicado con service_number:", data.service_number);
+        console.log("Evento FILE_UPLOADED publicado con service_number:", data.service_number);
+      }
+      
+      // Actualizar información del archivo cargado usando el método global
+      if (window.updateFileInfo) {
+        window.updateFileInfo(
+          formData.get('file').name, 
+          data.service_number, 
+          data.service_name
+        );
+      }
+      
+      // Disparar un evento personalizado para otros componentes que necesiten saber que se cargó un archivo
+      const fileUploadedEvent = new CustomEvent('fileUploaded', { 
+        detail: {
+          fileName: formData.get('file').name,
+          serviceNumber: data.service_number,
+          serviceName: data.service_name,
+          structureFile: data.structure_file
         }
-        
-        // Mostrar información del archivo cargado en el header
-        const fileInfoContainer = document.getElementById('current-file-info');
-        const currentFileName = document.getElementById('currentFileName');
-        const currentFileService = document.getElementById('currentFileService');
-        
-        if (fileInfoContainer && currentFileName && currentFileService) {
-          // Mostrar el nombre del archivo original
-          currentFileName.textContent = formData.get('file').name;
-          
-          // Mostrar el número y nombre de servicio si están disponibles
-          if (data.service_number && data.service_name) {
-            currentFileService.textContent = `Servicio ${data.service_number} - ${data.service_name}`;
-          } else if (data.service_number) {
-            currentFileService.textContent = `Servicio ${data.service_number}`;
-          } else {
-            currentFileService.textContent = 'Servicio no identificado';
-          }
-          
-          // Mostrar el contenedor con animación
-          fileInfoContainer.style.display = 'block';
-          fileInfoContainer.classList.add('show');
-          
-          // Guardar en localStorage para persistir entre recargas
-          try {
-            localStorage.setItem('currentFileName', currentFileName.textContent);
-            localStorage.setItem('currentFileService', currentFileService.textContent);
-            localStorage.setItem('fileInfoVisible', 'true');
-          } catch (e) {
-            console.warn('No se pudo guardar información en localStorage:', e);
-          }
-        }
-        
-        // Además, seleccionar el servicio recién cargado en todos los selectores si está disponible
+      });
+      window.dispatchEvent(fileUploadedEvent);
+      
+      // Además, seleccionar el servicio recién cargado en todos los selectores si está disponible
       if (data.service_number) {
         const selectors = ['idaServiceSelect', 'vueltaServiceSelect', 'configServiceSelect'];
         for (const selectorId of selectors) {
@@ -416,22 +406,30 @@ async function uploadExcelFile(formData) {
           }
         }
       }
+      
+      // Ocultar el overlay de progreso inmediatamente una vez que el contenido está cargado
+      const progressOverlay = document.getElementById('progressOverlay');
+      if (progressOverlay) {
+        progressOverlay.classList.add('hide');
+      }
+      
     }, 500);
     
   } catch (error) {
     showNotification(error.message, 'error');
-  } finally {
-    // Ocultar la barra de progreso
-    const uploadProgress = document.getElementById('uploadProgress');
-    if (uploadProgress) {
-      uploadProgress.style.display = 'none';
-    }
     
+    // Ocultar el overlay de progreso en caso de error
+    const progressOverlay = document.getElementById('progressOverlay');
+    if (progressOverlay) {
+      progressOverlay.classList.add('hide');
+    }
+  } finally {
     // Restablecer campo de archivo para permitir seleccionar uno nuevo
     if (excelFileInput) {
       excelFileInput.value = '';
       fileNameDisplay.textContent = 'Ningún archivo seleccionado';
     }
+    // No ocultamos la barra de progreso aquí, lo haremos después de que el contenido esté cargado
   }
 }
 
@@ -502,14 +500,16 @@ async function loadFilesList() {
     const data = await response.json();
     
     // Limpiar la tabla
-    filesTable.innerHTML = '';
-    
-    // Si no hay archivos, mostrar mensaje
-    if (data.files.length === 0) {
-      const row = document.createElement('tr');
-      row.innerHTML = '<td colspan="3">No hay archivos procesados</td>';
-      filesTable.appendChild(row);
-      return;
+    if (filesTable) { // Added null check
+      filesTable.innerHTML = '';
+      
+      // Si no hay archivos, mostrar mensaje
+      if (data.files.length === 0) {
+        const row = document.createElement('tr');
+        row.innerHTML = '<td colspan="3">No hay archivos procesados</td>';
+        filesTable.appendChild(row);
+        return;
+      }
     }
     
     // Crear un Map para evitar mostrar servicios repetidos
@@ -695,6 +695,7 @@ async function loadStructure(structureFile) {
     // Mostrar todo el JSON en una sola vista
     formatAndDisplayJson(data);
     
+try {
   // Cambiar a la pestaña de cabecera de manera segura
   const tabButtonsCabecera = document.querySelectorAll('.tab-btn');
   const tabPanesCabecera = document.querySelectorAll('.tab-pane');
@@ -722,6 +723,8 @@ async function loadStructure(structureFile) {
   } catch (error) {
     showNotification(error.message, 'error');
   }
+} catch (error) {
+  console.error("Error al cambiar a pestaña de cabecera:", error);
 }
 
 /**
@@ -806,6 +809,74 @@ function formatAndDisplayJson(data) {
 }
 
 /**
+ * Formatea un objeto JSON a HTML para visualización
+ * @param {Object} json - Objeto JSON a formatear
+ * @param {number} level - Nivel actual de indentación 
+ * @returns {string} HTML formateado
+ */
+function formatJsonSimple(json, level = 0) {
+  if (json === null) return '<span class="json-null">null</span>';
+  
+  // Formatear según el tipo de dato
+  switch (typeof json) {
+    case 'number':
+      return `<span class="json-number">${json}</span>`;
+    case 'boolean':
+      return `<span class="json-boolean">${json}</span>`;
+    case 'string':
+      return `<span class="json-string">"${json.replace(/</g, '&lt;').replace(/>/g, '&gt;')}"</span>`;
+    case 'object':
+      if (Array.isArray(json)) {
+        if (json.length === 0) return '[]';
+        
+        // Generar ID único para este nodo
+        const nodeId = 'json_' + Math.random().toString(36).substr(2, 9);
+        
+        // Formatear array
+        const items = json.map(item => {
+          const indent = '  '.repeat(level + 1);
+          return `${indent}${formatJsonSimple(item, level + 1)}`;
+        }).join(',\n');
+        
+        return `[<span class="json-collapse-btn" data-target="${nodeId}">-</span>\n` +
+               `<div id="${nodeId}" class="json-collapsible">${items}\n${'  '.repeat(level)}]</div>`;
+      } else {
+        const keys = Object.keys(json);
+        if (keys.length === 0) return '{}';
+        
+        // Generar ID único para este nodo
+        const nodeId = 'json_' + Math.random().toString(36).substr(2, 9);
+        
+        // Formatear objeto
+        const properties = keys.map(key => {
+          const indent = '  '.repeat(level + 1);
+          return `${indent}<span class="json-key">"${key}"</span>: ${formatJsonSimple(json[key], level + 1)}`;
+        }).join(',\n');
+        
+        return `{<span class="json-collapse-btn" data-target="${nodeId}">-</span>\n` +
+               `<div id="${nodeId}" class="json-collapsible">${properties}\n${'  '.repeat(level)}}</div>`;
+      }
+    default:
+      return String(json);
+  }
+}
+}
+
+/**
+ * Muestra/oculta un nodo JSON
+ * @param {string} nodeId - ID del nodo a mostrar/ocultar
+ * @param {HTMLElement} button - Botón que controla el nodo
+ */
+function toggleJsonNode(nodeId, button) {
+  const node = document.getElementById(nodeId);
+  if (node) {
+    const isVisible = node.style.display !== 'none';
+    node.style.display = isVisible ? 'none' : 'block';
+    button.textContent = isVisible ? '+' : '-';
+  }
+}
+
+/**
  * Muestra la estructura de cabecera en la tabla
  * @param {Object} headerStructure - Estructura de cabecera
  */
@@ -816,7 +887,8 @@ function displayHeaderStructure(headerStructure) {
   // Si no hay estructura, mostrar mensaje
   if (!headerStructure || !headerStructure.fields || headerStructure.fields.length === 0) {
     const row = document.createElement('tr');
-    row.innerHTML = '<td colspan="5">No hay estructura de cabecera disponible</td>';
+    row.classList.add('empty-message');
+    row.innerHTML = '<td colspan="6" class="text-center">Seleccione un archivo Excel para ver la estructura de cabecera.</td>';
     headerTable.appendChild(row);
     return;
   }
@@ -1078,7 +1150,7 @@ function displayElements(elements, table, level = 0) {
       const formattedValues = formatFieldValue(element.values, true);
       
       row.innerHTML = `
-        <td style="padding-left: ${paddingLeft}px;">${formattedName}</td>
+        <td>${formattedName}</td>
         <td>${formattedLength}</td>
         <td>${formattedType}</td>
         <td>${formattedRequired}</td>
@@ -1420,6 +1492,10 @@ function toggleOccurrence(id) {
       if (nestedId) {
         // Ocultar todos los elementos de estas ocurrencias anidadas recursivamente
         const nestedChildren = document.querySelectorAll(`[data-parent-occurrence="${nestedId}"], [data-occurrence-end="${nestedId}"]`);
+        // Ocultar cada elemento hijo de la ocurrencia anidada
+        nestedChildren.forEach(child => {
+          child.style.display = 'none';
+        });
       }
     });
   }
@@ -1466,6 +1542,7 @@ async function loadServicesList() {
         servicesTable.appendChild(row);
         return;
       }
+    }
       
       // Agrupar servicios por número
       const servicesByNumber = {};
@@ -1615,16 +1692,29 @@ async function loadServiceVersions(serviceNumber) {
         // Preparar el HTML para mostrar las versiones
         let htmlContent = `<div class="versions-list">`;
         htmlContent += `<table class="swal2-table">`;
-        htmlContent += `<thead><tr><th>#</th><th>Fecha</th><th>Archivo</th></tr></thead>`;
+        htmlContent += `<thead><tr><th>#</th><th>Fecha</th><th>Archivo</th><th>Descargar</th></tr></thead>`;
         htmlContent += `<tbody>`;
         
         data.versions.forEach((version, index) => {
           const date = new Date(version.timestamp).toLocaleString();
           const fileName = version.excel_file || "N/A";
+          const downloadable = fileName !== "N/A";
+          
           htmlContent += `<tr>`;
           htmlContent += `<td>${index + 1}</td>`;
           htmlContent += `<td>${date}</td>`;
           htmlContent += `<td>${fileName}</td>`;
+          htmlContent += `<td>`;
+          
+          if (downloadable) {
+            htmlContent += `<button class="action-btn" onclick="openExcelFile('${fileName}', this)" style="padding: 4px 8px; font-size: 0.8rem;">
+              Descargar
+            </button>`;
+          } else {
+            htmlContent += `<span class="text-muted">No disponible</span>`;
+          }
+          
+          htmlContent += `</td>`;
           htmlContent += `</tr>`;
         });
         

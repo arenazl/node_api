@@ -1,0 +1,7 @@
+{
+  "value": "",
+  "warning": "El archivo Excel no tiene la tercera pestaña donde se ubican los ejemplos",
+  "missingTab": true,
+  "availableTabs": 2,
+  "nonFatalError": true
+}

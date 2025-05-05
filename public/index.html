@@ -23,6 +23,7 @@
   <link rel="stylesheet" href="/css/json-colors-override.css">
   <link rel="stylesheet" href="/css/theme-selector.css">
   <link rel="stylesheet" href="/css/progress-bar.css">
+  <link rel="stylesheet" href="/css/progress-overlay.css">
   <link rel="stylesheet" href="/css/file-info.css">
   <link rel="stylesheet" href="/css/responsive.css">
   
@@ -34,6 +35,15 @@
 </head>
 
 <body>
+  <!-- Progress Overlay -->
+  <div id="progressOverlay" class="progress-overlay hide">
+    <div class="loader">
+      <div class="progress-text">Procesando archivo...</div>
+      <div class="progress-container">
+        <div class="progress-bar indeterminate"></div>
+      </div>
+    </div>
+  </div>
   <div class="container">
     <!-- Selector de fuentes temporal -->
     <div class="font-selector-container">
@@ -75,6 +85,7 @@
         <button class="main-tab-btn active" data-tab="carga">Carga</button>
         <button class="main-tab-btn" data-tab="configuracion">Configuración</button>
         <button class="main-tab-btn" data-tab="servicios">Api</button>
+        <button class="main-tab-btn" data-tab="archivos">Archivos</button>
       </div>
     </div>
 
@@ -130,6 +141,10 @@
                         </tr>
                       </thead>
                       <tbody>
+                        <!-- Mensaje por defecto -->
+                        <tr class="empty-message">
+                          <td colspan="6" class="text-center">Seleccione un archivo Excel para ver la estructura de cabecera.</td>
+                        </tr>
                         <!-- Contenido de la cabecera se insertará aquí -->
                       </tbody>
                     </table>
@@ -150,6 +165,10 @@
                         </tr>
                       </thead>
                       <tbody>
+                        <!-- Mensaje por defecto -->
+                        <tr class="empty-message">
+                          <td colspan="6" class="text-center">Seleccione un archivo Excel para ver la estructura de requerimiento.</td>
+                        </tr>
                         <!-- Contenido del requerimiento se insertará aquí -->
                       </tbody>
                     </table>
@@ -170,6 +189,10 @@
                         </tr>
                       </thead>
                       <tbody>
+                        <!-- Mensaje por defecto -->
+                        <tr class="empty-message">
+                          <td colspan="6" class="text-center">Seleccione un archivo Excel para ver la estructura de respuesta.</td>
+                        </tr>
                         <!-- Contenido de la respuesta se insertará aquí -->
                       </tbody>
                     </table>
@@ -202,19 +225,46 @@
         </div>
 
         <div id="archivos" class="tab-pane">
-          <div class="files-container auto-hide-scrollbar">
-            <table id="filesTable">
-              <thead>
-                <tr>
-                  <th>Archivo</th>
-                  <th>Fecha</th>
-                  <th>Acción</th>
-                </tr>
-              </thead>
-              <tbody>
-                <!-- Lista de archivos se insertará aquí -->
-              </tbody>
-            </table>
+          <div class="service-panel">
+            <h3>Gestión de Archivos</h3>
+            <div class="files-container">
+              <table id="serviceFilesTable">
+                <thead>
+                  <tr>
+                    <th>Número Servicio</th>
+                    <th>Nombre Servicio</th>
+                    <th>Última Versión</th>
+                    <th>Acción</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- Lista de servicios se insertará aquí (un único registro por servicio) -->
+                </tbody>
+              </table>
+            </div>
+            
+            <!-- Modal para mostrar versiones del servicio -->
+            <div id="versionsModal" class="modal">
+              <div class="modal-content">
+                <span class="close">&times;</span>
+                <h3>Versiones del Servicio <span id="serviceVersionTitle"></span></h3>
+                <div class="versions-container">
+                  <table id="serviceVersionsTable">
+                    <thead>
+                      <tr>
+                        <th>Versión</th>
+                        <th>Fecha</th>
+                        <th>Archivo</th>
+                        <th>Acción</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <!-- Lista de versiones se insertará aquí -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -309,6 +359,7 @@
             <div class="services-nav">
               <button class="services-tab-btn active" data-service-tab="ida">Servicio de Ida</button>
               <button class="services-tab-btn" data-service-tab="vuelta">Servicio de Vuelta</button>
+              <button class="services-tab-btn" data-service-tab="swagger">Swagger</button>
             </div>
             
             <!-- Servicio de Ida -->
@@ -396,7 +447,242 @@
               </div>
             </div>
             
-            <div class="services-list-section">
+            <!-- Documentación Swagger -->
+            <div id="swaggerService" class="service-tab-content">
+              <div class="service-panel">
+                <h3>Documentación API (Swagger)</h3>
+                <div class="swagger-container">
+                  <div class="swagger-intro">
+                    <p>A continuación se detallan los endpoints disponibles para interactuar con la API, sus métodos y un ejemplo de uso.</p>
+                  </div>
+                  
+                  <div class="swagger-endpoints">
+                    <div class="endpoint">
+                      <h4 class="endpoint-title"><span class="http-method post">POST</span> /api/services/ida</h4>
+                      <div class="endpoint-description">
+                        <p>Procesa un servicio de ida (generación de mensaje de longitud fija a partir de JSON)</p>
+                        <h5>Parámetros</h5>
+                        <div class="param-table-container">
+                          <table class="param-table">
+                            <thead>
+                              <tr>
+                                <th>Nombre</th>
+                                <th>Tipo</th>
+                                <th>Descripción</th>
+                                <th>Requerido</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr>
+                                <td>service_number</td>
+                                <td>string</td>
+                                <td>Número del servicio (ej: "3088")</td>
+                                <td>Sí</td>
+                              </tr>
+                              <tr>
+                                <td>CANAL</td>
+                                <td>string</td>
+                                <td>Canal de origen (ej: "API")</td>
+                                <td>No</td>
+                              </tr>
+                              <tr>
+                                <td>USUARIO</td>
+                                <td>string</td>
+                                <td>Usuario que realiza la solicitud</td>
+                                <td>No</td>
+                              </tr>
+                              <tr>
+                                <td>data</td>
+                                <td>object</td>
+                                <td>Objeto con los datos para el mensaje</td>
+                                <td>No</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                        
+                        <h5>Request de Ejemplo</h5>
+                        <div class="code-example">
+<pre class="code-block">
+POST /api/services/ida
+Content-Type: application/json
+
+{
+  "service_number": "3088",
+  "CANAL": "API", 
+  "USUARIO": "SISTEMA",
+  "data": {
+    "campo1": "valor1",
+    "campo2": "valor2",
+    "occ_1": [
+      {
+        "subcampo1": "valor1",
+        "subcampo2": "valor2"
+      }
+    ]
+  }
+}
+</pre>
+                        </div>
+                        
+                        <h5>Response de Ejemplo</h5>
+                        <div class="code-example">
+<pre class="code-block">
+{
+  "service_number": "3088",
+  "service_name": "Servicio Genérico",
+  "message": "API3088SISTEMA...",
+  "status": "success"
+}
+</pre>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div class="endpoint">
+                      <h4 class="endpoint-title"><span class="http-method post">POST</span> /api/services/vuelta</h4>
+                      <div class="endpoint-description">
+                        <p>Procesa un servicio de vuelta (interpretación de mensaje de longitud fija)</p>
+                        <h5>Parámetros</h5>
+                        <div class="param-table-container">
+                          <table class="param-table">
+                            <thead>
+                              <tr>
+                                <th>Nombre</th>
+                                <th>Tipo</th>
+                                <th>Descripción</th>
+                                <th>Requerido</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr>
+                                <td>service_number</td>
+                                <td>string</td>
+                                <td>Número del servicio (ej: "3088")</td>
+                                <td>Sí</td>
+                              </tr>
+                              <tr>
+                                <td>stream</td>
+                                <td>string</td>
+                                <td>String de longitud fija a procesar</td>
+                                <td>Sí</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                        
+                        <h5>Request de Ejemplo</h5>
+                        <div class="code-example">
+<pre class="code-block">
+POST /api/services/vuelta
+Content-Type: application/json
+
+{
+  "service_number": "3088",
+  "stream": "API3088SISTEMA..."
+}
+</pre>
+                        </div>
+                        
+                        <h5>Response de Ejemplo</h5>
+                        <div class="code-example">
+<pre class="code-block">
+{
+  "SVC3088-ESTADO": "00",
+  "SVC3088-CANT-REG": "01",
+  "SVC3088-MAS-DATOS": "N",
+  "occ_3": [
+    {
+      "CAMPO1": "valor1",
+      "CAMPO2": "valor2"
+    }
+  ]
+}
+</pre>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div class="endpoint">
+                      <h4 class="endpoint-title"><span class="http-method get">GET</span> /api/services</h4>
+                      <div class="endpoint-description">
+                        <p>Obtiene la lista de servicios disponibles</p>
+                        <h5>Parámetros</h5>
+                        <p>No requiere parámetros</p>
+                        
+                        <h5>Response de Ejemplo</h5>
+                        <div class="code-example">
+<pre class="code-block">
+{
+  "services": [
+    {
+      "service_number": "3088",
+      "service_name": "Servicio Genérico",
+      "display_name": "Servicio Genérico",
+      "structure_file": "20230515T120000_3088_structure.json",
+      "excel_file": "20230515T120000_SVO3088_Estructura.xlsx",
+      "timestamp": "2023-05-15T12:00:00.000Z"
+    }
+  ]
+}
+</pre>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div class="endpoint">
+                      <h4 class="endpoint-title"><span class="http-method get">GET</span> /api/services/:serviceNumber</h4>
+                      <div class="endpoint-description">
+                        <p>Obtiene información y estructura de un servicio específico</p>
+                        <h5>Parámetros de Ruta</h5>
+                        <div class="param-table-container">
+                          <table class="param-table">
+                            <thead>
+                              <tr>
+                                <th>Nombre</th>
+                                <th>Tipo</th>
+                                <th>Descripción</th>
+                                <th>Requerido</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr>
+                                <td>serviceNumber</td>
+                                <td>string</td>
+                                <td>Número del servicio a consultar</td>
+                                <td>Sí</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                        
+                        <h5>Request de Ejemplo</h5>
+                        <div class="code-example">
+<pre class="code-block">
+GET /api/services/3088
+</pre>
+                        </div>
+                        
+                        <h5>Response de Ejemplo</h5>
+                        <div class="code-example">
+<pre class="code-block">
+{
+  "service_number": "3088",
+  "service_name": "Servicio Genérico",
+  "message": "API3088SISTEMA...",
+  "parsed_data": null,
+  "status": "success"
+}
+</pre>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="services-list-section d-none">
               <h3>Servicios Disponibles <button id="refreshServicesBtn" class="action-btn secondary-btn" style="font-size: 0.75rem; padding: 0.2rem 0.5rem; margin-left: 0.5rem;">Refrescar</button></h3>
               <table id="servicesTable">
                 <thead>
@@ -460,6 +746,8 @@
   <script src="/js/simple-example-generator.js"></script>
   <script src="/js/simple-scrollbar.js"></script>
   <script src="/js/theme-selector.js"></script>
+  <script src="/js/file-info.js"></script>
+  <script src="/js/file-manager.js"></script>
   
   <!-- Script para establecer Montserrat como fuente oficial -->
   <script>

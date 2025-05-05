@@ -115,14 +115,11 @@ th {
 }
 
 /* Asegurar que el texto en la primera columna sea negro */
-table th:nth-child(1), 
 table td:nth-child(1) {
   color: var(--text-color) !important;
 }
 
-tr:nth-child(even) {
-  background-color: var(--table-row-even) !important;
-}
+/* Eliminado tr:nth-child(even) para evitar confusión con los estilos de ocurrencias */
 
 tr:hover {
   background-color: var(--table-row-hover) !important;
@@ -147,3 +144,22 @@ select, input, textarea {
 .occurrence-row:hover {
   background-color: rgba(13, 148, 136, 0.2) !important;
 }
+
+/* Mejorar la visibilidad de la línea final de ocurrencia */
+.occurrence-end {
+  background-color: #3f3e3e !important; /* Color estandarizado para todos los temas */
+  border-bottom: 2px dashed #6366f1 !important; /* Borde consistente */
+  height: 8px !important; /* Altura aumentada para mejor visibilidad */
+  padding: 0 !important;
+  margin-bottom: 8px !important; /* Espacio adicional después de la ocurrencia */
+  display: table-row !important; /* Forzar visualización */
+  visibility: visible !important;
+  width: 100% !important;
+}
+
+/* Asegurar que todos los finales de ocurrencia tengan el mismo color */
+tr.occurrence-end {
+background-color: #e6f4f3 !important;
+}
+
+/* Nota: Los estilos para current-file-info fueron centralizados en file-info.css */
