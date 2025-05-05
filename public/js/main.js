@@ -26,7 +26,7 @@ const jsonContent = document.getElementById('jsonContent');
 const serviceNumberInput = document.getElementById('serviceNumber');
 const streamDataInput = document.getElementById('streamData');
 const processServiceBtn = document.getElementById('processServiceBtn');
-const servicesTable = document.getElementById('servicesTable')?.querySelector('tbody') || null;
+const servicesTable = document.getElementById('servicesTable').querySelector('tbody');
 const serviceResult = document.getElementById('serviceResult');
 
 // Variables globales
@@ -500,16 +500,14 @@ async function loadFilesList() {
     const data = await response.json();
     
     // Limpiar la tabla
-    if (filesTable) { // Added null check
-      filesTable.innerHTML = '';
-      
-      // Si no hay archivos, mostrar mensaje
-      if (data.files.length === 0) {
-        const row = document.createElement('tr');
-        row.innerHTML = '<td colspan="3">No hay archivos procesados</td>';
-        filesTable.appendChild(row);
-        return;
-      }
+    filesTable.innerHTML = '';
+    
+    // Si no hay archivos, mostrar mensaje
+    if (data.files.length === 0) {
+      const row = document.createElement('tr');
+      row.innerHTML = '<td colspan="3">No hay archivos procesados</td>';
+      filesTable.appendChild(row);
+      return;
     }
     
     // Crear un Map para evitar mostrar servicios repetidos
@@ -1542,7 +1540,6 @@ async function loadServicesList() {
         servicesTable.appendChild(row);
         return;
       }
-    }
       
       // Agrupar servicios por número
       const servicesByNumber = {};
