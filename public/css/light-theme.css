@@ -115,6 +115,7 @@ th {
 }
 
 /* Asegurar que el texto en la primera columna sea negro */
+table th:nth-child(1), 
 table td:nth-child(1) {
   color: var(--text-color) !important;
 }

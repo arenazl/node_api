@@ -1,0 +1,334 @@
+/* Estilos para la documentación de API estilo Swagger con temas predefinidos */
+.api-doc-container {
+  font-family: var(--font-family);
+  color: var(--text-color);
+  padding: 20px;
+}
+
+.api-doc-header {
+  margin-bottom: 30px;
+}
+
+.api-doc-header h1 {
+  font-size: var(--font-size-xl);
+  color: var(--primary-color);
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+
+.api-doc-header p {
+  color: var(--text-secondary);
+  margin-bottom: 20px;
+  line-height: 1.5;
+  font-size: var(--font-size-base);
+}
+
+.api-version {
+  display: inline-block;
+  background-color: var(--card-bg);
+  padding: 5px 10px;
+  border-radius: var(--radius);
+  margin-bottom: 10px;
+  font-size: var(--font-size-sm);
+  border: 1px solid var(--border-color);
+  color: var(--accent-color);
+}
+
+/* Endpoint Groups */
+.api-group {
+  margin-bottom: 30px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background-color: var(--dark-bg);
+}
+
+.api-group-header {
+  background-color: var(--card-bg);
+  padding: 15px;
+  font-weight: bold;
+  border-bottom: 1px solid var(--border-color);
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.api-group-header h2 {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  color: var(--primary-color);
+}
+
+.api-group-content {
+  padding: 0;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease-out;
+}
+
+.api-group.expanded .api-group-content {
+  max-height: 2000px;
+  transition: max-height 0.5s ease-in;
+}
+
+/* Endpoint */
+.api-endpoint {
+  border-bottom: 1px solid var(--border-color);
+  padding: 0;
+}
+
+.api-endpoint:last-child {
+  border-bottom: none;
+}
+
+.endpoint-header {
+  display: flex;
+  align-items: center;
+  padding: 15px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.endpoint-header:hover {
+  background-color: var(--light-bg);
+}
+
+.http-method {
+  font-weight: bold;
+  padding: 5px 10px;
+  border-radius: var(--radius);
+  color: white;
+  margin-right: 10px;
+  min-width: 60px;
+  text-align: center;
+  font-size: var(--font-size-sm);
+  box-shadow: var(--shadow);
+}
+
+.http-method.get {
+  background-color: #2196F3;
+}
+
+.http-method.post {
+  background-color: #4CAF50;
+}
+
+.http-method.put {
+  background-color: #FF9800;
+}
+
+.http-method.delete {
+  background-color: #F44336;
+}
+
+.endpoint-path {
+  font-family: monospace;
+  font-size: var(--font-size-md);
+  flex-grow: 1;
+  color: var(--accent-color);
+}
+
+.endpoint-summary {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  margin-left: 10px;
+}
+
+.endpoint-content {
+  padding: 0 15px;
+  background-color: var(--card-bg);
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease-out;
+}
+
+.api-endpoint.expanded .endpoint-content {
+  max-height: 2000px;
+  padding: 15px;
+  transition: max-height 0.5s ease-in;
+}
+
+/* Endpoint Details */
+.endpoint-description {
+  margin-bottom: 20px;
+  line-height: 1.5;
+  color: var(--text-color);
+}
+
+.params-title, .response-title, .example-title {
+  font-weight: bold;
+  margin: 15px 0 10px;
+  font-size: var(--font-size-md);
+  color: var(--primary-color);
+}
+
+.params-table, .response-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.params-table th, .params-table td,
+.response-table th, .response-table td {
+  padding: 10px;
+  text-align: left;
+  border: 1px solid var(--border-color);
+}
+
+.params-table th, .response-table th {
+  background-color: var(--table-header-bg);
+  font-weight: bold;
+  color: var(--table-header-text);
+}
+
+.param-name, .response-code {
+  font-family: monospace;
+  font-weight: bold;
+}
+
+.param-type, .response-type {
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+}
+
+.param-required {
+  color: #dc3545;
+  font-size: var(--font-size-xs);
+  margin-left: 5px;
+}
+
+.response-code {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: var(--font-size-xs);
+}
+
+.response-code.success {
+  background-color: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+}
+
+.response-code.error {
+  background-color: rgba(220, 38, 38, 0.2);
+  color: #ef4444;
+}
+
+.response-code.warning {
+  background-color: rgba(245, 158, 11, 0.2);
+  color: #f59e0b;
+}
+
+/* Request/Response examples */
+.example-container {
+  margin-bottom: 20px;
+}
+
+.code-example {
+  background-color: var(--light-bg);
+  color: var(--text-color);
+  padding: 15px;
+  border-radius: var(--radius);
+  overflow-x: auto;
+  font-family: 'Montserrat', monospace;
+  font-size: var(--font-size-sm);
+  line-height: 1.4;
+  border: 1px solid var(--border-color);
+}
+
+.try-it-btn {
+  display: inline-block;
+  background-color: var(--primary-color);
+  color: white;
+  padding: 8px 16px;
+  border-radius: var(--radius);
+  text-decoration: none;
+  font-weight: bold;
+  margin-top: 15px;
+  cursor: pointer;
+  border: none;
+  transition: var(--transition);
+  box-shadow: var(--shadow);
+}
+
+.try-it-btn:hover {
+  background-color: var(--primary-hover);
+  transform: translateY(-1px);
+}
+
+/* Toggle Buttons */
+.toggle-btn {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  transition: transform 0.3s;
+  color: var(--text-color);
+}
+
+.toggle-btn.expanded {
+  transform: rotate(180deg);
+}
+
+/* Search and filter */
+.api-search-container {
+  margin-bottom: 20px;
+}
+
+.api-search-input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  font-size: var(--font-size-base);
+  box-sizing: border-box;
+  background-color: var(--card-bg);
+  color: var(--text-color);
+  transition: var(--transition);
+}
+
+.api-search-input:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px rgba(217, 70, 239, 0.2);
+}
+
+/* Grupo de descripción */
+.group-description {
+  margin-bottom: 15px;
+  padding: 10px;
+  background-color: var(--card-bg);
+  border-radius: var(--radius);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-size: var(--font-size-base);
+}
+
+/* Loading message */
+.loading-message {
+  color: var(--text-secondary);
+  text-align: center;
+  padding: 20px;
+  font-style: italic;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .endpoint-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .http-method {
+    margin-bottom: 5px;
+  }
+  
+  .endpoint-summary {
+    margin-left: 0;
+    margin-top: 5px;
+  }
+}

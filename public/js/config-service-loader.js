@@ -29,18 +29,18 @@ const ConfigServiceLoader = {
             .then(response => response.json())
             .then(() => {
                 console.log("Caché de servicios recargada correctamente, obteniendo lista actualizada...");
-                // Después de forzar la recarga, obtener la lista actualizada
-                return fetch('/excel/files');
+                // Después de forzar la recarga, obtener la lista actualizada - USAR EL MISMO ENDPOINT QUE LOS DEMÁS SELECTORES
+                return fetch('/api/services');
             })
             .catch(error => {
                 console.warn("Error al forzar recarga de caché:", error);
                 console.log("Continuando con caché existente...");
-                // Aún así intentamos cargar la lista aunque falle el refresh
-                return fetch('/excel/files');
+                // Aún así intentamos cargar la lista aunque falle el refresh - USAR EL MISMO ENDPOINT QUE LOS DEMÁS SELECTORES
+                return fetch('/api/services');
             })
             .then(response => response.json())
             .then(data => {
-                if (data.files && Array.isArray(data.files)) {
+                if (data.services && Array.isArray(data.services)) {
                     // Clear existing options except the default
                     while (serviceSelect.options.length > 1) {
                         serviceSelect.remove(1);
@@ -50,20 +50,20 @@ const ConfigServiceLoader = {
                     const serviceMap = new Map();
 
                     // Add each service
-                    data.files.forEach(file => {
-                        if (file.service_number && !serviceMap.has(file.service_number)) {
-                            serviceMap.set(file.service_number, true);
+                    data.services.forEach(service => {
+                        if (service.service_number && !serviceMap.has(service.service_number)) {
+                            serviceMap.set(service.service_number, true);
 
                             const option = document.createElement('option');
-                            option.value = file.service_number;
-                            option.textContent = `${file.service_number} - ${file.service_name || 'Servicio'}`;
+                            option.value = service.service_number;
+                            option.textContent = `${service.service_number} - ${service.service_name || 'Servicio'}`;
                             serviceSelect.appendChild(option);
                         }
                     });
                     
                     // Call the callback if provided
                     if (typeof onLoadCallback === 'function') {
-                        onLoadCallback(data.files);
+                        onLoadCallback(data.services);
                     }
                 }
             })

@@ -1312,89 +1312,6 @@ select option {
   box-shadow: var(--shadow);
 }
 
-/* Estilos para la pestaña de archivos */
-#archivos .service-panel {
-  padding: 1.5rem;
-  background-color: var(--card-bg);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-}
-
-#archivos .files-container {
-  max-height: none;
-  overflow: visible;
-}
-
-#serviceFilesTable {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  border: 1px solid var(--table-border);
-  border-radius: var(--radius);
-  overflow: hidden;
-  margin-top: 1rem;
-}
-
-.version-btn {
-  background-color: var(--accent-color);
-  color: white;
-  border: none;
-  padding: 0.5rem 0.875rem;
-  border-radius: var(--radius);
-  cursor: pointer;
-  font-size: 0.875rem;
-  transition: var(--transition);
-  font-weight: 500;
-}
-
-.version-btn:hover {
-  background-color: var(--accent-hover);
-  transform: translateY(-1px);
-}
-
-/* Estilos para el modal de versiones */
-.versions-container {
-  max-height: 400px;
-  overflow-y: auto;
-  margin-top: 1rem;
-}
-
-#serviceVersionsTable {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  border: 1px solid var(--table-border);
-  border-radius: var(--radius);
-  overflow: hidden;
-}
-
-#versionsModal .modal-content {
-  width: 80%;
-  max-width: 800px;
-}
-
-#serviceVersionTitle {
-  font-weight: bold;
-  color: var(--primary-color);
-}
-
-.excel-btn {
-  background-color: #107C41; /* Color verde de Excel */
-  color: white;
-  border: none;
-  padding: 0.5rem 0.875rem;
-  border-radius: var(--radius);
-  cursor: pointer;
-  font-size: 0.875rem;
-  transition: var(--transition);
-  font-weight: 500;
-}
-
-.excel-btn:hover {
-  background-color: #0D6738; /* Verde Excel más oscuro */
-  transform: translateY(-1px);
-}
-
 .services-list-section h3 {
   margin-bottom: 1rem;
   color: var(--primary-color);
@@ -1595,6 +1512,13 @@ th:nth-child(6), td:nth-child(6) { width: 14%; }
   gap: 0.75rem;
 }
 
+.secondary-btn {
+  background-color: var(--secondary-color);
+}
+
+.secondary-btn:hover {
+  background-color: #374151;
+}
 
 /* Estilos para la pestaña de configuración */
 /* Eliminados estilos personalizados para SimpleBar ya que ahora usamos nuestra propia implementación */
@@ -1685,144 +1609,6 @@ textarea:focus,
   background-color: rgb(0 150 136 / 14%) !important;
 }
 
-/* Estilos para Swagger API Documentation */
-.swagger-container {
-  padding: 1rem;
-  background-color: var(--card-bg);
-  border-radius: var(--radius);
-  margin-bottom: 1rem;
-}
-
-.swagger-intro {
-  margin-bottom: 1.5rem;
-}
-
-.swagger-intro p {
-  color: var(--text-color);
-  font-size: var(--font-size-base);
-  line-height: 1.6;
-}
-
-.swagger-endpoints {
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-}
-
-.endpoint {
-  background-color: var(--light-bg);
-  border-radius: var(--radius);
-  padding: 1.25rem;
-  border-left: 4px solid var(--primary-color);
-  box-shadow: var(--shadow);
-}
-
-.endpoint-title {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  font-size: var(--font-size-lg);
-  margin-bottom: 1rem;
-  color: var(--text-color);
-  font-weight: 600;
-}
-
-.http-method {
-  display: inline-block;
-  padding: 0.35rem 0.75rem;
-  border-radius: 4px;
-  font-size: var(--font-size-sm);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.http-method {
-  background-color: #3b82f6; /* Default blue color */
-  color: white;
-}
-
-.http-method.get {
-  background-color: #10b981; /* Green for GET */
-}
-
-.http-method.post {
-  background-color: #3b82f6; /* Blue for POST */
-}
-
-.http-method.put {
-  background-color: #f59e0b; /* Orange for PUT */
-}
-
-.http-method.delete {
-  background-color: #ef4444; /* Red for DELETE */
-}
-
-.endpoint-description p {
-  margin-bottom: 1rem;
-  font-size: var(--font-size-base);
-  line-height: 1.6;
-  color: var(--text-secondary);
-}
-
-.endpoint-description h5 {
-  margin: 1.5rem 0 0.75rem;
-  color: var(--primary-color);
-  font-weight: 600;
-  font-size: var(--font-size-base);
-}
-
-.param-table-container {
-  margin: 1rem 0;
-  overflow-x: auto;
-}
-
-.param-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius);
-  overflow: hidden;
-}
-
-.param-table th,
-.param-table td {
-  padding: 0.625rem 0.875rem;
-  font-size: var(--font-size-sm);
-  border-bottom: 1px solid var(--border-color);
-}
-
-.param-table th {
-  background-color: var(--table-header-bg);
-  color: var(--table-header-text);
-  font-weight: 600;
-  text-align: left;
-}
-
-.param-table tr:last-child td {
-  border-bottom: none;
-}
-
-.code-example {
-  margin: 1rem 0;
-  background-color: var(--dark-bg);
-  border-radius: var(--radius);
-  overflow: hidden;
-  border: 1px solid var(--border-color);
-}
-
-.code-block {
-  margin: 0;
-  padding: 1rem;
-  font-family: 'Courier New', monospace;
-  font-size: var(--font-size-sm);
-  line-height: 1.5;
-  white-space: pre-wrap;
-  word-break: break-word;
-  overflow-x: auto;
-}
-
 /* Estilos para elementos de generación de string fijo */
 .button-group {
   display: flex;
@@ -1831,6 +1617,9 @@ textarea:focus,
   flex-wrap: wrap;
 }
 
+.secondary-btn {
+  background-color: var(--secondary-color);
+}
 
 .secondary-btn:hover {
   background-color: #374151;
@@ -1868,23 +1657,4 @@ textarea:focus,
   font-family: 'Montserrat', sans-serif;
   font-weight: bold;
   color: var(--primary-color);
-}
-
-/* Estilos para mensajes de error en el resultado */
-.error-message {
-  color: var(--danger-color) !important;
-  background-color: rgba(220, 38, 38, 0.1);
-  border: 1px solid var(--danger-color);
-  padding: 10px;
-  border-radius: var(--radius);
-  font-weight: 500;
-}
-
-/* Destacar mensaje de validación */
-.result-container .error-message {
-  font-size: 0.95rem;
-  line-height: 1.6;
-  padding: 1rem;
-  margin: 0.5rem 0;
-  box-shadow: 0 0 8px rgba(220, 38, 38, 0.2);
 }

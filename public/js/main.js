@@ -113,6 +113,16 @@ excelFileInput.addEventListener('change', async () => {
     const progressOverlay = document.getElementById('progressOverlay');
     if (progressOverlay) {
       progressOverlay.classList.remove('hide');
+      
+      // Establecer un timeout para ocultar la barra de progreso automáticamente después de 30 segundos
+      // Esto evita que la barra quede visible indefinidamente si hay algún error
+      window.progressTimeoutId = setTimeout(() => {
+        if (progressOverlay && !progressOverlay.classList.contains('hide')) {
+          console.warn("Timeout de progreso alcanzado: ocultando la barra automáticamente");
+          progressOverlay.classList.add('hide');
+      ConfigUtils.showNotification("El procesamiento está tomando más tiempo de lo esperado. Intente nuevamente si es necesario.", 'warning');
+        }
+      }, 30000); // 30 segundos de timeout
     }
     
     // Procesar el archivo automáticamente
@@ -159,7 +169,7 @@ excelFileInput.addEventListener('change', async () => {
                 await uploadExcelFile(formData);
               } else {
       // Cancelar la subida y esconder el overlay de progreso
-      showNotification('Subida cancelada por el usuario', 'info');
+      ConfigUtils.showNotification('Subida cancelada por el usuario', 'info');
       const progressOverlay = document.getElementById('progressOverlay');
       if (progressOverlay) {
         progressOverlay.classList.add('hide');
@@ -186,7 +196,7 @@ excelFileInput.addEventListener('change', async () => {
       await uploadExcelFile(formData);
       
     } catch (error) {
-      showNotification(error.message, 'error');
+      ConfigUtils.showNotification(error.message, 'error');
       
       // Ocultar el overlay de progreso
       const progressOverlay = document.getElementById('progressOverlay');
@@ -219,7 +229,7 @@ confirmNoBtn.addEventListener('click', () => {
   confirmModal.style.display = 'none';
   
   // Mostrar notificación
-  showNotification('Subida cancelada por el usuario', 'info');
+  ConfigUtils.showNotification('Subida cancelada por el usuario', 'info');
   
   // Reiniciar el campo de archivo para permitir seleccionar el mismo archivo de nuevo
   if (excelFileInput) {
@@ -265,7 +275,7 @@ uploadForm.addEventListener('submit', (e) => {
  * Realiza la subida del archivo Excel
  */
 async function uploadExcelFile(formData) {
-  try {
+
     const response = await fetch('/excel/upload', {
       method: 'POST',
       body: formData
@@ -273,61 +283,164 @@ async function uploadExcelFile(formData) {
     
     if (!response.ok) {
       const errorData = await response.json();
+      
+      // Manejar específicamente el error 409 (Conflict) - Archivo duplicado
+      if (response.status === 409) {
+        // Usar SweetAlert para mostrar mensaje de error de duplicado
+        if (typeof Swal !== 'undefined') {
+          await Swal.fire({
+            title: 'Archivo duplicado',
+            html: `<div style="text-align: left">
+                   <strong>La versión que está intentando subir es idéntica a una ya existente.</strong><br><br>
+                   ${errorData.message || 'El sistema ha detectado que este archivo ya ha sido procesado anteriormente.'}<br><br>
+                   <em>No es necesario volver a subir este archivo.</em>
+                   </div>`,
+            icon: 'warning',
+            confirmButtonText: 'Entendido',
+            confirmButtonColor: '#2563eb'
+          });
+        } else {
+          // Fallback a alert si SweetAlert no está disponible
+          alert(`Archivo duplicado: ${errorData.error || 'La versión que está intentando subir es idéntica a una ya existente'}`);
+        }
+        
+        // Mostrar mensaje en consola pero no lanzar error para evitar la notificación de error
+        console.error(`Error 409: ${errorData.error}`);
+        
+        // Ocultar el overlay de progreso
+        const progressOverlay = document.getElementById('progressOverlay');
+        if (progressOverlay) {
+          progressOverlay.classList.add('hide');
+        }
+        
+        // Limpiar el archivo seleccionado
+        if (excelFileInput) {
+          excelFileInput.value = '';
+          fileNameDisplay.textContent = 'Ningún archivo seleccionado';
+        }
+        
+        // Retornar sin lanzar error para evitar el manejo genérico
+        return;
+      }
+      
+      // Para otros tipos de errores, seguir con el comportamiento normal
       throw new Error(errorData.error || 'Error al procesar el archivo');
     }
     
     const data = await response.json();
-    showNotification(data.message, 'success');
+    ConfigUtils.showNotification(data.message, 'success');
     
-    // Cargar la estructura del archivo recién subido
-    try {
-      await loadStructure(data.structure_file);
-      console.log("Estructura cargada correctamente:", data.structure_file);
-    } catch (structureError) {
-      console.error("Error al cargar estructura:", structureError);
-      showNotification("Error al cargar estructura: " + structureError.message, 'error');
+    // Verificar si hay warnings que mostrar al usuario
+    // Primero verificamos si data.warnings existe antes de acceder a sus propiedades
+    if (data.warnings) {
+      console.log("Warnings recibidos:", data.warnings);
+      
+      // Asegurarnos de que tenga valores por defecto
+      const warnings = {
+        missingHeaderTab: data.warnings.missingHeaderTab || false,
+        headerTabAvailable: data.warnings.headerTabAvailable || 0,
+        headerSampleError: data.warnings.headerSampleError || null,
+        parserErrors: data.warnings.parserErrors || []
+      };
+      
+      // Si hay alguna advertencia relacionada con la falta de cabecera o errores en el Excel
+      if (warnings.missingHeaderTab || warnings.headerSampleError || 
+         (warnings.parserErrors && warnings.parserErrors.length > 0)) {
+        
+        let warningMessage = '';
+        
+        // Mostrar warning sobre la falta de la tercera solapa (header sample)
+        if (data.warnings.missingHeaderTab) {
+        warningMessage += '⚠️ <strong>Advertencia:</strong> El archivo Excel no tiene la tercera solapa con ejemplos de cabecera.<br>';
+        warningMessage += `Solo se encontraron ${data.warnings.headerTabAvailable} pestañas en el Excel.<br>`;
+        warningMessage += 'Esto <u>no es un error bloqueante</u>, pero podría limitar algunas funcionalidades.<br><br>';
+      }
+      
+      // Mostrar warning sobre otros errores del header sample
+      if (data.warnings.headerSampleError) {
+        warningMessage += `⚠️ <strong>Advertencia:</strong> Error al procesar la cabecera: ${data.warnings.headerSampleError}<br>`;
+        warningMessage += 'Esto <u>no es un error bloqueante</u>, pero podría limitar algunas funcionalidades.<br><br>';
+      }
+      
+      // Mostrar errores del parser si existen
+      if (data.warnings.parserErrors && data.warnings.parserErrors.length > 0) {
+        warningMessage += '⚠️ <strong>Advertencia:</strong> Se detectaron problemas al analizar el archivo:<br><ul>';
+        
+        // Limitar a los primeros 5 errores para no saturar el modal
+        const errorsToShow = data.warnings.parserErrors.slice(0, 5);
+        errorsToShow.forEach(err => {
+          const errorMsg = err.message || err;
+          warningMessage += `<li>${errorMsg}</li>`;
+        });
+        
+        // Si hay más de 5 errores, mostrar un contador
+        if (data.warnings.parserErrors.length > 5) {
+          const remainingErrors = data.warnings.parserErrors.length - 5;
+          warningMessage += `<li>...y ${remainingErrors} problemas más</li>`;
+        }
+        
+        warningMessage += '</ul><br>Estos problemas <u>no bloquean la operación</u>, pero podrían afectar los resultados.';
+      }
+      
+      // Para casos específicos relacionados con Excel sin pestaña de cabecera, forzar SweetAlert
+      if (data.warnings.missingHeaderTab) {
+        // Mensaje específico sobre la pestaña faltante con formato HTML para SweetAlert
+        const headerTabMsg = `⚠️ <strong>Advertencia:</strong> El archivo Excel no tiene la tercera pestaña con ejemplos de cabecera.<br>
+          Solo se encontraron ${data.warnings.headerTabAvailable} pestañas en el Excel.<br>
+          Esto <u>no es un error bloqueante</u> y el servicio se ha procesado correctamente, pero podría limitar algunas funcionalidades.`;
+        
+        // Forzar SweetAlert para este tipo específico de advertencia
+        ConfigUtils.showNotification(headerTabMsg, 'warning', true);
+      } else {
+        // Para otras advertencias, usar el mensaje completo
+        ConfigUtils.showNotification(warningMessage, 'warning', true);
+      }
+    
     }
     
-    // Recargar la lista de archivos
-    try {
+      await loadStructure(data.structure_file);
+      console.log("Estructura cargada correctamente:", data.structure_file); 
+   
       await loadFilesList();
       console.log("Lista de archivos actualizada");
-    } catch (filesError) {
-      console.error("Error al cargar lista de archivos:", filesError);
-    }
+  
     
-    // Recargar la lista de servicios sin recargar la página completa
-    try {
       await loadServicesList();
       console.log("Lista de servicios actualizada");
       
       // Notificar a todos los componentes que se han actualizado los servicios
-      if (window.EventBus && window.AppEvents) {
-        window.EventBus.publish(window.AppEvents.SERVICES_REFRESHED, { 
-          service_number: data.service_number,
-          timestamp: new Date().toISOString()
-        });
-        console.log("Evento SERVICES_REFRESHED publicado");
+      try {
+        if (window.EventBus && window.AppEvents) {
+          window.EventBus.publish(window.AppEvents.SERVICES_REFRESHED, { 
+            service_number: data.service_number,
+            timestamp: new Date().toISOString()
+          });
+          console.log("Evento SERVICES_REFRESHED publicado");
+        }
+      } catch (eventError) {
+        console.log("No se pudo publicar evento SERVICES_REFRESHED:", eventError.message);
       }
-    } catch (servicesError) {
-      console.error("Error al cargar lista de servicios:", servicesError);
-    }
-    
+  
     // Actualizar los selectores directamente sin recargar toda la página
-    try {
+
+
       await loadServicesIntoSelect('idaServiceSelect');
       await loadServicesIntoSelect('vueltaServiceSelect');
       await loadServicesIntoSelect('configServiceSelect'); // Agregar selector de la pestaña configuración
       console.log("Selectores de servicios actualizados");
       
       // Notificar a todos los componentes que se ha cargado un nuevo archivo
-      if (window.EventBus && window.AppEvents) {
-        window.EventBus.publish(window.AppEvents.FILE_UPLOADED, {
-          service_number: data.service_number,
-          structure_file: data.structure_file,
-          timestamp: new Date().toISOString()
-        });
-        console.log("Evento FILE_UPLOADED publicado con service_number:", data.service_number);
+      try {
+        if (window.EventBus && window.AppEvents) {
+          window.EventBus.publish(window.AppEvents.FILE_UPLOADED, {
+            service_number: data.service_number,
+            structure_file: data.structure_file,
+            timestamp: new Date().toISOString()
+          });
+          console.log("Evento FILE_UPLOADED publicado con service_number:", data.service_number);
+        }
+      } catch (eventError) {
+        console.log("No se pudo publicar evento FILE_UPLOADED:", eventError.message);
       }
       
       // Actualizar información del archivo cargado usando el método global
@@ -372,12 +485,10 @@ async function uploadExcelFile(formData) {
           }
         }
       }
-    } catch (selectError) {
-      console.error("Error al actualizar selectores:", selectError);
-    }
-    
+  
+
     // Mostrar notificación de éxito
-    showNotification("Archivo procesado correctamente. Servicios actualizados.", 'success');
+    ConfigUtils.showNotification("Archivo procesado correctamente. Servicios actualizados.", 'success');
     
     // Garantizar que las tablas y el contenido JSON estén visibles
     // Usar el nuevo tabManager para activar las pestañas correctas
@@ -405,90 +516,65 @@ async function uploadExcelFile(formData) {
             console.log("Cambiado a subpestaña 'cabecera' (método alternativo)");
           }
         }
+
       }
       
       // Ocultar el overlay de progreso inmediatamente una vez que el contenido está cargado
       const progressOverlay = document.getElementById('progressOverlay');
       if (progressOverlay) {
         progressOverlay.classList.add('hide');
+        
+        // Limpiar el timeout si existe
+        if (window.progressTimeoutId) {
+          clearTimeout(window.progressTimeoutId);
+          window.progressTimeoutId = null;
+          console.log("Timeout de progreso cancelado porque el proceso completó exitosamente");
+        }
       }
       
     }, 500);
     
-  } catch (error) {
-    showNotification(error.message, 'error');
+    // Verificar si el error indica que falta la tercera pestaña
+    if (error.message && (
+        error.message.includes("tercera pestaña") || 
+        error.message.includes("tercera solapa") || 
+        error.message.includes("header sample") ||
+        error.message.includes("Excel no tiene")
+    )) {
+      // Si es un error específico sobre la falta de tercera pestaña, mostrar con SweetAlert
+      const headerTabMsg = `⚠️ <strong>Advertencia:</strong> El archivo Excel no tiene la tercera pestaña con ejemplos de cabecera.<br>
+        Esto <u>no es un error bloqueante</u> y se continuará procesando, pero podría limitar algunas funcionalidades.`;
+      
+      ConfigUtils.showNotification(headerTabMsg, 'warning', true);
+      
+
+        // Intentar recuperar la estructura parcial si existe
+        if (error.data && error.data.structure_file) {
+          await loadStructure(error.data.structure_file);
+        }
+ 
+    } else {
+      // Para otros errores, mostrar el mensaje de error estándar
+      ConfigUtils.showNotification(error.message, 'error');
+    }
     
     // Ocultar el overlay de progreso en caso de error
     const progressOverlay = document.getElementById('progressOverlay');
     if (progressOverlay) {
       progressOverlay.classList.add('hide');
+      
+      // Limpiar el timeout en caso de error
+      if (window.progressTimeoutId) {
+        clearTimeout(window.progressTimeoutId);
+        window.progressTimeoutId = null;
+        console.log("Timeout de progreso cancelado por error");
+      }
     }
-  } finally {
-    // Restablecer campo de archivo para permitir seleccionar uno nuevo
-    if (excelFileInput) {
-      excelFileInput.value = '';
-      fileNameDisplay.textContent = 'Ningún archivo seleccionado';
-    }
-    // No ocultamos la barra de progreso aquí, lo haremos después de que el contenido esté cargado
-  }
+
+  } 
+
 }
 
-/**
- * Muestra una notificación utilizando Toastr
- * @param {string} message - Mensaje a mostrar
- * @param {string} type - Tipo de notificación ('success', 'error', 'info', 'warning')
- */
-function showNotification(message, type) {
-  // Verificar si Toastr está disponible
-  if (typeof toastr !== 'undefined') {
-    // Configuración de Toastr
-    toastr.options = {
-      closeButton: true,
-      progressBar: true,
-      positionClass: "toast-top-right",
-      timeOut: 5000,
-      extendedTimeOut: 2000,
-      preventDuplicates: false,
-      newestOnTop: true,
-      showEasing: "swing",
-      hideEasing: "linear",
-      showMethod: "fadeIn",
-      hideMethod: "fadeOut"
-    };
-    
-    // Usar el método apropiado según el tipo
-    switch (type) {
-      case 'success':
-        toastr.success(message, 'Éxito');
-        break;
-      case 'error':
-        toastr.error(message, 'Error');
-        break;
-      case 'warning':
-        toastr.warning(message, 'Advertencia');
-        break;
-      default:
-        toastr.info(message, 'Información');
-    }
-  } else {
-    // Fallback al método original si Toastr no está disponible
-    notification.textContent = message;
-    notification.className = 'notification';
-    notification.classList.add(type);
-    
-    // Mostrar la notificación
-    notification.style.display = 'block';
-    
-    // Ocultar la notificación después de 5 segundos
-    setTimeout(() => {
-      notification.style.display = 'none';
-    }, 5000);
-  }
-}
-
-/**
- * Carga la lista de archivos Excel procesados
- */
 async function loadFilesList() {
   try {
     const response = await fetch('/excel/files');
@@ -553,7 +639,7 @@ async function loadFilesList() {
     });
     
   } catch (error) {
-    showNotification(error.message, 'error');
+    ConfigUtils.showNotification(error.message, 'error');
   }
 }
 
@@ -565,7 +651,7 @@ async function loadStructure(structureFile) {
   try {
     // Verificar si se proporcionó un nombre de archivo válido
     if (!structureFile) {
-      showNotification('Archivo de estructura no especificado', 'error');
+      ConfigUtils.showNotification('Archivo de estructura no especificado', 'error');
       return;
     }
     
@@ -581,16 +667,17 @@ async function loadStructure(structureFile) {
     
     const data = await response.json();
     currentStructure = data;
-    
+
+
     // Comprobar si la estructura está completa o parcial
     const headerComplete = data.header_structure && data.header_structure.fields && data.header_structure.fields.length > 0;
     const requestComplete = data.service_structure && data.service_structure.request && data.service_structure.request.elements && data.service_structure.request.elements.length > 0;
     const responseComplete = data.service_structure && data.service_structure.response && data.service_structure.response.elements && data.service_structure.response.elements.length > 0;
     
     // Verificar si hay mensajes de error específicos en la respuesta de la API
-    const parseErrors = data.parse_errors || [];
-    const requestErrors = data.parse_errors_request || [];
-    const responseErrors = data.parse_errors_response || [];
+    const parseErrors = data.service_structure?.parse_errors || [];
+    const requestErrors = data.service_structure?.parse_errors_request || [];
+    const responseErrors = data.service_structure?.parse_errors_response || [];
     
     // Comprobar si tenemos información sobre errores de parsing
     const hasDetailedErrors = parseErrors.length > 0 || requestErrors.length > 0 || responseErrors.length > 0;
@@ -635,11 +722,11 @@ async function loadStructure(structureFile) {
           });
         } else {
           // Fallback a la notificación estándar
-          showNotification('Se encontraron errores específicos al procesar el Excel. Verifique la consola para más detalles.', 'warning');
+          ConfigUtils.showNotification('Se encontraron errores específicos al procesar el Excel. Verifique la consola para más detalles.', 'warning');
         }
       } else {
         // Si no tenemos información detallada, mostrar mensaje genérico
-        showNotification('La estructura de servicio está incompleta: Cabecera presente pero faltan secciones Request/Response. Esto puede deberse a problemas con el formato del Excel.', 'warning');
+        ConfigUtils.showNotification('La estructura de servicio está incompleta: Cabecera presente pero faltan secciones Request/Response. Esto puede deberse a problemas con el formato del Excel.', 'warning');
         
         // Agregar información detallada para depuración
         console.warn("Estructura incompleta detectada:", {
@@ -719,7 +806,7 @@ try {
   if (cabeceraPane) cabeceraPane.classList.add('active');
     
   } catch (error) {
-    showNotification(error.message, 'error');
+    ConfigUtils.showNotification(error.message, 'error');
   }
 } catch (error) {
   console.error("Error al cambiar a pestaña de cabecera:", error);
@@ -732,7 +819,7 @@ try {
  */
 function openExcelFile(filename, button) {
   if (!filename) {
-    showNotification('Nombre de archivo no válido', 'error');
+    ConfigUtils.showNotification('Nombre de archivo no válido', 'error');
     return;
   }
   
@@ -762,7 +849,7 @@ function openExcelFile(filename, button) {
   fetch(downloadUrl, { method: 'HEAD' })
     .then(response => {
       if (!response.ok) {
-        showNotification('Error al acceder al archivo Excel', 'error');
+        ConfigUtils.showNotification('Error al acceder al archivo Excel', 'error');
         // Restaurar el botón inmediatamente en caso de error
         button.innerHTML = originalContent;
         button.disabled = false;
@@ -771,7 +858,7 @@ function openExcelFile(filename, button) {
     })
     .catch(error => {
       console.error('Error verificando archivo:', error);
-      showNotification('Error al acceder al archivo Excel', 'error');
+      ConfigUtils.showNotification('Error al acceder al archivo Excel', 'error');
       // Restaurar el botón inmediatamente en caso de error
       button.innerHTML = originalContent;
       button.disabled = false;
@@ -941,7 +1028,7 @@ function displayServiceStructure(serviceStructure) {
   // Si no hay estructura, mostrar mensaje de error claro
   if (!serviceStructure) {
     const errorMessage = 'No se pudo cargar la estructura del servicio. El archivo Excel puede tener problemas de formato.';
-    showNotification(errorMessage, 'error');
+    ConfigUtils.showNotification(errorMessage, 'error');
     
     const requestRow = document.createElement('tr');
     requestRow.innerHTML = `<td colspan="6" class="error-message">Error: ${errorMessage}</td>`;
@@ -968,7 +1055,7 @@ function displayServiceStructure(serviceStructure) {
       requestTable.appendChild(row);
       
       // Mostrar notificación solo si no se pudo procesar ningún elemento
-      showNotification('Error al procesar la estructura de requerimiento. Verifique el formato del Excel.', 'error');
+      ConfigUtils.showNotification('Error al procesar la estructura de requerimiento. Verifique el formato del Excel.', 'error');
     }
   } else {
     const errorMsg = 'No hay estructura de requerimiento disponible. El archivo Excel puede estar incompleto o tener un formato inadecuado.';
@@ -979,7 +1066,7 @@ function displayServiceStructure(serviceStructure) {
     requestTable.appendChild(row);
     
     // Mostrar notificación para alertar al usuario
-    showNotification('No se encontró estructura de requerimiento en el Excel cargado.', 'warning');
+    ConfigUtils.showNotification('No se encontró estructura de requerimiento en el Excel cargado.', 'warning');
   }
   
   // Procesar sección de respuesta
@@ -997,7 +1084,7 @@ function displayServiceStructure(serviceStructure) {
       responseTable.appendChild(row);
       
       // Mostrar notificación solo si no se pudo procesar ningún elemento
-      showNotification('Error al procesar la estructura de respuesta. Verifique el formato del Excel.', 'error');
+      ConfigUtils.showNotification('Error al procesar la estructura de respuesta. Verifique el formato del Excel.', 'error');
     }
   } else {
     const errorMsg = 'No hay estructura de respuesta disponible. El archivo Excel puede estar incompleto o tener un formato inadecuado.';
@@ -1008,7 +1095,7 @@ function displayServiceStructure(serviceStructure) {
     responseTable.appendChild(row);
     
     // Mostrar notificación para alertar al usuario
-    showNotification('No se encontró estructura de respuesta en el Excel cargado.', 'warning');
+    ConfigUtils.showNotification('No se encontró estructura de respuesta en el Excel cargado.', 'warning');
   }
 }
 
@@ -1588,7 +1675,7 @@ async function loadServicesList() {
     await loadServicesIntoSelect('configServiceSelect');  // Agregar selector de configuración
     
   } catch (error) {
-    showNotification(error.message, 'error');
+    ConfigUtils.showNotification(error.message, 'error');
   }
 }
 
@@ -1737,11 +1824,11 @@ async function loadServiceVersions(serviceNumber) {
         alert(message);
       }
     } else {
-      showNotification(`No se encontraron versiones para el servicio ${serviceNumber}`, 'warning');
+      ConfigUtils.showNotification(`No se encontraron versiones para el servicio ${serviceNumber}`, 'warning');
     }
     
   } catch (error) {
-    showNotification(error.message, 'error');
+    ConfigUtils.showNotification(error.message, 'error');
   }
 }
 
@@ -1754,7 +1841,7 @@ async function processService(serviceNumber = null) {
   const svcNumber = serviceNumber || (serviceNumberInput ? serviceNumberInput.value : null);
   
   if (!svcNumber) {
-    showNotification('Por favor, ingrese un número de servicio', 'error');
+    ConfigUtils.showNotification('Por favor, ingrese un número de servicio', 'error');
     return;
   }
   
@@ -1790,9 +1877,9 @@ async function processService(serviceNumber = null) {
       serviceResult.textContent = formattedResult;
     }
     
-    showNotification('Servicio procesado correctamente', 'success');
+    ConfigUtils.showNotification('Servicio procesado correctamente', 'success');
     
   } catch (error) {
-    showNotification(error.message, 'error');
+    ConfigUtils.showNotification(error.message, 'error');
   }
 }

@@ -78,64 +78,166 @@ router.post('/upload', async (req, res) => {
       });
     }
     
-    // Generar nombre de archivo único con timestamp
-    const timestamp = new Date().toISOString().replace(/[-:.]/g, '').substring(0, 14);
-    const filename = `${timestamp}_${excelFile.name}`;
-    const filePath = path.join(uploadsDir, filename);
-    
-    // Crear directorio si no existe
-    if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
+    // Crear un directorio temporal para procesar el archivo antes de confirmar la subida
+    const tempDir = path.join(__dirname, '..', 'tmp');
+    if (!fs.existsSync(tempDir)) {
+      fs.mkdirSync(tempDir, { recursive: true });
     }
     
-    // Guardar archivo
-    await excelFile.mv(filePath);
+    // Guardar archivo en directorio temporal primero
+    const tempFilePath = path.join(tempDir, excelFile.name);
+    await excelFile.mv(tempFilePath);
     
-    // Procesar archivo Excel
-    const { headerStructure, serviceStructure } = await processExcelFile(filePath);
-    
-    // Guardar las estructuras en un solo archivo
-    const structureInfo = saveStructures(headerStructure, serviceStructure);
-    
-    // Crear un mensaje de evento que incluya el número de servicio para notificar a la UI
-    // Esta es la parte crucial que asegura que los componentes se actualicen automáticamente
-    const eventPayload = {
-      filename: path.basename(filePath),
-      structure_file: structureInfo.structure_file,
-      service_number: serviceStructure.serviceNumber || null,
-      timestamp: new Date().toISOString()
-    };
-    
-    // Publicar al frontend los eventos de FILE_UPLOADED y SERVICES_REFRESHED
-    // Este es el mecanismo principal de actualización automática
-    if (global.io) {
-      // Si tenemos Socket.IO disponible, emitir eventos
-      console.log('[EXCEL] Emitiendo eventos de actualización via Socket.IO');
-      global.io.emit('file:uploaded', eventPayload);
-      global.io.emit('services:refreshed', eventPayload);
-    } else {
-      // Sin Socket.IO, podemos usar un enfoque basado en archivo temporal
-      // para notificar a los componentes que deben actualizarse (enfoque fallback)
-      console.log('[EXCEL] Socket.IO no disponible, guardando evento en archivo temporal');
-      try {
-        const eventFile = path.join(__dirname, '..', 'tmp', 'last_event.json');
-        fs.writeFileSync(eventFile, JSON.stringify({
-          type: 'file:uploaded',
-          payload: eventPayload,
-          timestamp: new Date().toISOString()
-        }, null, 2));
-      } catch (eventError) {
-        console.warn('[EXCEL] No se pudo guardar evento:', eventError);
+    try {
+      // Extraer estructura del archivo temporal para verificar duplicados
+      console.log("Extrayendo estructura del archivo para verificar duplicados...");
+      const tempHeaderStructure = excelParser.parseHeaderStructure(tempFilePath);
+      const tempServiceStructure = excelParser.parseServiceStructure(tempFilePath);
+      
+      // Verificar si ya existe una estructura idéntica
+      if (tempServiceStructure && tempServiceStructure.serviceNumber) {
+        // Buscar estructuras existentes para este servicio
+        const structureFiles = fs.readdirSync(structuresDir)
+          .filter(file => file.endsWith('_structure.json') && file.includes(`_${tempServiceStructure.serviceNumber}_`));
+        
+        // Ordenar por fecha (los más recientes primero)
+        structureFiles.sort((a, b) => b.localeCompare(a));
+        
+        // Verificar cada estructura existente
+        for (const structureFile of structureFiles) {
+          const structurePath = path.join(structuresDir, structureFile);
+          const existingStructure = fs.readJsonSync(structurePath);
+          
+          // Comparar estructuras para detectar duplicados
+          if (existingStructure && existingStructure.service_structure) {
+            // Función para normalizar y comparar estructuras
+            const areStructuresEqual = (struct1, struct2) => {
+              // Comparar cantidad de elementos en request y response
+              if (struct1.request?.elements?.length !== struct2.request?.elements?.length ||
+                  struct1.response?.elements?.length !== struct2.response?.elements?.length) {
+                return false;
+              }
+              
+              // Simplificar objetos para comparación
+              const simplifyStructure = (struct) => {
+                // Eliminar propiedades que no afectan la funcionalidad
+                const simplify = (obj) => {
+                  if (Array.isArray(obj)) {
+                    return obj.map(item => simplify(item));
+                  } else if (obj && typeof obj === 'object') {
+                    const result = {};
+                    // Mantener solo propiedades relevantes para la comparación
+                    for (const key of ['type', 'name', 'length', 'count', 'fields']) {
+                      if (obj[key] !== undefined) {
+                        result[key] = simplify(obj[key]);
+                      }
+                    }
+                    return result;
+                  }
+                  return obj;
+                };
+                
+                return {
+                  request: simplify(struct.request),
+                  response: simplify(struct.response)
+                };
+              };
+              
+              // Comparar estructuras simplificadas
+              const simple1 = simplifyStructure(struct1);
+              const simple2 = simplifyStructure(struct2);
+              
+              return JSON.stringify(simple1) === JSON.stringify(simple2);
+            };
+            
+            // Verificar si la estructura ya existe
+            if (areStructuresEqual(tempServiceStructure, existingStructure.service_structure)) {
+              console.log("Se detectó una estructura idéntica ya existente");
+              
+              // Eliminar archivo temporal
+              fs.unlinkSync(tempFilePath);
+              
+              return res.status(409).json({
+                error: "La versión que está intentando subir es idéntica a una ya existente",
+                duplicateFile: structureFile.replace('_structure.json', ''),
+                message: "La estructura del servicio es exactamente igual a una versión anterior"
+              });
+            }
+          }
+        }
       }
+      
+      // Si llegamos aquí, no se encontró duplicado, continuar con la subida
+      
+      // Generar nombre de archivo único con timestamp
+      const timestamp = new Date().toISOString().replace(/[-:.]/g, '').substring(0, 14);
+      const filename = `${timestamp}_${excelFile.name}`;
+      const filePath = path.join(uploadsDir, filename);
+      
+      // Crear directorio si no existe
+      if (!fs.existsSync(uploadsDir)) {
+        fs.mkdirSync(uploadsDir, { recursive: true });
+      }
+      
+      // Mover archivo de la carpeta temporal a uploads
+      fs.renameSync(tempFilePath, filePath);
+      
+      // Procesar archivo Excel y guardar las estructuras
+      const { headerStructure, serviceStructure, warnings, structureFile } = await processExcelFile(filePath);
+      
+      // Crear un mensaje de evento que incluya el número de servicio para notificar a la UI
+      // Esta es la parte crucial que asegura que los componentes se actualicen automáticamente
+      const eventPayload = {
+        filename: path.basename(filePath),
+        structure_file: structureFile,
+        service_number: serviceStructure.serviceNumber || null,
+        timestamp: new Date().toISOString()
+      };
+      
+      // Publicar al frontend los eventos de FILE_UPLOADED y SERVICES_REFRESHED
+      // Este es el mecanismo principal de actualización automática
+      if (global.io) {
+        // Si tenemos Socket.IO disponible, emitir eventos
+        console.log('[EXCEL] Emitiendo eventos de actualización via Socket.IO');
+        global.io.emit('file:uploaded', eventPayload);
+        global.io.emit('services:refreshed', eventPayload);
+      } else {
+        // Sin Socket.IO, podemos usar un enfoque basado en archivo temporal
+        // para notificar a los componentes que deben actualizarse (enfoque fallback)
+        console.log('[EXCEL] Socket.IO no disponible, guardando evento en archivo temporal');
+        try {
+          const eventFile = path.join(__dirname, '..', 'tmp', 'last_event.json');
+          fs.writeFileSync(eventFile, JSON.stringify({
+            type: 'file:uploaded',
+            payload: eventPayload,
+            timestamp: new Date().toISOString()
+          }, null, 2));
+        } catch (eventError) {
+          console.warn('[EXCEL] No se pudo guardar evento:', eventError);
+        }
+      }
+      
+      // Devolver respuesta
+      res.json({
+        filename: path.basename(filePath),
+        structure_file: structureFile,
+        service_number: serviceStructure.serviceNumber || null,
+        service_name: serviceStructure.serviceName || '',
+        message: "Archivo Excel procesado correctamente",
+        warnings: warnings || {} // Incluir advertencias en la respuesta
+      });
+    } catch (processingError) {
+      // En caso de error, eliminar el archivo temporal
+      try {
+        if (fs.existsSync(tempFilePath)) {
+          fs.unlinkSync(tempFilePath);
+        }
+      } catch (cleanupError) {
+        console.error("Error al limpiar archivo temporal:", cleanupError);
+      }
+      
+      throw processingError;
     }
-    
-    // Devolver respuesta
-    res.json({
-      filename: path.basename(filePath),
-      structure_file: structureInfo.structure_file,
-      service_number: serviceStructure.serviceNumber || null,
-      message: "Archivo Excel procesado correctamente"
-    });
     
   } catch (error) {
     res.status(500).json({ 
@@ -577,11 +679,19 @@ async function processExcelFile(filePath) {
     // Guardar la estructura combinada
     const structureInfo = saveStructures(headerStructure, serviceStructure, filePath);
     
+    // Inicializar objetos con valores por defecto para evitar errores
+    const warnings = {
+      missingHeaderTab: false,
+      headerTabAvailable: 0,
+      headerSampleError: null,
+      parserErrors: []
+    };
+    
     // Extraer y guardar el header sample si hay un número de servicio válido
     // Pero no fallar si no es posible obtener el header sample
     let headerSampleInfo = {
       success: true,
-      headerSample: { value: "", missingTab: true }
+      headerSample: { value: "", missingTab: false }
     };
     
     if (serviceStructure && serviceStructure.serviceNumber) {
@@ -596,24 +706,49 @@ async function processExcelFile(filePath) {
         headerSampleInfo = excelParser.saveHeaderSample(filePath, serviceStructure.serviceNumber, headersDir);
         console.log(`Header sample extraído y guardado: ${JSON.stringify(headerSampleInfo)}`);
         
-        // Verificar si solo falta la pestaña de header (no es un error fatal)
-        if (headerSampleInfo && headerSampleInfo.headerSample && headerSampleInfo.headerSample.missingTab) {
-          console.warn(`El archivo Excel no tiene pestaña de cabecera (${headerSampleInfo.headerSample.availableTabs} pestañas disponibles), pero el proceso continuará normalmente`);
+        // Verificar si falta la tercera pestaña (no es un error fatal)
+        if (headerSampleInfo && headerSampleInfo.headerSample) {
+          if (headerSampleInfo.headerSample.missingTab) {
+            console.warn(`El archivo Excel no tiene pestaña de cabecera (${headerSampleInfo.headerSample.availableTabs} pestañas disponibles), pero el proceso continuará normalmente`);
+            warnings.missingHeaderTab = true;
+            warnings.headerTabAvailable = headerSampleInfo.headerSample.availableTabs;
+          }
+          
+          if (headerSampleInfo.headerSample.error) {
+            warnings.headerSampleError = headerSampleInfo.headerSample.error;
+          }
         }
       } catch (headerSampleError) {
         console.error(`Error al extraer header sample: ${headerSampleError.message}`);
+        // Registrar el error como advertencia
+        warnings.headerSampleError = headerSampleError.message;
         // IMPORTANTE: No fallamos en el proceso por error en el header sample
         console.warn("Continuando el proceso a pesar del error en el header sample");
       }
     } else {
       console.warn(`No se pudo extraer header sample: No se encontró número de servicio válido. Continuando el proceso...`);
+      warnings.noServiceNumber = true;
+    }
+    
+    // Verificar si hay problemas con el headerStructure o serviceStructure, pero tratarlos como warnings
+    if (!headerStructure || !headerStructure.fields || headerStructure.fields.length === 0) {
+      warnings.emptyHeaderStructure = true;
+      console.warn("Estructura de cabecera vacía o incompleta, pero continuando el proceso");
+    }
+    
+    if (!serviceStructure || 
+        (!serviceStructure.request || !serviceStructure.request.elements || !serviceStructure.request.elements.length) &&
+        (!serviceStructure.response || !serviceStructure.response.elements || !serviceStructure.response.elements.length)) {
+      warnings.emptyServiceStructure = true;
+      console.warn("Estructura de servicio vacía o incompleta, pero continuando el proceso");
     }
     
     return { 
       headerStructure, 
       serviceStructure,
       structureFile: structureInfo.structure_file,
-      headerSampleInfo
+      headerSampleInfo,
+      warnings  // Incluir las advertencias en la respuesta
     };
   } catch (error) {
     throw new Error(`Error al procesar el archivo Excel: ${error.message}`);

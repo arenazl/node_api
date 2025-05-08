@@ -8,21 +8,8 @@ function initSocketIO() {
     if (socket) return;
     
     try {
-        // Verificar si la función io existe
-        if (typeof io === 'undefined') {
-            console.error('[Socket.IO] Error: La biblioteca Socket.IO no está cargada correctamente');
-            return;
-        }
-        
-        // Obtener el puerto actual de la URL
-        const currentPort = window.location.port || (window.location.protocol === 'https:' ? '443' : '80');
-        
-        // Mostrar en la consola a qué URL se intentará conectar
-        const socketURL = window.location.protocol + '//' + window.location.hostname + ':' + currentPort;
-        console.log('[Socket.IO] Intentando conectar a:', socketURL);
-        
-        // Intentar conectar con el servidor Socket.IO en el mismo host y puerto que la aplicación
-        socket = io(socketURL);
+        // Intentar conectar con el servidor Socket.IO
+        socket = io();
         
         // Evento de conexión exitosa
         socket.on('connect', function() {
@@ -282,7 +269,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // Refresh services function
 function refreshServices() {
     // Show loading notification
-    showNotification('Actualizando lista de servicios...', 'info');
+    ConfigUtils.showNotification('Actualizando lista de servicios...', 'info');
     
     // Call the API to refresh services
     fetch('/api/services/refresh')
@@ -292,7 +279,7 @@ function refreshServices() {
         })
         .then(data => {
             console.log('Servicios actualizados:', data);
-            showNotification(`Servicios actualizados correctamente (${data.services_count} servicios)`, 'success');
+            ConfigUtils.showNotification(`Servicios actualizados correctamente (${data.services_count} servicios)`, 'success');
             return fetch('/api/services'); // Get the updated list
         })
         .then(response => {
@@ -306,7 +293,7 @@ function refreshServices() {
         })
         .catch(error => {
             console.error('Error al actualizar servicios:', error);
-            showNotification(`Error al actualizar servicios: ${error.message}`, 'error');
+            ConfigUtils.showNotification(`Error al actualizar servicios: ${error.message}`, 'error');
         });
 }
 
@@ -365,7 +352,7 @@ function loadConfigurationsForService(serviceNumber) {
             console.error('Error al cargar configuraciones:', error);
             configSelect.options[0].textContent = "Error al cargar";
             configSelect.disabled = true;
-            showNotification('Error al cargar lista de configuraciones.', 'error');
+            ConfigUtils.showNotification('Error al cargar lista de configuraciones.', 'error');
         });
 }
 
@@ -489,99 +476,7 @@ function updateServicesTable(services) {
 // Variable para almacenar referencias a las notificaciones activas
 let activeNotifications = {};
 
-// Helper function to show notifications with Toastr
-function showNotification(message, type = 'info') {
-    // Limpiar notificaciones previas del mismo tipo o notificaciones de "carga" cuando se muestra un resultado
-    if (type === 'success' || type === 'error') {
-        // Si es una notificación de éxito o error, cerrar todas las notificaciones de info
-        if (typeof toastr !== 'undefined') {
-            toastr.clear();
-        }
-    }
-    
-    // Verificar si Toastr está disponible
-    if (typeof toastr !== 'undefined') {
-        // Configuración de Toastr
-        toastr.options = {
-            closeButton: true,
-            progressBar: true,
-            positionClass: "toast-top-right",
-            timeOut: type === 'info' ? 3000 : 5000, // Notificaciones "info" duran menos
-            extendedTimeOut: 2000,
-            preventDuplicates: true, // Evitar duplicados
-            newestOnTop: true,
-            showEasing: "swing",
-            hideEasing: "linear",
-            showMethod: "fadeIn",
-            hideMethod: "fadeOut"
-        };
-        
-        // Limpiar notificación previa del mismo tipo
-        if (activeNotifications[type]) {
-            toastr.clear(activeNotifications[type]);
-        }
-        
-        // Usar el método apropiado según el tipo
-        let notification;
-        switch (type) {
-            case 'success':
-                notification = toastr.success(message, 'Éxito');
-                break;
-            case 'error':
-                notification = toastr.error(message, 'Error');
-                break;
-            case 'warning':
-                notification = toastr.warning(message, 'Advertencia');
-                break;
-            default:
-                notification = toastr.info(message, 'Información');
-        }
-        
-        // Guardar referencia a la notificación
-        activeNotifications[type] = notification;
-    } else {
-        // Fallback al método original si Toastr no está disponible
-        const notification = document.getElementById('notification');
-        if (!notification) {
-            console.warn("Elemento 'notification' no encontrado para mostrar:", message);
-            // Usar SweetAlert si está disponible, de lo contrario usar alert
-            if (typeof Swal !== 'undefined') {
-                // Cerrar notificación anterior si existe
-                Swal.close();
-                
-                Swal.fire({
-                    title: type.charAt(0).toUpperCase() + type.slice(1),
-                    text: message,
-                    icon: type,
-                    confirmButtonText: 'OK',
-                    timer: type === 'info' ? 3000 : 5000,
-                    timerProgressBar: true
-                });
-            } else {
-                alert(`${type.toUpperCase()}: ${message}`);
-            }
-            return;
-        }
-        
-        // Limpiar cualquier temporizador existente
-        if (notification.timeoutId) {
-            clearTimeout(notification.timeoutId);
-        }
-        
-        notification.textContent = message;
-        notification.className = `notification alert alert-${type}`;
-        notification.style.display = 'block';
-        notification.style.position = 'fixed';
-        notification.style.top = '10px';
-        notification.style.right = '10px';
-        notification.style.zIndex = '1050';
-
-        // Guardar un nuevo temporizador
-        notification.timeoutId = setTimeout(() => {
-            notification.style.display = 'none';
-        }, type === 'info' ? 3000 : 5000);
-    }
-}
+// Helper function to show notifications now uses the ConfigUtils implementation
 
 /**
 * Carga los datos de una configuración específica y los muestra en el editor JSON.
@@ -599,7 +494,7 @@ function loadConfigurationData(configId) {
     // Obtener el servicio seleccionado
     const serviceNumber = document.getElementById('idaServiceSelect')?.value;
     if (!serviceNumber) {
-        showNotification('Error: No se ha seleccionado un servicio', 'error');
+        ConfigUtils.showNotification('Error: No se ha seleccionado un servicio', 'error');
         return;
     }
 
@@ -638,7 +533,7 @@ function loadConfigurationData(configId) {
                 console.warn('No se encontró el contenedor del editor JSON');
             }
 
-            showNotification(`Configuración cargada correctamente`, 'success');
+            ConfigUtils.showNotification(`Configuración cargada correctamente`, 'success');
         })
         .catch(error => {
             console.error('Error al cargar la configuración:', error);
@@ -650,7 +545,7 @@ function loadConfigurationData(configId) {
                 jsonContainer.classList.add('json-error');
             }
             
-            showNotification(`Error al cargar la configuración: ${error.message}`, 'error');
+            ConfigUtils.showNotification(`Error al cargar la configuración: ${error.message}`, 'error');
         });
 }
 
@@ -691,85 +586,8 @@ function loadAllServiceSelectors() {
         })
         .catch(error => {
             console.error('Error al cargar servicios:', error);
-            showNotification(`Error al cargar servicios: ${error.message}`, 'error');
+            ConfigUtils.showNotification(`Error al cargar servicios: ${error.message}`, 'error');
         });
-}
-
-// ==========================================================================
-// VALIDADOR DE STRINGS PARA SERVICIOS DE VUELTA
-// ==========================================================================
-
-/**
- * Valida un string antes de enviarlo al servidor para procesamiento
- * @param {string} str - El string a validar
- * @param {string} serviceNumber - El número de servicio seleccionado
- * @returns {boolean} - True si el string cumple con los requisitos mínimos
- */
-function validateReturnString(str, serviceNumber) {
-    // Verificar que el string no esté vacío
-    if (!str || typeof str !== 'string' || str.trim() === '') {
-        showNotification('El string de entrada está vacío', 'error');
-        return false;
-    }
-    
-    // Verificar longitud mínima (20 caracteres)
-    if (str.length < 20) {
-        showNotification('El string es demasiado corto para ser procesado. Debe tener al menos 20 caracteres.', 'error');
-        return false;
-    }
-    
-    // Verificar si parece contener una cabecera válida (al menos 100 caracteres)
-    // La mayoría de los servicios tienen cabeceras de 102 caracteres
-    if (str.length < 100) {
-        showNotification('El string no contiene una cabecera completa. La longitud mínima esperada para la cabecera es de 102 caracteres.', 'error');
-        return false; // Ahora bloqueamos strings sin cabecera completa
-    }
-    
-    // Verificar si el string contiene caracteres válidos para una estructura formal
-    // Para una estructura formal de mensaje, el inicio debería tener cierto patrón numérico
-    // La mayoría de mensajes válidos comienzan con números que indican longitud
-    const validHeaderPattern = /^\d{8}/;
-    if (!validHeaderPattern.test(str)) {
-        showNotification('El string no tiene un formato válido de mensaje. No cumple con la estructura de cabecera esperada.', 'error');
-        return false;
-    }
-    
-    // Verificar que el cuerpo después de la cabecera tenga una estructura mínima válida
-    // Tras la cabecera (posición 102) debería haber un código de estado de 2 dígitos
-    if (str.length > 102) {
-        const statusCode = str.substring(102, 104);
-        if (!/^\d{2}$/.test(statusCode)) {
-            showNotification(`El código de estado "${statusCode}" después de la cabecera no es válido. Debe ser un valor numérico de 2 dígitos.`, 'error');
-            return false;
-        }
-    }
-    
-    // Verificaciones avanzadas según el servicio
-    try {
-        // Verificar si hay suficientes datos después de la cabecera y el estado
-        if (str.length < 108) { // 102 (cabecera) + 2 (estado) + 2 (contador) + 2 (mínimo datos)
-            showNotification('El string no contiene suficientes datos después de la cabecera para ser procesado.', 'error');
-            return false;
-        }
-        
-        // Para servicios específicos, podríamos añadir validaciones adicionales
-        if (serviceNumber === '3088') {
-            // Verificaciones adicionales específicas para 3088
-            const registryCountStr = str.substring(104, 106);
-            const registryCount = parseInt(registryCountStr);
-            
-            if (isNaN(registryCount)) {
-                showNotification(`El contador de registros "${registryCountStr}" no es un valor numérico válido para el servicio 3088.`, 'error');
-                return false;
-            }
-        }
-    } catch (error) {
-        console.error("Error en validación avanzada:", error);
-        showNotification(`Error al validar la estructura del mensaje: ${error.message}`, 'error');
-        return false;
-    }
-    
-    return true;
 }
 
 // ==========================================================================
@@ -994,7 +812,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const serviceNumber = serviceSelect ? serviceSelect.value : null;
             
             if (!serviceNumber) {
-                showNotification('Seleccione un servicio primero', 'error');
+                ConfigUtils.showNotification('Seleccione un servicio primero', 'error');
                 return;
             }
             
@@ -1003,12 +821,12 @@ document.addEventListener('DOMContentLoaded', function() {
             const configId = configSelect ? configSelect.value : null;
             
             if (!configId) {
-                showNotification('Seleccione una configuración primero', 'error');
+                ConfigUtils.showNotification('Seleccione una configuración primero', 'error');
                 return;
             }
             
             // Mostrar notificación de carga
-            showNotification('Generando string fijo...', 'info');
+            ConfigUtils.showNotification('Generando string fijo...', 'info');
             
             // Obtener la estructura del servicio y los datos de configuración
             fetch(`/excel/structure-by-service?service_number=${serviceNumber}`)
@@ -1049,7 +867,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                     }
                                 }
                                 
-                                showNotification('String fijo generado correctamente', 'success');
+                                ConfigUtils.showNotification('String fijo generado correctamente', 'success');
 
                                 // Crear botón de copia si no existe
                                 if (!document.getElementById('copyStringBtn')) {
@@ -1070,21 +888,21 @@ document.addEventListener('DOMContentLoaded', function() {
                                         if (textArea && textArea.value) {
                                             textArea.select();
                                             document.execCommand('copy');
-                                            showNotification('String copiado al portapapeles', 'success');
+                                            ConfigUtils.showNotification('String copiado al portapapeles', 'success');
                                         } else {
-                                            showNotification('No hay string para copiar', 'error');
+                                            ConfigUtils.showNotification('No hay string para copiar', 'error');
                                         }
                                     });
                                 }
                             } catch (error) {
                                 console.error('Error al generar string fijo:', error);
-                                showNotification(`Error al generar string fijo: ${error.message}`, 'error');
+                                ConfigUtils.showNotification(`Error al generar string fijo: ${error.message}`, 'error');
                             }
                         });
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    showNotification(`Error: ${error.message}`, 'error');
+                    ConfigUtils.showNotification(`Error: ${error.message}`, 'error');
                 });
         });
     }
@@ -1100,7 +918,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const serviceNumber = serviceSelect ? serviceSelect.value : null;
             
             if (!serviceNumber) {
-                showNotification('Seleccione un servicio primero', 'error');
+                ConfigUtils.showNotification('Seleccione un servicio primero', 'error');
                 return;
             }
             
@@ -1108,26 +926,21 @@ document.addEventListener('DOMContentLoaded', function() {
             const streamDataInput = document.getElementById('streamData');
             let streamData = streamDataInput ? streamDataInput.value : '';
             
-            // Si el campo está vacío, intentar usar el último string generado
-            if (!streamData) {
-                const lastGeneratedString = window.sessionStorage.getItem('lastGeneratedString');
-                if (lastGeneratedString) {
-                    streamData = lastGeneratedString;
-                    // Mostrar el string generado en el campo de entrada
-                    if (streamDataInput) {
-                        streamDataInput.value = lastGeneratedString;
+                // Si el campo está vacío, intentar usar el último string generado
+                if (!streamData) {
+                    const lastGeneratedString = window.sessionStorage.getItem('lastGeneratedString');
+                    if (lastGeneratedString) {
+                        streamData = lastGeneratedString;
+                        // Mostrar el string generado en el campo de entrada
+                        if (streamDataInput) {
+                            streamDataInput.value = lastGeneratedString;
+                        }
+                        console.log("Usando el último string generado almacenado", streamData.length);
+                    } else {
+                        ConfigUtils.showNotification('Ingrese datos de stream para procesar o genere un string en la pestaña de Ida', 'error');
+                        return;
                     }
-                    console.log("Usando el último string generado almacenado", streamData.length);
-                } else {
-                    showNotification('Ingrese datos de stream para procesar o genere un string en la pestaña de Ida', 'error');
-                    return;
                 }
-            }
-            
-            // Validar el string antes de enviarlo al servidor
-            if (!validateReturnString(streamData, serviceNumber)) {
-                return; // La función de validación ya muestra la notificación de error
-            }
             
             // Actualizar contador de caracteres y ocurrencias antes de procesar
             const streamCharCount = document.getElementById('streamCharCount');
@@ -1144,7 +957,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             // Mostrar notificación de carga
-                showNotification('Procesando servicio de vuelta...', 'info');
+                ConfigUtils.showNotification('Procesando servicio de vuelta...', 'info');
                 
                 // Procesar el servicio de vuelta
                 fetch('/api/services/vuelta', {
@@ -1162,40 +975,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         // Intentar obtener el mensaje de error detallado
                         const errorData = await response.json().catch(() => null);
                         if (errorData && errorData.error) {
-                            // Detectar si es un error de validación de estructura
-                            if (errorData.errorType === 'STRUCTURE_VALIDATION_ERROR') {
-                                // Mostrar error de estructura con SweetAlert si está disponible
-                                if (typeof Swal !== 'undefined') {
-                                    // Configuración mejorada de Sweet Alert para errores de validación
-                                    Swal.fire({
-                                        title: 'Error de validación',
-                                        html: `El string proporcionado no cumple con la estructura esperada:<br><br>${errorData.error}`,
-                                        icon: 'error',
-                                        confirmButtonText: 'Entendido',
-                                        confirmButtonColor: '#3085d6',
-                                        allowOutsideClick: true,
-                                        allowEscapeKey: true,
-                                        showCloseButton: true,
-                                        customClass: {
-                                            confirmButton: 'btn btn-primary',
-                                            closeButton: 'btn btn-secondary'
-                                        },
-                                        buttonsStyling: true
-                                    });
-                                } else {
-                                    // Fallback a notificación estándar si SweetAlert no está disponible
-                                    showNotification(`Error de validación: ${errorData.error}`, 'error');
-                                }
-                                // También mostrar el error en el área de resultados
-                                const resultContainer = document.getElementById('vueltaResult');
-                                if (resultContainer) {
-                                    resultContainer.textContent = `Error de validación: ${errorData.error}`;
-                                    resultContainer.classList.add('error-message');
-                                }
-                                
-                                // Aquí detenemos la ejecución y no propagamos el error
-                                return;
-                            }
                             throw new Error(errorData.error);
                         }
                         throw new Error(`Error ${response.status} al procesar servicio`);
@@ -1203,9 +982,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     return response.json();
                 })
                 .then(data => {
-                    // Si no hay data (por ejemplo, si se detuvo en la validación), no hacer nada
-                    if (!data) return;
-                    
                 // Mostrar el resultado JSON formateado en la sección de resultados
                 const resultContainer = document.getElementById('vueltaResult');
                 if (resultContainer) {
@@ -1268,7 +1044,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }
                 
-                showNotification('Servicio de vuelta procesado correctamente', 'success');
+                ConfigUtils.showNotification('Servicio de vuelta procesado correctamente', 'success');
                 
                 // Resaltar el área de resultados para indicar que se ha actualizado
                 const resultSection = document.querySelector('.result-section');
@@ -1281,7 +1057,7 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .catch(error => {
                 console.error('Error:', error);
-                showNotification(`Error: ${error.message}`, 'error');
+                ConfigUtils.showNotification(`Error: ${error.message}`, 'error');
                 
                 // Mostrar mensaje de error en el resultado
                 const resultContainer = document.getElementById('vueltaResult');
@@ -1303,7 +1079,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const serviceNumber = serviceSelect ? serviceSelect.value : null;
             
             if (!serviceNumber) {
-                showNotification('Seleccione un servicio primero', 'error');
+                ConfigUtils.showNotification('Seleccione un servicio primero', 'error');
                 return;
             }
             
@@ -1313,7 +1089,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             // Mostrar notificación de carga y botón en estado de carga
-            showNotification('Generando stream de ejemplo...', 'info');
+            ConfigUtils.showNotification('Generando stream de ejemplo...', 'info');
             generateExampleBtn.disabled = true;
             generateExampleBtn.innerHTML = '<span class="loading-spinner"></span> Generando...';
             
@@ -1398,14 +1174,14 @@ document.addEventListener('DOMContentLoaded', function() {
                                 streamCharCount.textContent = `${totalLength} (${occurrenceCount} ocurrencias)`;
                             }
                             
-                            showNotification(`Ejemplo generado dinámicamente (${totalLength} caracteres)`, 'success');
+                            ConfigUtils.showNotification(`Ejemplo generado dinámicamente (${totalLength} caracteres)`, 'success');
                         } else {
                             throw new Error('No se pudo establecer el ejemplo generado');
                         }
                     })
                     .catch(error => {
                         console.error('Error al generar ejemplo:', error);
-                        showNotification(`Error: ${error.message}`, 'error');
+                        ConfigUtils.showNotification(`Error: ${error.message}`, 'error');
                     })
                     .finally(() => {
                         // Restaurar el botón a su estado original
@@ -1413,7 +1189,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         generateExampleBtn.textContent = 'Generar Ejemplo';
                     });
             } else {
-                showNotification('Función generadora de ejemplos no disponible', 'error');
+                ConfigUtils.showNotification('Función generadora de ejemplos no disponible', 'error');
                 generateExampleBtn.disabled = false;
                 generateExampleBtn.textContent = 'Generar Ejemplo';
             }

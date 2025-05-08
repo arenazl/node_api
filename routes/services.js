@@ -11,7 +11,6 @@ const router = express.Router();
 // Importar módulos de la API
 const messageCreator = require('../api/message-creator');
 const messageAnalyzer = require('../api/message-analyzer');
-const stringValidator = require('./string-validator');
 
 // Directorio de estructuras
 const structuresDir = path.join(__dirname, '..', 'structures');
@@ -90,24 +89,8 @@ router.post('/vuelta', async (req, res) => {
     // Buscar estructuras del servicio
     const { headerStructure, serviceStructure } = await findServiceByNumber(service_number);
     
-    // Usar el validador de strings para verificar si cumple con la estructura mínima
-    const validationResult = stringValidator.validateReturnString(stream, {
-      header_structure: headerStructure,
-      service_structure: serviceStructure
-    });
-    
-    // Si no es válido, retornar error de validación y detener la ejecución
-    if (!validationResult.isValid) {
-      console.error(`Error de validación: ${validationResult.error}`);
-      return res.status(400).json({
-        error: validationResult.error,
-        validationFailed: true,
-        errorType: 'STRUCTURE_VALIDATION_ERROR'
-      });
-    }
-    
-    // Si el string pasó la validación, entonces procesarlo
-    try {
+      // Procesar el stream de entrada
+      try {
         // Forzar la sección a "response" para el servicio de vuelta
         // Esto es importante porque por defecto puede intentar interpretar como request
         const section = "response";
@@ -117,33 +100,11 @@ router.post('/vuelta', async (req, res) => {
         
         // Extraer cabecera
         const headerLength = headerStructure.totalLength || 102;
-        
-        // Validar que el stream tiene suficiente longitud para la cabecera completa
-        if (stream.length < headerLength) {
-          console.error(`Error de validación: Stream no contiene una cabecera completa. Se requieren ${headerLength} caracteres.`);
-          return res.status(400).json({
-            error: `El string proporcionado no contiene una cabecera completa. Se requieren ${headerLength} caracteres para la cabecera.`,
-            validationFailed: true,
-            errorType: 'STRUCTURE_VALIDATION_ERROR'
-          });
-        }
-        
         const headerMessage = stream.substring(0, headerLength);
         const headerData = messageAnalyzer.parseHeaderMessage(headerMessage, headerStructure);
         
         // Extraer cuerpo de la respuesta
         const bodyMessage = stream.substring(headerLength);
-        
-        // Verificar que hay contenido en el cuerpo
-        if (!bodyMessage || bodyMessage.trim().length === 0) {
-          console.error("Error de validación: El stream no contiene datos en el cuerpo después de la cabecera");
-          return res.status(400).json({
-            error: "El string proporcionado no contiene datos en el cuerpo después de la cabecera",
-            validationFailed: true,
-            errorType: 'STRUCTURE_VALIDATION_ERROR'
-          });
-        }
-        
         const responseStructure = serviceStructure.response;
         
         // Procesar el cuerpo de la respuesta
@@ -351,6 +312,107 @@ router.get('/refresh', async (req, res) => {
     console.error("Error al actualizar caché:", error);
     res.status(500).json({ 
       error: `Error al actualizar caché: ${error.message}` 
+    });
+  }
+});
+
+/**
+ * @route GET /api/services/files
+ * @description Obtiene los archivos Excel relacionados con un servicio específico
+ */
+router.get('/files', async (req, res) => {
+  try {
+    const serviceNumber = req.query.service_number;
+    
+    if (!serviceNumber) {
+      return res.status(400).json({
+        error: "Se requiere un número de servicio"
+      });
+    }
+    
+    // Obtener la lista de archivos Excel
+    const uploadsDir = path.join(__dirname, '..', 'uploads');
+    const files = [];
+    
+    // Verificar que el directorio de uploads existe
+    if (!fs.existsSync(uploadsDir)) {
+      console.log("El directorio de uploads no existe");
+      return res.json({ files: [] });
+    }
+    
+    // Leer todos los archivos Excel
+    const excelFiles = fs.readdirSync(uploadsDir)
+      .filter(file => file.endsWith('.xls') || file.endsWith('.xlsx'));
+    
+    // Procesar cada archivo para ver si está relacionado con el servicio
+    for (const excelFile of excelFiles) {
+      try {
+        // Extraer timestamp y nombre del archivo
+        const timestampMatch = excelFile.match(/^(\d+T\d+)_(.+)\.xls(x)?$/);
+        let uploadDate = new Date().toISOString().replace('T', ' ').substring(0, 19);
+        let serviceName = excelFile;
+        let fileServiceNumber = null;
+        
+        // Extraer la fecha del timestamp
+        if (timestampMatch && timestampMatch[1]) {
+          const timestamp = timestampMatch[1];
+          try {
+            // Intentar formatear la fecha
+            if (timestamp.length >= 14) {
+              const year = timestamp.substring(0, 4);
+              const month = timestamp.substring(4, 6);
+              const day = timestamp.substring(6, 8);
+              const hour = timestamp.substring(8, 10);
+              const minute = timestamp.substring(10, 12);
+              const second = timestamp.substring(12, 14) || '00';
+              
+              const dt = new Date(`${year}-${month}-${day}T${hour}:${minute}:${second}`);
+              uploadDate = dt.toISOString().replace('T', ' ').substring(0, 19);
+            }
+          } catch (error) {
+            // Usar fecha actual si hay error al parsear
+          }
+          
+          // Extraer el nombre real del servicio
+          if (timestampMatch[2]) {
+            serviceName = timestampMatch[2];
+          }
+        }
+        
+        // Extraer número de servicio del nombre
+        const serviceMatch = serviceName.match(/SVO(\d+)/i);
+        if (serviceMatch && serviceMatch[1]) {
+          fileServiceNumber = serviceMatch[1];
+        } else {
+          // Buscar número de 4 dígitos
+          const numMatch = serviceName.match(/(\d{4})/);
+          if (numMatch && numMatch[1]) {
+            fileServiceNumber = numMatch[1];
+          }
+        }
+        
+        // Si el archivo tiene el número de servicio que buscamos, añadirlo a la lista
+        if (fileServiceNumber === serviceNumber) {
+          files.push({
+            filename: excelFile,
+            service_name: serviceName,
+            upload_date: uploadDate,
+            service_number: fileServiceNumber
+          });
+        }
+      } catch (error) {
+        console.error(`Error al procesar archivo ${excelFile}:`, error);
+      }
+    }
+    
+    // Ordenar archivos por fecha de subida (más recientes primero)
+    files.sort((a, b) => b.upload_date.localeCompare(a.upload_date));
+    
+    res.json({ files });
+  } catch (error) {
+    console.error("Error al obtener archivos:", error);
+    res.status(500).json({ 
+      error: `Error al obtener archivos: ${error.message}` 
     });
   }
 });
@@ -688,26 +750,13 @@ async function getAvailableServices(forceRefresh = false) {
       // Aún retornamos la lista sin ordenar
     }
     
-    // Filtrar servicios duplicados por número antes de devolver
-    const uniqueServices = [];
-    const serviceNumbers = new Set();
-    
-    for (const service of services) {
-      if (!serviceNumbers.has(service.service_number)) {
-        serviceNumbers.add(service.service_number);
-        uniqueServices.push(service);
-      }
-    }
-    
-    console.log(`Filtrados ${services.length - uniqueServices.length} servicios duplicados`);
-    
     // Actualizar caché global
     if (global.serviceCache) {
-      global.serviceCache.services = uniqueServices;
+      global.serviceCache.services = services;
       global.serviceCache.lastUpdate = new Date().toISOString();
     }
     
-    return uniqueServices;
+    return services;
   } catch (error) {
     console.error("Error general al obtener servicios:", error);
     return []; // Siempre devolvemos un array, incluso en caso de error

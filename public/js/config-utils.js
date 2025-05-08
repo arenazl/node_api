@@ -16,10 +16,57 @@ const ConfigUtils = {
         return lowerCase.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
     },
 
-    // Helper function for notifications using Toastr or SweetAlert2
-    showNotification: function(message, type) {
-        // Verificar si Toastr está disponible
-        if (typeof toastr !== 'undefined') {
+    // Helper function for notifications using SweetAlert2 (preferido) o Toastr
+    showNotification: function(message, type, useSweetAlert = false) {
+        // Para errores, mostrar solo en consola
+        if (type === 'error') {
+            console.error(`Error: ${message}`);
+            return;
+        }
+        
+        // Si se solicita específicamente usar SweetAlert o es un warning sobre el Excel
+        const forceSweetAlert = useSweetAlert || 
+                               (type === 'warning' && (message.includes('tercera solapa') || 
+                                                      message.includes('pestaña de cabecera') || 
+                                                      message.includes('Excel no tiene') || 
+                                                      message.includes('header sample') || 
+                                                      message.includes('estructura vacía') || 
+                                                      message.includes('estructura incompleta') ||
+                                                      message.includes('Estructura de cabecera') ||
+                                                      message.includes('Estructura de servicio')));
+        
+        // Usar SweetAlert2 si está disponible Y se solicita su uso O no está disponible Toastr
+        if ((typeof Swal !== 'undefined' && forceSweetAlert) || 
+            (typeof Swal !== 'undefined' && typeof toastr === 'undefined')) {
+            // Asegurarse de que type sea un valor válido
+            let iconType = type || 'info';
+            // Mapear tipos a los iconos válidos de SweetAlert2
+            if (iconType === 'success') iconType = 'success';
+            else if (iconType === 'warning') iconType = 'warning';
+            else iconType = 'info'; // Valor por defecto
+            
+            // Determinar título según el tipo
+            let title = iconType.charAt(0).toUpperCase() + iconType.slice(1);
+            if (iconType === 'warning' && message.includes('tercera solapa')) {
+                title = 'Advertencia: Excel incompleto';
+            }
+            
+            // Determinar si debemos usar HTML (para mensajes con formato)
+            const useHtml = message.includes('<br>') || message.includes('<strong>') || 
+                           message.includes('<u>') || message.includes('<li>');
+            
+            Swal.fire({
+                title: title,
+                [useHtml ? 'html' : 'text']: message,
+                icon: iconType,
+                confirmButtonText: 'Entendido',
+                confirmButtonColor: '#2563eb'
+            });
+            return;
+        }
+        
+        // Usar Toastr si está disponible y no se ha forzado SweetAlert
+        if (typeof toastr !== 'undefined' && !forceSweetAlert) {
             // Configuración de Toastr
             toastr.options = {
                 closeButton: true,
@@ -35,13 +82,10 @@ const ConfigUtils = {
                 hideMethod: "fadeOut"
             };
             
-            // Usar el método apropiado según el tipo
+            // Usar el método apropiado según el tipo (ya no incluimos error)
             switch (type) {
                 case 'success':
                     toastr.success(message, 'Éxito');
-                    break;
-                case 'error':
-                    toastr.error(message, 'Error');
                     break;
                 case 'warning':
                     toastr.warning(message, 'Advertencia');
@@ -49,26 +93,6 @@ const ConfigUtils = {
                 default:
                     toastr.info(message, 'Información');
             }
-            return;
-        }
-        
-        // Si no está Toastr, intentar con SweetAlert2
-        if (typeof Swal !== 'undefined') {
-            // Asegurarse de que type sea un valor válido
-            let iconType = type || 'info';
-            // Mapear tipos a los iconos válidos de SweetAlert2
-            if (iconType === 'error') iconType = 'error';
-            else if (iconType === 'success') iconType = 'success';
-            else if (iconType === 'warning') iconType = 'warning';
-            else iconType = 'info'; // Valor por defecto
-            
-            Swal.fire({
-                title: iconType.charAt(0).toUpperCase() + iconType.slice(1),
-                text: message,
-                icon: iconType,
-                confirmButtonText: 'OK',
-                confirmButtonColor: '#2563eb'
-            });
             return;
         }
         

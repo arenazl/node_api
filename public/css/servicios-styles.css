@@ -1,0 +1,138 @@
+/* Styles for the Servicios tab and versions modal */
+
+/* Modal base styles */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+  background-color: var(--bg-color);
+  margin: 10% auto;
+  padding: 20px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  width: 80%;
+  max-width: 800px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  position: relative;
+}
+
+.modal-body {
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.close {
+  color: var(--text-secondary);
+  float: right;
+  font-size: 28px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.close:hover,
+.close:focus {
+  color: var(--accent-color);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+/* Services table styling */
+.services-list-section {
+  margin: 20px 0;
+}
+
+.services-list-section h3 {
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+#servicesTable {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+}
+
+#servicesTable th,
+#servicesTable td {
+  padding: 10px;
+  border: 1px solid var(--border-color);
+  text-align: left;
+}
+
+#servicesTable th {
+  background-color: var(--bg-accent);
+  font-weight: 600;
+}
+
+#servicesTable tr:nth-child(even) {
+  background-color: var(--bg-secondary);
+}
+
+/* Action buttons */
+.action-buttons {
+  display: flex;
+  gap: 5px;
+}
+
+.action-btn.small {
+  padding: 5px 10px;
+  font-size: 0.8rem;
+}
+
+/* Versions table */
+#versionsTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+#versionsTable th,
+#versionsTable td {
+  padding: 8px;
+  border: 1px solid var(--border-color);
+  text-align: left;
+}
+
+#versionsTable th {
+  background-color: var(--bg-accent);
+  font-weight: 600;
+}
+
+#versionsTable tr:nth-child(even) {
+  background-color: var(--bg-secondary);
+}
+
+.loading-spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(0, 0, 0, 0.1);
+  border-radius: 50%;
+  border-top-color: var(--accent-color);
+  animation: spin 1s ease-in-out infinite;
+  vertical-align: middle;
+  margin-right: 5px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Error message */
+.error-message {
+  color: var(--error-color);
+}
+
+/* Center text in tables */
+.text-center {
+  text-align: center !important;
+}
