@@ -19,34 +19,6 @@ const structuresDir = path.join(__dirname, '..', 'structures');
 const occurrenceFixer = require('../utils/occurrence-fixer');
 
 /**
- * Función para garantizar que se mantengan los índices y las relaciones parentId exactas
- * @param {Object} responseData - Datos de respuesta
- * @returns {Object} - Datos de respuesta con índices y relaciones parentId corregidas
- */
-function removeEmptyOccurrences(responseData) {
-  console.log("[SERVICIO] Aplicando corrección simple para índices y relaciones parentId");
-  
-  // Usar directamente el response data como una estructura simple para corregir sus índices
-  // Creamos una estructura temporal compatible con el fixer
-  const tempStructure = {
-    request: { elements: [] },
-    response: { elements: [] }
-  };
-  
-  // Si el objeto recibido es un array, lo tratamos como los elementos de request o response
-  if (Array.isArray(responseData)) {
-    tempStructure.response.elements = responseData;
-  } else if (responseData && typeof responseData === 'object') {
-    // Si es un objeto, lo fijamos directamente
-    return occurrenceFixer.fixOccurrenceIndices({ response: responseData }).response;
-  }
-  
-  // Aplicar fix y retornar los elementos corregidos
-  const fixed = occurrenceFixer.fixOccurrenceIndices(tempStructure);
-  return Array.isArray(responseData) ? fixed.response.elements : responseData;
-}
-
-/**
  * @route GET /api/services
  * @description Obtiene la lista de servicios disponibles
  */
@@ -62,6 +34,554 @@ router.get('/', async (req, res) => {
     console.error("[SERVICIOS] Error al obtener servicios:", error);
     res.status(500).json({ 
       error: `Error al obtener la lista de servicios: ${error.message}` 
+    });
+  }
+});
+
+// Importar el generador de ejemplos para servidor
+const serverExampleGenerator = require('../utils/server-example-generator');
+// Importar nuevo manejador del endpoint /generate
+const handleGenerateRequest = require('./new-generate-endpoint');
+
+/**
+ * @route POST /api/services/generate
+ * @description Endpoint genérico que procesa un servicio con parámetros personalizados
+ * usando estructura y configuración existentes y procesa el resultado de vuelta a JSON
+ */
+router.post('/generate', async (req, res) => {
+  // Delegar al nuevo manejador
+  return handleGenerateRequest(req, res, findServiceByNumber);
+});
+
+/**
+ * @route POST /api/services/sendmessage
+ * @description Genera el string de IDA a partir de parámetros personalizados
+ */
+router.post('/sendmessage', async (req, res) => {
+  try {
+
+    const { header, parameters } = req.body;
+
+    console.log("PARAMETERS");
+    console.log(header);
+    console.log(parameters);
+
+    // Validar datos de entrada
+    if (!header || !header.serviceNumber) {
+      return res.status(400).json({ error: "Se requiere header.serviceNumber" });
+    }
+
+    if (!header.canal) {
+      return res.status(400).json({ error: "Se requiere header.canal" });
+    }
+
+    const serviceNumber = header.serviceNumber;
+    const canal = header.canal;
+    console.log(`[SENDMESSAGE] Procesando servicio: ${serviceNumber}, canal: ${canal}`);
+
+    // 1. Buscar estructura del servicio sin forzar recarga
+    const { headerStructure, serviceStructure } = await findServiceByNumber(serviceNumber, false);
+    if (!headerStructure || !serviceStructure) {
+      return res.status(404).json({ error: `[SENDMESSAGE] Estructura no encontrada para el servicio ${serviceNumber}` });
+    }
+    console.log(`[SENDMESSAGE] Estructura encontrada para servicio ${serviceNumber}`);
+
+    // 2. Buscar configuración por canal
+    const configDir = path.join(__dirname, '..', 'settings');
+
+    // Buscar configuración por serviceNumber y canal
+    let configFound = false;
+    let configData = null;
+
+    try {
+      // Buscar archivos de configuración para este servicio
+      // Patrones comunes: 1004-ME-v2.json, 1004_ME_v2.json, etc.
+      const configFiles = fs.readdirSync(configDir)
+        .filter(file => file.endsWith('.json') &&
+                (file.startsWith(`${serviceNumber}-${canal}`) ||
+                 file.startsWith(`${serviceNumber}_${canal}`) ||
+                 file.includes(`${serviceNumber}-${canal}`) ||
+                 file.includes(`${serviceNumber}_${canal}`)));
+
+      if (configFiles.length > 0) {
+        // Usar la primera configuración encontrada
+        const configPath = path.join(configDir, configFiles[0]);
+        configData = await fs.readJson(configPath);
+        configFound = true;
+        console.log(`[SENDMESSAGE] Configuración encontrada: ${configFiles[0]}`);
+      } else {
+        console.log(`[SENDMESSAGE] No se encontró configuración para servicio ${serviceNumber} y canal ${canal}`);
+      }
+    } catch (configError) {
+      console.error(`[SENDMESSAGE] Error al buscar configuración:`, configError);
+    }
+
+    // 3. Combinar configuración con parámetros específicos
+    let requestData = {};
+
+    // Si encontramos configuración, usarla como base
+    if (configFound && configData) {
+      // Clonar objeto para no modificar el original
+      requestData = {
+        header: { ...configData.header || {} },
+        data: { ...configData.request || {} }
+      };
+    } else {
+      // Si no hay configuración, crear objeto básico
+      requestData = {
+        header: {
+          CANAL: canal,
+          SERVICIO: serviceNumber,
+          USUARIO: "SISTEMA"
+        },
+        data: {}
+      };
+    }
+
+    // Agregar parámetros específicos a los datos del request
+    if (parameters && typeof parameters === 'object') {
+      console.log(`[SENDMESSAGE] Parámetros recibidos:`, JSON.stringify(parameters, null, 2));
+      // Reemplazar/agregar parámetros en data
+      Object.assign(requestData.data, parameters);
+      console.log(`[SENDMESSAGE] Parámetros combinados con configuración:`, JSON.stringify(requestData.data, null, 2));
+    }
+
+    // 4. Crear mensaje de IDA
+    console.log(`[SENDMESSAGE] Creando mensaje de IDA con los siguientes datos:`, JSON.stringify(requestData, null, 2));
+    const message = messageCreator.createMessage(headerStructure, serviceStructure, requestData, "request");
+    console.log(`[SENDMESSAGE] String de IDA generado: ${message.length} caracteres`);
+    console.log(`[SENDMESSAGE] Primeros 100 caracteres del mensaje: "${message.substring(0, 100)}..."`);
+
+    // 5. Devolver resultado
+    res.json({
+      request: {
+        header: header, // Include original header from request
+        parameters: parameters // Include original parameters from request
+      },
+      response: message // The generated IDA string
+    });
+
+  } catch (error) {
+    console.error(`[SENDMESSAGE] Error en procesamiento:`, error);
+    res.status(error.statusCode || 500).json({
+      error: error.message || '[SENDMESSAGE] Error desconocido en procesamiento'
+    });
+  }
+});
+
+/**
+ * @route POST /api/services/receivemessage
+ * @description Procesa un stream de vuelta y lo convierte a JSON
+ */
+router.post('/receivemessage', async (req, res) => {
+  const DEBUG_LOG = false; // Flag para controlar el logging
+  try {
+
+    const { header, parameters } = req.body;
+
+    if (DEBUG_LOG) {
+      console.log(`[SENDMESSAGE] header ${header}`);
+      console.log(`[SEND
+        0MESSAGE] parameters ${parameters}`);
+    }
+    
+    // Validar datos de entrada
+    if (!header || !header.serviceNumber) {
+      return res.status(400).json({ error: "Se requiere header.serviceNumber" });
+    }
+
+    if (!parameters || !parameters.returnMsg) {
+       return res.status(400).json({ error: "Se requiere parameters.returnMsg con el stream de vuelta" });
+    }
+
+    const serviceNumber = header.serviceNumber;
+    const stream = parameters.returnMsg;
+    if (DEBUG_LOG) console.log(`[RECEIVEMESSAGE] Procesando servicio: ${serviceNumber}, stream de ${stream.length} caracteres`);
+
+    // 1. Buscar estructuras del servicio
+    const { headerStructure, serviceStructure } = await findServiceByNumber(serviceNumber, false);
+    if (!headerStructure || !serviceStructure) {
+      return res.status(404).json({ error: `[RECEIVEMESSAGE] Estructura no encontrada para el servicio ${serviceNumber}` });
+    }
+    if (DEBUG_LOG) console.log(`[RECEIVEMESSAGE] Estructura encontrada para servicio ${serviceNumber}`);
+
+    // 2. Procesar el stream de entrada
+    let parsedResponseData = {};
+    if (DEBUG_LOG) {
+      console.log(`[RECEIVEMESSAGE] Iniciando procesamiento del stream de entrada`);
+      console.log(`[RECEIVEMESSAGE] Primeros 100 caracteres del stream: "${stream.substring(0, 100)}..."`);
+    }
+    try {
+      // Forzar la sección a "response" para el servicio de vuelta
+      const section = "response";
+
+      // Analizar mensaje explícitamente como una respuesta
+      if (DEBUG_LOG) console.log(`[RECEIVEMESSAGE] Analizando stream como RESPUESTA`);
+
+      // Extraer cabecera
+      const headerLength = headerStructure.totalLength || 102;
+      const headerMessage = stream.substring(0, headerLength);
+      if (DEBUG_LOG) console.log(`[RECEIVEMESSAGE] Analizando cabecera (${headerLength} caracteres)`);
+      const headerData = messageAnalyzer.parseHeaderMessage(headerMessage, headerStructure);
+      if (DEBUG_LOG) console.log(`[RECEIVEMESSAGE] Cabecera parseada:`, JSON.stringify(headerData, null, 2));
+
+      // Extraer cuerpo de la respuesta
+      const bodyMessage = stream.substring(headerLength);
+      if (DEBUG_LOG) {
+        console.log(`[RECEIVEMESSAGE] Cuerpo del mensaje extraído (${bodyMessage.length} caracteres)`);
+        console.log(`[RECEIVEMESSAGE] Primeros 100 caracteres del cuerpo: "${bodyMessage.substring(0, 100)}..."`);
+      }
+      const responseStructure = serviceStructure.response;
+
+      // Procesar el cuerpo de la respuesta
+      let responseData = {};
+      if (responseStructure && responseStructure.elements) {
+        try {
+          // Usar el parseDataMessage para procesar la respuesta CON VALIDACIÓN DE OCURRENCIAS
+          responseData = messageAnalyzer.parseDataMessage(
+            bodyMessage,
+            responseStructure,
+            true // Activar validación de ocurrencias
+          );
+
+          if (DEBUG_LOG) console.log("[RECEIVEMESSAGE] Validación de ocurrencias exitosa");
+        } catch (validationError) {
+          // Capturar errores específicos de validación
+          if (validationError.message.includes('Error de validación')) {
+             // Log the validation error but don't return 400 immediately,
+             // we still want to return the request data and potentially partial parsed data
+             console.error(`[RECEIVEMESSAGE] Error de validación al parsear:`, validationError.message);
+             // Optionally add validation error info to the response data
+             responseData.validationError = validationError.message;
+          } else {
+             throw validationError; // Reenviar otros errores
+          }
+        }
+      } else {
+        console.warn("[RECEIVEMESSAGE] No se encontró estructura de respuesta para el servicio");
+      }
+
+      // Filtrar ocurrencias vacías después del primer parseo
+      if (DEBUG_LOG) {
+        console.log("[RECEIVEMESSAGE] Datos antes de filtrar ocurrencias vacías:", JSON.stringify(responseData, null, 2));
+        const cleanResponseData = removeEmptyOccurrences(responseData);
+        console.log("[RECEIVEMESSAGE] Response parseada y filtrada (primer paso):", JSON.stringify(cleanResponseData, null, 2));
+        console.log("[RECEIVEMESSAGE] Campos eliminados:",
+          Object.keys(responseData).filter(key => !cleanResponseData.hasOwnProperty(key)));
+      }
+
+      // --- Nuevo paso: Convertir JSON de vuelta a string de posiciones fijas ---
+      if (DEBUG_LOG) {
+        console.log("[RECEIVEMESSAGE] Convirtiendo JSON de vuelta a stream de posiciones fijas...");
+        console.log(`[RECEIVEMESSAGE] Datos limpios a convertir:`, JSON.stringify(cleanResponseData, null, 2));
+      }
+      const intermediateStream = messageAnalyzer.formatDataMessage(cleanResponseData, responseStructure);
+      console.log(`[RECEIVEMESSAGE] Stream intermedio generado (${intermediateStream.length} caracteres): "${intermediateStream.substring(0, 100)}..."`); // Log first 100 chars
+
+      // --- Nuevo paso: Parsear el stream intermedio de vuelta a JSON ---
+      if (DEBUG_LOG) console.log("[RECEIVEMESSAGE] Parseando stream intermedio de vuelta a JSON...");
+      let finalParsedResponseData = {};
+      try {
+         // Parsear el stream intermedio. No necesitamos validar ocurrencias estrictamente aquí
+         // porque el stream ya fue generado a partir de un JSON validado.
+         if (DEBUG_LOG) console.log("[RECEIVEMESSAGE] Iniciando segundo parseo del stream intermedio");
+         finalParsedResponseData = messageAnalyzer.parseDataMessage(
+           intermediateStream,
+           responseStructure,
+           false // Desactivar validación estricta de ocurrencias en el segundo parseo
+         );
+         if (DEBUG_LOG) {
+           console.log("[RECEIVEMESSAGE] Datos del segundo parseo:", JSON.stringify(finalParsedResponseData, null, 2));
+           console.log("[RECEIVEMESSAGE] Segundo parseo exitoso.");
+         }
+
+      } catch (reparseError) {
+         console.error(`[RECEIVEMESSAGE] Error al re-parsear el stream intermedio:`, reparseError);
+         // Incluir error de re-parseo en los datos de respuesta
+         finalParsedResponseData = { error: reparseError.message, errorType: 'REPARSING_ERROR' };
+      }
+
+      // Asignar el resultado final del parseo
+      parsedResponseData = finalParsedResponseData;
+
+      // Añadir logs para debuggear
+      if (DEBUG_LOG) {
+        console.log("[RECEIVEMESSAGE] Headers parseados:", JSON.stringify(headerData, null, 2));
+        console.log("[RECEIVEMESSAGE] Response parseada y filtrada (resultado final):", JSON.stringify(parsedResponseData, null, 2));
+      }
+
+    } catch (parseError) {
+      console.error(`[RECEIVEMESSAGE] Error al procesar el stream (primer parseo):`, parseError);
+      // Include parse error in the response data
+      parsedResponseData = { error: parseError.message, errorType: 'PROCESSING_ERROR' };
+    }
+
+
+    // 3. Devolver resultado
+    res.json({
+      request: {
+        header: header, // Include original header from request
+        parameters: parameters // Include original parameters from request
+      },
+      response: parsedResponseData // The final parsed JSON data after round-trip
+    });
+
+  } catch (error) {
+    console.error(`[RECEIVEMESSAGE] Error en procesamiento general:`, error);
+    res.status(error.statusCode || 500).json({
+      error: error.message || '[RECEIVEMESSAGE] Error desconocido en procesamiento'
+    });
+  }
+});
+
+
+/**
+ * @route POST /api/services/generate-legacy
+ * @description Versión anterior del endpoint /generate (mantenida por compatibilidad)
+ */
+router.post('/generate-legacy', async (req, res) => {
+  try {
+    const { header, parameters } = req.body;
+
+    // Validar datos de entrada
+    if (!header || !header.serviceNumber) {
+      return res.status(400).json({ error: "Se requiere header.serviceNumber" });
+    }
+
+    if (!header.canal) {
+      return res.status(400).json({ error: "Se requiere header.canal" });
+    }
+
+    const serviceNumber = header.serviceNumber;
+    const canal = header.canal;
+    console.log(`Procesando servicio: ${serviceNumber}, canal: ${canal}`);
+
+    // 1. Buscar estructura del servicio
+    const { headerStructure, serviceStructure } = await findServiceByNumber(serviceNumber);
+    if (!headerStructure || !serviceStructure) {
+      return res.status(404).json({ error: `Estructura no encontrada para el servicio ${serviceNumber}` });
+    }
+    console.log(`Estructura encontrada para servicio ${serviceNumber}`);
+
+    // 2. Buscar configuración por canal
+    const configDir = path.join(__dirname, '..', 'settings');
+    const configFormatUpdater = require('../utils/config-format-updater');
+
+    // Buscar configuración por serviceNumber y canal
+    let configFound = false;
+    let configData = null;
+
+    try {
+      // Buscar archivos de configuración para este servicio
+      const configFiles = fs.readdirSync(configDir)
+        .filter(file => file.endsWith('.json') &&
+                (file.includes(`${serviceNumber}-${canal}`) ||
+                 file.includes(`${serviceNumber}_${canal}`)));
+
+      if (configFiles.length > 0) {
+        // Usar la primera configuración encontrada
+        const configPath = path.join(configDir, configFiles[0]);
+        configData = await fs.readJson(configPath);
+        configFound = true;
+        console.log(`Configuración encontrada: ${configFiles[0]}`);
+      } else {
+        console.log(`No se encontró configuración para servicio ${serviceNumber} y canal ${canal}`);
+      }
+    } catch (configError) {
+      console.error(`Error al buscar configuración:`, configError);
+    }
+
+    // 3. Combinar configuración con parámetros específicos
+    let requestData = {};
+
+    // Si encontramos configuración, usarla como base
+    if (configFound && configData) {
+      // Clonar objeto para no modificar el original
+      requestData = {
+        header: { ...configData.header || {} },
+        data: { ...configData.request || {} }
+      };
+    } else {
+
+      // Si no hay configuración, crear objeto básico
+      requestData = {
+        header: {
+          CANAL: canal,
+          SERVICIO: serviceNumber,
+          USUARIO: "SISTEMA"
+        },
+        data: {}
+      };
+    }
+
+    // Agregar parámetros específicos a los datos del request
+    if (parameters && typeof parameters === 'object') {
+      // Reemplazar/agregar parámetros en data
+      Object.assign(requestData.data, parameters);
+      console.log(`Parámetros combinados con configuración`);
+    }
+
+    // 4. Crear mensaje de IDA
+    const message = messageCreator.createMessage(headerStructure, serviceStructure, requestData, "request");
+    console.log(`String de IDA generado: ${message.length} caracteres`);
+
+    // 5. Simular respuesta de VUELTA (similar al ejemplo-generador existente)
+    // Usar el message-analyzer para crear una respuesta simulada
+    // La longitud del header siempre es la misma
+
+    const headerLength = headerStructure.totalLength || 102;
+    const headerMsg = message.substring(0, headerLength);
+
+    // Generar cuerpo de respuesta simulado basado en la estructura de respuesta
+    let simulatedResponseBody = "";
+
+    if (serviceStructure.response && serviceStructure.response.elements) {
+      try {
+        // Simular valores para cada campo de la respuesta
+        const simulateValue = (element) => {
+          if (element.type === 'field') {
+            const length = parseInt(element.length) || 0;
+            // Generar valor aleatorio según tipo
+            let value = '';
+
+            if (element.name && element.name.includes('NOMBRE')) {
+              value = 'JUAN PEREZ';
+            } else if (element.name && element.name.includes('FECHA')) {
+              value = '20250101';
+            } else if (element.name && element.name.includes('CODIGO')) {
+              value = '0000';
+            } else if (element.name && element.name.includes('IMPORTE') ||
+                      element.name && element.name.includes('MONTO')) {
+              value = '0000001000';
+            } else {
+              // Generar alfanumérico aleatorio si no hay patrón específico
+              value = 'SIMULADO';
+            }
+
+            // Formatear valor según tipo y longitud
+            const fieldType = (element.fieldType || element.type || '').toLowerCase();
+
+            if (fieldType === 'numerico') {
+              return value.replace(/\D/g, '0').padStart(length, '0').substring(0, length);
+            } else {
+              return value.padEnd(length, ' ').substring(0, length);
+            }
+          }
+          return '';
+        };
+
+        // Función para procesar elementos recursivamente
+        const processElements = (elements, occCount = 1) => {
+          let result = '';
+
+          // Si hay un contador de ocurrencias, agregarlo
+          if (elements.some(e => e.type === 'occurrence')) {
+            // El contador se formatea como número de 2 dígitos
+            result += occCount.toString().padStart(2, '0');
+          }
+
+          // Procesar cada elemento
+          for (const element of elements) {
+            if (element.type === 'field') {
+              result += simulateValue(element);
+            } else if (element.type === 'occurrence') {
+              // Para cada ocurrencia, generar un número aleatorio de instancias (1 a 5)
+              const count = element.count ? parseInt(element.count) : 1;
+              // Primero agregar el contador de instancias
+
+              // Luego generar cada instancia
+              for (let i = 0; i < count; i++) {
+                if (element.fields) {
+                  result += processElements(element.fields, 0); // Sin contador para ocurrencias anidadas
+                }
+              }
+            }
+          }
+          return result;
+        };
+
+        // Generar el cuerpo simulado
+        simulatedResponseBody = processElements(serviceStructure.response.elements);
+      } catch (simError) {
+        console.error(`Error al simular respuesta:`, simError);
+        simulatedResponseBody = "ERROR_SIMULACION";
+      }
+    }
+
+    // Código de retorno exitoso (0000) en la cabecera
+    let headerWithReturnCode = headerMsg;
+    // Posición del código de retorno (fija en todas las cabeceras)
+    if (headerWithReturnCode.length >= 18) {
+      headerWithReturnCode =
+        headerWithReturnCode.substring(0, 14) +
+        "0000" +
+        headerWithReturnCode.substring(18);
+    }
+
+    // Combinar header y cuerpo para formar el mensaje simulado de vuelta
+    const simulatedResponseMessage = headerWithReturnCode + simulatedResponseBody;
+    console.log(`String de VUELTA simulado: ${simulatedResponseMessage.length} caracteres`);
+
+    // 6. Procesar el mensaje simulado para convertirlo a JSON
+    let parsedResponse = {};
+    try {
+      // Analizar mensaje completo
+      const section = "response"; // Forzar sección respuesta
+
+      // Extraer cabecera
+      const headerLength = headerStructure.totalLength || 102;
+      const headerMessage = simulatedResponseMessage.substring(0, headerLength);
+      const headerData = messageAnalyzer.parseHeaderMessage(headerMessage, headerStructure);
+
+      // Extraer cuerpo de la respuesta
+      const bodyMessage = simulatedResponseMessage.substring(headerLength);
+      const responseStructure = serviceStructure.response;
+
+      // Procesar el cuerpo de la respuesta
+      let responseData = {};
+      if (responseStructure && responseStructure.elements) {
+        try {
+          // Usar el parseDataMessage para procesar la respuesta CON VALIDACIÓN DE OCURRENCIAS
+          responseData = messageAnalyzer.parseDataMessage(
+            bodyMessage,
+            responseStructure,
+            true // Activar validación de ocurrencias
+          );
+
+          console.log("Respuesta simulada procesada exitosamente");
+        } catch (validationError) {
+          console.error(`Error al validar respuesta simulada:`, validationError);
+          responseData = { error: validationError.message };
+        }
+      } else {
+        console.warn("No se encontró estructura de respuesta para el servicio");
+      }
+
+      // Filtrar ocurrencias vacías antes de retornar
+      const cleanResponseData = removeEmptyOccurrences(responseData);
+
+      // Construir resultado final
+      parsedResponse = {
+        header: headerData,
+        response: cleanResponseData
+      };
+    } catch (parseError) {
+      console.error(`Error al parsear respuesta simulada:`, parseError);
+      parsedResponse = { error: parseError.message };
+    }
+
+    // 7. Devolver resultado completo
+    res.json({
+      serviceName: serviceStructure.serviceName || `Servicio ${serviceNumber}`,
+      stringIda: message,
+      stringVuelta: simulatedResponseMessage,
+      dataVuelta: parsedResponse.response || {}
+    });
+
+  } catch (error) {
+    console.error(`Error en procesamiento:`, error);
+    res.status(error.statusCode || 500).json({
+      error: error.message || 'Error desconocido en procesamiento'
     });
   }
 });
@@ -721,7 +1241,10 @@ async function getAvailableServices(forceRefresh = false) {
         // Añadir a la lista de servicios
         services.push(serviceObj);
         
-        console.log(`Añadido servicio: ${serviceNumber} - ${serviceName}`);
+        // Solo logear si se fuerza el refresco
+        if (forceRefresh) {
+          console.log(`Añadido servicio: ${serviceNumber} - ${serviceName}`);
+        }
       } catch (error) {
         console.error(`Error al procesar el archivo Excel ${excelFile}:`, error);
         // Continuamos con el siguiente archivo
@@ -755,6 +1278,11 @@ async function getAvailableServices(forceRefresh = false) {
       global.serviceCache.services = services;
       global.serviceCache.lastUpdate = new Date().toISOString();
     }
+
+    // Solo mostrar servicios si se fuerza el refresco
+    if (forceRefresh) {
+      console.log(services);
+    }
     
     return services;
   } catch (error) {
@@ -777,16 +1305,16 @@ async function findServiceByNumber(serviceNumber, forceRefresh = false) {
       throw error;
     }
     
-    console.log(`Buscando servicio con número: ${serviceNumber}`);
-    
-    // Verificar caché de estructuras
-    if (!forceRefresh && 
-        global.serviceCache && 
-        global.serviceCache.structures && 
+    // Verificar caché de estructuras silenciosamente
+    if (!forceRefresh &&
+        global.serviceCache &&
+        global.serviceCache.structures &&
         global.serviceCache.structures[serviceNumber]) {
-      console.log(`Usando estructura en caché para servicio ${serviceNumber}`);
       return global.serviceCache.structures[serviceNumber];
     }
+
+    // Solo logear si necesitamos buscar el servicio
+    console.log(`Buscando servicio con número: ${serviceNumber}`);
     
     // Obtener la lista de servicios
     const services = await getAvailableServices();
@@ -958,6 +1486,305 @@ async function processServiceRequest(serviceNumber, stream) {
     status: "success"
   };
 }
+
+/**
+ * Función para garantizar que se mantengan los índices y las relaciones parentId exactas
+ * @param {Object} responseData - Datos de respuesta
+ * @returns {Object} - Datos de respuesta con índices y relaciones parentId corregidas
+ */
+function removeEmptyOccurrences(responseData) {
+  console.log("[SERVICIO] Aplicando corrección simple para índices y relaciones parentId");
+  
+  // Usar directamente el response data como una estructura simple para corregir sus índices
+  // Creamos una estructura temporal compatible con el fixer
+  const tempStructure = {
+    request: { elements: [] },
+    response: { elements: [] }
+  };
+  
+  // Si el objeto recibido es un array, lo tratamos como los elementos de request o response
+  if (Array.isArray(responseData)) {
+    tempStructure.response.elements = responseData;
+  } else if (responseData && typeof responseData === 'object') {
+    // Si es un objeto, lo fijamos directamente
+    return occurrenceFixer.fixOccurrenceIndices({ response: responseData }).response;
+  }
+  
+  // Aplicar fix y retornar los elementos corregidos
+  const fixed = occurrenceFixer.fixOccurrenceIndices(tempStructure);
+  return Array.isArray(responseData) ? fixed.response.elements : responseData;
+}
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * @route POST /api/services/sendmessage
+ * @description Genera un string de IDA a partir de parámetros personalizados
+ */
+router.post('/sendmessage', async (req, res) => {
+  try {
+    const { header, parameters } = req.body;
+    
+    // Validar datos de entrada
+    if (!header || !header.serviceNumber) {
+      return res.status(400).json({ error: "Se requiere header.serviceNumber" });
+    }
+    
+    if (!header.canal) {
+      return res.status(400).json({ error: "Se requiere header.canal" });
+    }
+    
+    const serviceNumber = header.serviceNumber;
+    const canal = header.canal;
+    console.log(`[SENDMESSAGE] Procesando servicio: ${serviceNumber}, canal: ${canal}`);
+    
+    // 1. Buscar estructura del servicio
+    const { headerStructure, serviceStructure } = await findServiceByNumber(serviceNumber);
+    if (!headerStructure || !serviceStructure) {
+      return res.status(404).json({ error: `Estructura no encontrada para el servicio ${serviceNumber}` });
+    }
+    console.log(`[SENDMESSAGE] Estructura encontrada para servicio ${serviceNumber}`);
+    
+    // 2. Buscar configuración por canal
+    const configDir = path.join(__dirname, '..', 'settings');
+    
+    // Buscar configuración por serviceNumber y canal
+    let configFound = false;
+    let configData = null;
+    
+    try {
+      // Buscar archivos de configuración para este servicio
+      const configFiles = fs.readdirSync(configDir)
+        .filter(file => file.endsWith('.json') &&
+                (file.includes(`${serviceNumber}-${canal}`) ||
+                 file.includes(`${serviceNumber}_${canal}`)));
+      
+      if (configFiles.length > 0) {
+        // Usar la primera configuración encontrada
+        const configPath = path.join(configDir, configFiles[0]);
+        configData = await fs.readJson(configPath);
+        configFound = true;
+        console.log(`[SENDMESSAGE] Configuración encontrada: ${configFiles[0]}`);
+      } else {
+        console.log(`[SENDMESSAGE] No se encontró configuración para servicio ${serviceNumber} y canal ${canal}`);
+      }
+    } catch (configError) {
+      console.error(`Error al buscar configuración:`, configError);
+    }
+    
+    // 3. Combinar configuración con parámetros específicos
+    let requestData = {};
+    
+    // Si encontramos configuración, usarla como base
+    if (configFound && configData) {
+      // Clonar objeto para no modificar el original
+      requestData = {
+        header: { ...configData.header || {} },
+        data: { ...configData.request || {} }
+      };
+    } else {
+      // Si no hay configuración, crear objeto básico
+      requestData = {
+        header: {
+          CANAL: canal,
+          SERVICIO: serviceNumber,
+          USUARIO: "SISTEMA"
+        },
+        data: {}
+      };
+    }
+    
+    // Agregar parámetros específicos a los datos del request
+    if (parameters && typeof parameters === 'object') {
+      // Reemplazar/agregar parámetros en data
+      Object.assign(requestData.data, parameters);
+      console.log(`[SENDMESSAGE] Parámetros combinados con configuración`);
+    }
+    
+    // 4. Crear mensaje de IDA
+    const message = messageCreator.createMessage(headerStructure, serviceStructure, requestData, "request");
+    console.log(`[SENDMESSAGE] String de IDA generado: ${message.length} caracteres`);
+    
+    // 5. Devolver resultado
+    res.json({
+      request: {
+        header,
+        parameters
+      },
+      response: message
+    });
+    
+  } catch (error) {
+    console.error(`Error en procesamiento:`, error);
+    res.status(error.statusCode || 500).json({
+      error: error.message || 'Error desconocido en procesamiento'
+    });
+  }
+});
+
+/**
+ * @route POST /api/services/receivemessage
+ * @description Procesa un string de VUELTA y lo convierte a JSON
+ */
+router.post('/receivemessage', async (req, res) => {
+  try {
+    const { header, parameters } = req.body;
+    
+    // Validar datos de entrada
+    if (!header || !header.serviceNumber) {
+      return res.status(400).json({ error: "Se requiere header.serviceNumber" });
+    }
+    
+    if (!parameters || !parameters.returnMsg) {
+      return res.status(400).json({ error: "Se requiere parameters.returnMsg" });
+    }
+    
+    // Opciones de filtrado
+    const filterEmptyFields = header.filterEmptyFields !== false; // Por defecto true
+    const filterMode = header.filterMode || 'standard'; // 'standard', 'aggressive', 'none'
+    
+    const serviceNumber = header.serviceNumber;
+    const stream = parameters.returnMsg;
+    console.log(`[RECEIVEMESSAGE] Procesando servicio: ${serviceNumber}, stream de ${stream.length} caracteres`);
+    
+    // 1. Buscar estructura del servicio
+    const { headerStructure, serviceStructure } = await findServiceByNumber(serviceNumber);
+    if (!headerStructure || !serviceStructure) {
+      return res.status(404).json({ error: `Estructura no encontrada para el servicio ${serviceNumber}` });
+    }
+    console.log(`[RECEIVEMESSAGE] Estructura encontrada para servicio ${serviceNumber}`);
+    
+    // 2. Analizar el stream como una respuesta
+    console.log(`[RECEIVEMESSAGE] Analizando stream como RESPUESTA`);
+    
+    // Extraer cabecera
+    const headerLength = headerStructure.totalLength || 102;
+    const headerMessage = stream.substring(0, headerLength);
+    const headerData = messageAnalyzer.parseHeaderMessage(headerMessage, headerStructure);
+    console.log(`[RECEIVEMESSAGE] Headers parseados:`, headerData);
+    
+    // Extraer cuerpo de la respuesta
+    const bodyMessage = stream.substring(headerLength);
+    const responseStructure = serviceStructure.response;
+    
+    // Procesar el cuerpo de la respuesta
+    let responseData = {};
+    if (responseStructure && responseStructure.elements) {
+      try {
+        // Usar el parseDataMessage para procesar la respuesta CON VALIDACIÓN DE OCURRENCIAS
+        responseData = messageAnalyzer.parseDataMessage(
+          bodyMessage,
+          responseStructure,
+          true // Activar validación de ocurrencias
+        );
+        
+        console.log("[RECEIVEMESSAGE] Validación de ocurrencias exitosa");
+      } catch (validationError) {
+        // Capturar errores específicos de validación
+        if (validationError.message.includes('Error de validación')) {
+          return res.status(400).json({
+            error: validationError.message,
+            validationFailed: true,
+            errorType: 'VALIDATION_ERROR'
+          });
+        }
+        throw validationError; // Reenviar otros errores
+      }
+    } else {
+      console.warn("No se encontró estructura de respuesta para el servicio");
+    }
+    
+    // Filtrar ocurrencias vacías antes de retornar
+    let cleanResponseData = occurrenceFixer.fixOccurrenceIndices({ response: responseData }).response;
+    
+    // Función para eliminar ocurrencias vacías y campos con valores por defecto
+    const removeEmptyOccurrences = (data, shouldFilter = true) => {
+      // Si no se debe filtrar, devolver los datos tal cual
+      if (!shouldFilter) return data;
+      
+      if (!data || typeof data !== 'object') return data;
+      
+      const result = { ...data };
+      
+      // Buscar y eliminar ocurrencias vacías y campos con valores por defecto
+      for (const [key, value] of Object.entries(result)) {
+        // Procesar ocurrencias (arrays)
+        if (key.startsWith('occ_') && Array.isArray(value)) {
+          // Filtrar elementos vacíos del array
+          result[key] = value.filter(item => {
+            if (!item || typeof item !== 'object') return false;
+            
+            // Un elemento está "vacío" si todos sus valores (excluyendo index) están vacíos
+            const hasNonEmptyValue = Object.entries(item).some(([propKey, propValue]) => {
+              if (propKey === 'index') return false; // ignorar propiedad index
+              
+              // Considerar vacío: string vacío, null, undefined, o string de solo ceros
+              if (propValue === "" || propValue === null || propValue === undefined) return false;
+              if (typeof propValue === 'string' && /^0+$/.test(propValue)) return false;
+              if (typeof propValue === 'string' && propValue.trim() === '') return false;
+              
+              return true; // Si llegamos aquí, el valor no está vacío
+            });
+            
+            return hasNonEmptyValue;
+          });
+          
+          // Si la ocurrencia está vacía después de filtrar, eliminarla
+          if (result[key].length === 0) {
+            delete result[key];
+          }
+        }
+        // Procesar campos individuales
+        else if (typeof value === 'string') {
+          // Eliminar campos que son solo ceros o espacios
+          if (/^0+$/.test(value) || value.trim() === '') {
+            delete result[key];
+          }
+        }
+        // Procesar números
+        else if (typeof value === 'number' && value === 0) {
+          delete result[key];
+        }
+        // Procesar objetos anidados
+        else if (value && typeof value === 'object' && !Array.isArray(value)) {
+          result[key] = removeEmptyOccurrences(value, shouldFilter);
+          // Si el objeto está vacío después de procesar, eliminarlo
+          if (Object.keys(result[key]).length === 0) {
+            delete result[key];
+          }
+        }
+      }
+      
+      return result;
+    };
+    // Aplicar limpieza de ocurrencias vacías si se solicita
+    cleanResponseData = removeEmptyOccurrences(cleanResponseData, filterEmptyFields);
+    console.log(`[RECEIVEMESSAGE] Response parseada y filtrada:`, cleanResponseData);
+    
+    // 3. Devolver resultado
+    res.json({
+      request: {
+        header,
+        parameters: { returnMsg: `[string de longitud ${stream.length}]` }
+      },
+      response: cleanResponseData
+    });
+    
+  } catch (error) {
+    console.error(`Error en procesamiento:`, error);
+    res.status(error.statusCode || 500).json({
+      error: error.message || 'Error desconocido en procesamiento'
+    });
+  }
+});
 
 module.exports = router;
 module.exports.getAvailableServices = getAvailableServices;

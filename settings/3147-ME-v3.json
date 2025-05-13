@@ -1,12 +1,12 @@
 {
   "serviceNumber": "3147",
   "serviceName": "SERVICIO 3147 - CONTRATOS RELACIONADOS PARA UN PRESTAMO",
-  "canal": "PO",
-  "version": "v2",
-  "timestamp": "2025-05-07T14:48:42.900Z",
+  "canal": "ME",
+  "version": "v3",
+  "timestamp": "2025-05-12T06:42:24.774Z",
   "header": {
     "LONGITUD DEL MENSAJE": "000177",
-    "CANAL": "PO",
+    "CANAL": "ME",
     "SERVICIO": "3147",
     "CÓDIGO DE RETORNO": "0000",
     "ID DEL MENSAJE": "000000102",
@@ -25,9 +25,9 @@
     "SVC3147-N-ITN-CORE-NUEVO": "",
     "SVC3147-T-REL-CONT": "",
     "SVC3147-F-COM-REQ": "",
-    "SVC3147-F-FIN-REQ": "UIOU",
+    "SVC3147-F-FIN-REQ": "",
     "SVC3147-BANCO-REQ": "",
-    "SVC3147-SUCURSAL-REQ": "89789",
+    "SVC3147-SUCURSAL-REQ": "",
     "SVC3147-PRODUCTO-REQ": "",
     "SVC3147-CUENTA-REQ": "",
     "SVC3147-DIG-VERIF-REQ": ""

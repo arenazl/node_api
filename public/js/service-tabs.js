@@ -336,8 +336,9 @@ function loadConfigurationsForService(serviceNumber) {
                 data.configs.forEach(config => {
                     const option = document.createElement('option');
                     option.value = config.id;
-                    const shortId = config.id.substring(config.id.length - 8); // Últimos 8 chars del ID
-                    option.textContent = `${config.name || `Config (${shortId})`} [${config.canal || 'N/C'}]`;
+                    // Formatear para mostrar "Config (ServiceNumber-Canal-Version)" en vez de usar último segmento
+                    const configName = `Config (${config.serviceNumber}-${config.canal}-${config.version})`;
+                    option.textContent = `${config.name || configName} [${config.canal || 'N/C'}]`;
                     option.title = `ID: ${config.id}\nCreado: ${new Date(config.timestamp).toLocaleString()}`;
                     configSelect.appendChild(option);
                 });
@@ -869,7 +870,8 @@ document.addEventListener('DOMContentLoaded', function() {
                                 
                                 ConfigUtils.showNotification('String fijo generado correctamente', 'success');
 
-                                // Crear botón de copia si no existe
+                                // Crear botones de copia si no existen
+                                // 1. Botón para copiar string
                                 if (!document.getElementById('copyStringBtn')) {
                                     const copyButton = document.createElement('button');
                                     copyButton.id = 'copyStringBtn';
@@ -892,6 +894,51 @@ document.addEventListener('DOMContentLoaded', function() {
                                         } else {
                                             ConfigUtils.showNotification('No hay string para copiar', 'error');
                                         }
+                                    });
+                                }
+                                
+                                // 2. Botón para copiar JSON para SIM
+                                if (!document.getElementById('copyJsonForSimBtn')) {
+                                    const copyJsonBtn = document.createElement('button');
+                                    copyJsonBtn.id = 'copyJsonForSimBtn';
+                                    copyJsonBtn.className = 'service-button secondary-btn';
+                                    copyJsonBtn.textContent = 'Copiar JSON para SIM';
+                                    copyJsonBtn.style.marginLeft = '10px';
+                                    
+                                    // Insertar botón después del botón de copiar string
+                                    const copyStringBtn = document.getElementById('copyStringBtn');
+                                    if (copyStringBtn && copyStringBtn.parentNode) {
+                                        copyStringBtn.parentNode.insertBefore(copyJsonBtn, copyStringBtn.nextSibling);
+                                    } else if (generateStringBtn.parentNode) {
+                                        generateStringBtn.parentNode.insertBefore(copyJsonBtn, generateStringBtn.nextSibling);
+                                    }
+                                    
+                                    // Agregar evento de click
+                                    copyJsonBtn.addEventListener('click', function() {
+                                        // Obtener los datos de configuración actuales
+                                        fetch(`/service-config/get/${configId}`)
+                                            .then(response => {
+                                                if (!response.ok) throw new Error('Error al cargar la configuración');
+                                                return response.json();
+                                            })
+                                            .then(data => {
+                                                // Formato específico para SIM (copia exacta del JSON)
+                                                const jsonStr = JSON.stringify(data, null, 2);
+                                                
+                                                // Crear un elemento temporal para copiar
+                                                const tempTextarea = document.createElement('textarea');
+                                                tempTextarea.value = jsonStr;
+                                                document.body.appendChild(tempTextarea);
+                                                tempTextarea.select();
+                                                document.execCommand('copy');
+                                                document.body.removeChild(tempTextarea);
+                                                
+                                                ConfigUtils.showNotification('JSON para SIM copiado al portapapeles', 'success');
+                                            })
+                                            .catch(error => {
+                                                console.error('Error al copiar JSON para SIM:', error);
+                                                ConfigUtils.showNotification(`Error: ${error.message}`, 'error');
+                                            });
                                     });
                                 }
                             } catch (error) {

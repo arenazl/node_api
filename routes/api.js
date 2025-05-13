@@ -159,4 +159,8 @@ router.post('/parse', async (req, res) => {
   }
 });
 
+// Exportar el procesador de vuelta para uso desde otros módulos
+const apiProcessors = require('./api-processors');
+
 module.exports = router;
+module.exports.processVuelta = apiProcessors.processVuelta;

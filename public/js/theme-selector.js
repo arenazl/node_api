@@ -2,7 +2,7 @@
  * Selector de Temas
  * 
  * Módulo para gestionar el cambio de temas en la aplicación
- * Permite alternar entre tema oscuro, claro y ámbar
+ * Permite alternar entre tema oscuro, claro, ámbar y verde-cyan
  */
 
 // Configuración de temas disponibles
@@ -168,7 +168,7 @@ const ThemeManager = {
         const theme = this.themes[themeName];
         
         // Eliminar todas las clases de tema del body
-        document.body.classList.remove('theme-dark', 'theme-light', 'theme-amber');
+        document.body.classList.remove('theme-dark', 'theme-light', 'theme-amber', 'theme-green');
         
         // Añadir la nueva clase
         document.body.classList.add(theme.class);

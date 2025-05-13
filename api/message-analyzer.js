@@ -68,8 +68,28 @@ function parseHeaderMessage(headerMessage, headerStructure) {
     // Extraer valor del mensaje
     const fieldValue = headerMessage.substring(position, position + fieldLength).trim();
     
+    // Determinar el tipo de campo (numérico o alfanumérico)
+    const fieldType = field.type;
+    
+    // Formatear el valor según el tipo de campo
+    let formattedValue = fieldValue;
+    
+    // Si el campo está vacío, mantenerlo vacío
+    if (fieldValue === '') {
+      formattedValue = '';
+    }
+    // Si es numérico y solo tiene ceros, mantenerlo como está
+    else if (fieldType && fieldType.toLowerCase().includes('numerico') && /^0+$/.test(fieldValue)) {
+      formattedValue = fieldValue;
+    }
+    
     // Agregar al objeto de datos
-    headerData[fieldName] = fieldValue;
+    headerData[fieldName] = formattedValue;
+    
+    // Agregar log para depuración
+    if (fieldType) {
+      console.log(`[DEBUG-HEADER] Campo: ${fieldName}, Valor: "${fieldValue}", Tipo: ${fieldType}, Formateado: "${formattedValue}"`);
+    }
     
     // Avanzar posición
     position += fieldLength;
@@ -97,6 +117,96 @@ function determineSection(headerData, serviceStructure) {
   
   // Por defecto, asumir request
   return 'request';
+}
+
+/**
+ * Formatea un valor según su tipo (numérico o alfanumérico)
+ * @param {string} value - Valor a formatear
+ * @param {number} length - Longitud requerida
+ * @param {string} type - Tipo de campo (numérico o alfanumérico)
+ * @returns {string} - Valor formateado
+ */
+function formatValue(value, length, type) {
+  // Convertir valor a string, tratando null/undefined como string vacío
+  const strValue = String(value ?? '');
+  
+  // Si el valor es vacío o solo espacios, generar un valor aleatorio
+  if (strValue.trim() === '') {
+    return generateRandomValue(parseInt(length || 0), type);
+  }
+  
+  const numLength = parseInt(length || 0);
+  if (numLength <= 0) return '';
+
+  // Truncar si es más largo que la longitud requerida
+  let processedValue = (strValue.length > numLength) ? strValue.substring(0, numLength) : strValue;
+
+  // VERIFICACIÓN SIMPLIFICADA PARA LOS DOS ÚNICOS TIPOS POSIBLES
+  
+  // Verificación para los tipos específicos de la estructura
+  if (type === 'alfanumerico') {
+    // Si el valor es más corto que la longitud requerida, generar un valor aleatorio para el resto
+    if (processedValue.length < numLength) {
+      const randomSuffix = generateRandomValue(numLength - processedValue.length, type);
+      return processedValue + randomSuffix;
+    }
+    return processedValue;
+  }
+  
+  if (type === 'numerico') {
+    // Si el valor es más corto que la longitud requerida, generar un valor aleatorio para el resto
+    if (processedValue.length < numLength) {
+      const randomPrefix = generateRandomValue(numLength - processedValue.length, type);
+      return randomPrefix + processedValue;
+    }
+    
+  return processedValue;
+}
+
+/**
+ * Genera un valor aleatorio según el tipo de campo
+ * @param {number} length - Longitud del campo
+ * @param {string} fieldType - Tipo de campo (numérico o alfanumérico)
+ * @returns {string} - Valor aleatorio generado
+ */
+function generateRandomValue(length, fieldType) {
+  const numLength = parseInt(length) || 0;
+  if (numLength <= 0) return '';
+
+  // Normalizar el tipo a minúsculas
+  const type = (fieldType || '').toLowerCase();
+  const isNumeric = type === 'numerico' || type === 'numeric' ||
+                   type === 'number' || type.includes('num');
+
+  // Generar valor aleatorio según el tipo
+  let value = '';
+
+  if (isNumeric) {
+    // Para campos numéricos, generar dígitos aleatorios
+    for (let i = 0; i < numLength; i++) {
+      // Para el primer dígito, permitir que sea 0 solo si la longitud es 1
+      if (i === 0 && numLength > 1) {
+        value += Math.floor(Math.random() * 9) + 1; // 1-9 para el primer dígito
+      } else {
+        value += Math.floor(Math.random() * 10); // 0-9 para el resto
+      }
+    }
+  } else {
+    // Para campos alfanuméricos, generar caracteres aleatorios
+    // Caracteres permitidos para campos alfanuméricos
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 ';
+    for (let i = 0; i < numLength; i++) {
+      value += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+  }
+
+  return value;
+}
+
+  // Comportamiento predeterminado si el tipo no está definido o reconocido
+  // Generar un valor aleatorio
+  console.warn(`ADVERTENCIA: Tipo "${fieldType}" no reconocido para el valor "${strValue}", generando valor aleatorio.`);
+  return generateRandomValue(numLength, 'alfanumerico');
 }
 
 /**
@@ -131,8 +241,20 @@ function parseDataMessage(dataMessage, dataStructure, validateOccurrences = fals
       // Extraer valor del mensaje
       const fieldValue = dataMessage.substring(position, position + fieldLength).trim();
       
+      // Determinar el tipo de campo (numérico o alfanumérico)
+      const fieldType = element.fieldType || element.type;
+      
+      console.log(`[DEBUG-FIELD] Campo: ${fieldName}, Longitud: ${fieldLength}, Valor original: "${fieldValue}"`);
+      console.log(`[DEBUG-FIELD] Tipo en estructura: ${fieldType || 'NO ENCONTRADO'}`);
+      console.log(`[DEBUG-FIELD] Elemento completo: ${JSON.stringify(element)}`);
+      
+      // Formatear el valor según el tipo de campo usando la función formatValue
+      // para mantener consistencia con cómo se tratan los campos de ocurrencias
+      const formattedValue = formatValue(fieldValue, fieldLength, fieldType);
+      console.log(`[DEBUG-FIELD] Valor formateado: "${formattedValue}"`);
+      
       // Agregar al objeto de datos
-      data[fieldName] = fieldValue;
+      data[fieldName] = formattedValue;
       
       // Identificar campo de cantidad de registros si existe
       if (validateOccurrences && 
@@ -347,8 +469,23 @@ function parseOccurrence(message, startPosition, occurrenceElement, count, prese
         // Extraer valor del mensaje
         const fieldValue = message.substring(itemPosition, itemPosition + fieldLength).trim();
         
+        // Determinar el tipo de campo (numérico o alfanumérico)
+        const fieldType = field.fieldType || field.type;
+        
+        console.log(`[DEBUG-OCC-FIELD] Ocurrencia campo: ${fieldName}, Longitud: ${fieldLength}, Valor original: "${fieldValue}"`);
+        console.log(`[DEBUG-OCC-FIELD] Tipo en estructura: ${fieldType || 'NO ENCONTRADO'}`);
+        console.log(`[DEBUG-OCC-FIELD] Campo completo: ${JSON.stringify(field)}`);
+        
+        // Formatear el valor según el tipo de campo usando la función formatValue
+        const formattedValue = formatValue(fieldValue, fieldLength, fieldType);
+        
+        console.log(`[DEBUG-OCC-FIELD] Valor formateado: "${formattedValue}"`);
+        
         // Agregar al objeto de datos
-        occurrenceItem[fieldName] = fieldValue;
+        occurrenceItem[fieldName] = formattedValue;
+        
+        // Mostrar la estructura completa del campo para depuración
+        console.log(`[DEBUG-OCC-ESTRUCTURA] Campo: ${JSON.stringify(field)}`);
         
         // Avanzar posición
         itemPosition += fieldLength;
@@ -404,8 +541,127 @@ function calculateOccurrenceLength(fields) {
 }
 
 // Exportar módulo con todas las funciones necesarias
+/**
+ * Formatea un objeto de datos JSON en un string de posiciones fijas
+ * @param {Object} data - Objeto de datos JSON
+ * @param {Object} dataStructure - Estructura de datos
+ * @returns {string} String de posiciones fijas
+ */
+function formatDataMessage(data, dataStructure) {
+  if (!dataStructure || !dataStructure.elements) {
+    throw new Error('Estructura de datos inválida o no proporcionada para formatear');
+  }
+
+  let formattedString = '';
+
+  for (const element of dataStructure.elements) {
+    if (element.type === 'field') {
+      const fieldName = element.name;
+      const fieldLength = parseInt(element.length) || 0;
+      const fieldType = element.fieldType || element.type;
+      const fieldValue = data[fieldName] ?? ''; // Get value from JSON, default to empty string
+
+      // Format the value to the required length and type
+      const formattedValue = formatValueForString(fieldValue, fieldLength, fieldType);
+      formattedString += formattedValue;
+
+    } else if (element.type === 'occurrence') {
+      const occKey = element.id || `occurrence_${element.index}`;
+      const occurrenceArray = data[occKey] || []; // Get occurrence array from JSON, default to empty array
+      // The count field should be handled as a regular field before the occurrence element
+      // We format the actual number of items in the array, but the count field in the string
+      // should reflect this count. This requires the count field to be present in the JSON data.
+      // Assuming the count field is named something like 'CANT-REG-OR' and is processed before the occurrence.
+
+      // Format the occurrence array
+      const formattedOccurrences = formatOccurrence(occurrenceArray, element.fields || element.elements || []);
+      formattedString += formattedOccurrences;
+    }
+  }
+
+  return formattedString;
+}
+
+/**
+ * Formatea un array de ocurrencias en un string de posiciones fijas
+ * @param {Array<Object>} occurrenceArray - Array de objetos de ocurrencia
+ * @param {Array<Object>} occurrenceStructure - Estructura de una sola ocurrencia (campos)
+ * @returns {string} String de posiciones fijas para las ocurrencias
+ */
+function formatOccurrence(occurrenceArray, occurrenceStructure) {
+  let formattedOccurrencesString = '';
+
+  for (const item of occurrenceArray) {
+    let formattedItemString = '';
+    for (const field of occurrenceStructure) {
+      if (field.type === 'field') {
+        const fieldName = field.name;
+        const fieldLength = parseInt(field.length) || 0;
+        const fieldType = field.fieldType || field.type;
+        const fieldValue = item[fieldName] ?? ''; // Get value from occurrence item, default to empty string
+
+        // Format the value
+        const formattedValue = formatValueForString(fieldValue, fieldLength, fieldType);
+        formattedItemString += formattedValue;
+
+      } else if (field.type === 'occurrence') {
+         // Handle nested occurrences recursively
+         const nestedOccKey = field.id || `occurrence_${field.index}`;
+         const nestedOccurrenceArray = item[nestedOccKey] || [];
+         const formattedNestedOccurrences = formatOccurrence(nestedOccurrenceArray, field.fields || field.elements || []);
+         formattedItemString += formattedNestedOccurrences;
+      }
+    }
+    formattedOccurrencesString += formattedItemString;
+  }
+
+  return formattedOccurrencesString;
+}
+
+
+/**
+ * Formatea un valor para ser incluido en un string de posiciones fijas.
+ * Rellena con espacios a la derecha para alfanuméricos y ceros a la izquierda para numéricos.
+ * @param {*} value - El valor a formatear.
+ * @param {number} length - La longitud deseada del campo.
+ * @param {string} type - El tipo de dato ('alfanumerico', 'numerico').
+ * @returns {string} El valor formateado a la longitud especificada.
+ */
+function formatValueForString(value, length, type) {
+  const strValue = String(value ?? '');
+  const numLength = parseInt(length) || 0;
+
+  if (numLength <= 0) {
+    return '';
+  }
+
+  const fieldType = (type || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+  if (fieldType === 'alfanumerico') {
+    // Pad with spaces on the right
+    return strValue.padEnd(numLength, ' ').substring(0, numLength);
+  } else if (fieldType === 'numerico') {
+    // Pad with zeros on the left
+    // Ensure it's a valid number string before padding
+    const numericValue = strValue.replace(/[^0-9]/g, ''); // Remove non-digits
+    return numericValue.padStart(numLength, '0').substring(0, numLength);
+  } else {
+    // Default to alfanumerico padding if type is unknown
+    console.warn(`ADVERTENCIA: Tipo "${fieldType}" no reconocido para formatear "${strValue}", usando relleno alfanumérico.`);
+    return strValue.padEnd(numLength, ' ').substring(0, numLength);
+  }
+}
+
+// Exportar módulo con todas las funciones necesarias
 module.exports = {
   parseMessage,
-  parseHeaderMessage,  // Añadimos esta función para uso externo
-  parseDataMessage     // También esta para completitud
+  parseHeaderMessage,
+  parseDataMessage,
+  parseOccurrence,
+  calculateHeaderLength,
+  calculateOccurrenceLength,
+  formatValue, // Keep the existing parse-time formatValue
+  formatDataMessage, // Add the new function
+  formatOccurrence, // Add the new helper function
+  formatValueForString // Add the new helper function
 };

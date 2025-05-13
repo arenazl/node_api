@@ -1,0 +1,101 @@
+/**
+ * Estilos para utilidades del sistema
+ */
+
+.system-utils-button {
+  position: fixed;
+  right: 20px;
+  top: 104px; /* Posicionado justo debajo del botón de tema */
+  background-color: var(--primary-color, #1e40af);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  z-index: 100;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+/* Asegurar que el SVG dentro del botón sea visible */
+.system-utils-button svg {
+  width: 24px;
+  height: 24px;
+  color: white;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Efectos de hover */
+.system-utils-button:hover {
+  background-color: var(--primary-hover-color, #1e3a8a);
+  transform: scale(1.05);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Efectos cuando el botón está activo (presionado) */
+.system-utils-button:active {
+  transform: scale(0.95);
+}
+
+/* Efecto de giro para el ícono de refresh */
+.system-utils-button.loading svg {
+  animation: spin 1s linear infinite;
+}
+
+/* Animación de giro */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Estilos para el tema oscuro */
+.theme-dark .system-utils-button {
+  background-color: #2563eb;
+  color: #e2e8f0;
+}
+
+.theme-dark .system-utils-button:hover {
+  background-color: #1d4ed8;
+}
+
+/* Estilos para el tema claro */
+.theme-light .system-utils-button {
+  background-color: #3b82f6;
+  color: #ffffff;
+}
+
+.theme-light .system-utils-button:hover {
+  background-color: #2563eb;
+}
+
+/* Estilos para el tema ámbar */
+.theme-amber .system-utils-button {
+  background-color: #d97706;
+  color: #ffffff;
+}
+
+.theme-amber .system-utils-button:hover {
+  background-color: #b45309;
+}
+
+/* Estilos para el cuadro de diálogo de confirmación */
+.swal2-popup {
+  font-family: inherit;
+}
+
+/* Animación cuando se completa una acción */
+.system-utils-button.success {
+  background-color: #10b981 !important;
+}
+
+.system-utils-button.error {
+  background-color: #ef4444 !important;
+}

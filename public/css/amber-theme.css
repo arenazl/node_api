@@ -1,45 +1,45 @@
-/* Tema Ámbar */
+/* Tema Ámbar Modernizado (Estilo Oscuro) */
 :root {
-  /* Colores principales - estilo ámbar dorado */
-  --primary-color: #d97706;         /* Ámbar oscuro */
-  --primary-hover: #b45309;         /* Ámbar más oscuro para hover */
-  --secondary-color: #92400e;       /* Marrón oscuro */
-  --success-color: #10b981;         /* Verde mantenido */
-  --success-hover: #059669;         /* Verde más oscuro para hover */
-  --danger-color: #dc2626;          /* Rojo para errores */
+  /* Colores principales - estilo ámbar dorado más rico */
+  --primary-color: #f59e0b;         /* Ámbar (Tailwind amber-500) */
+  --primary-hover: #d97706;         /* Ámbar oscuro (Tailwind amber-600) */
+  --secondary-color: #78350f;       /* Marrón oscuro y rico (Tailwind amber-900) */
+  --success-color: #22c55e;         /* Verde Esmeralda (Tailwind green-500) */
+  --success-hover: #16a34a;         /* Verde más oscuro (Tailwind green-600) */
+  --danger-color: #ef4444;          /* Rojo (Tailwind red-500) */
   
-  /* Backgrounds y bordes para tema ámbar */
-  --body-bg: #57534ec2 !important;;               /* Marrón muy oscuro para fondo general */
-  --dark-bg: #44403c;               /* Marrón oscuro para contenedores */
-  --card-bg: #57534e;               /* Marrón grisáceo para tarjetas */
-  --light-bg: #78716c;              /* Marrón claro para contraste */
-  --border-color: #78716c;          /* Borde marrón */
+  /* Backgrounds y bordes para tema ámbar oscuro */
+  --body-bg: #1c1917 !important;    /* Marrón casi negro para fondo general (Tailwind stone-900) */
+  --dark-bg: #292524;               /* Marrón oscuro para contenedores (Tailwind stone-800) */
+  --card-bg: #44403c;               /* Marrón grisáceo para tarjetas (Tailwind stone-700) */
+  --light-bg: #57534e;              /* Marrón medio para contraste (Tailwind stone-600) */
+  --border-color: #78716c;          /* Borde marrón (Tailwind stone-500) */
   
   /* Textos */
-  --text-color: #f5f5f4;            /* Texto principal (casi blanco) */
-  --text-secondary: #d6d3d1;        /* Texto secundario (gris claro) */
+  --text-color: #f5f5f4;            /* Texto principal (casi blanco - Tailwind neutral-100) */
+  --text-secondary: #a8a29e;        /* Texto secundario (gris claro - Tailwind stone-400) */
   
   /* Efectos */
-  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
-  --radius: 0.5rem;
+  --shadow: 0 5px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.15); /* Sombra más profunda para dark theme */
+  --radius: 0.6rem;
   --font-family: 'Montserrat', -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  --transition: all 0.2s ease-in-out;
+  --transition: all 0.25s ease-in-out;
   
   /* Sidebar */
-  --sidebar-bg: linear-gradient(180deg, #d97706 0%, #92400e 100%); /* Gradiente ámbar */
+  --sidebar-bg: linear-gradient(165deg, #f59e0b 0%, #78350f 100%); /* Gradiente ámbar a marrón oscuro */
   --sidebar-text: white;
   
   /* Acentos */
-  --accent-color: #f59e0b;          /* Ámbar brillante para acentos */
-  --accent-hover: #d97706;          /* Ámbar más oscuro para hover */
+  --accent-color: #fbbf24;          /* Ámbar brillante para acentos (Tailwind amber-400) */
+  --accent-hover: #f59e0b;          /* Ámbar más oscuro para hover (Tailwind amber-500) */
   
   /* Colores específicos para tablas */
-  --table-header-bg: #92400e;       /* Marrón oscuro para cabecera de tabla */
-  --table-header-text: white;       /* Texto blanco para cabecera */
-  --table-row-hover: #44403c;       /* Marrón oscuro para hover */
-  --table-border: #78716c;          /* Borde marrón */
-  --table-bg: #57534e;              /* Fondo de tabla marrón grisáceo */
-  --table-row-even: #44403c;        /* Filas pares un poco más oscuras */
+  --table-header-bg: #78350f;       /* Marrón oscuro para cabecera de tabla */
+  --table-header-text: #f5f5f4;       /* Texto blanco para cabecera */
+  --table-row-hover: #57534e;       /* Marrón medio para hover (Tailwind stone-600) */
+  --table-border: #78716c;          /* Borde marrón (Tailwind stone-500) */
+  --table-bg: #44403c;              /* Fondo de tabla marrón grisáceo (Tailwind stone-700) */
+  --table-row-even: #292524;        /* Filas pares un poco más oscuras (Tailwind stone-800) */
 }
 
 /* Sobreescribir colores para JSON en tema ámbar */
@@ -48,19 +48,19 @@
 }
 
 .json-key-header {
-  color: #f87171; /* Rojo claro para claves de header */
+  color: #f87171; /* Rojo claro para claves de header (Tailwind red-400) */
 }
 
 .json-key-service {
-  color: #fbbf24; /* Amarillo ámbar para claves de servicio */
+  color: #f59e0b; /* Ámbar para claves de servicio */
 }
 
 .json-key-request {
-  color: #34d399; /* Verde claro para claves de request */
+  color: #4ade80; /* Verde claro para claves de request (Tailwind green-400) */
 }
 
 .json-key-response {
-  color: #c4b5fd; /* Púrpura claro para claves de response */
+  color: #a78bfa; /* Púrpura claro para claves de response (Tailwind violet-400) */
 }
 
 .json-string {
@@ -68,23 +68,23 @@
 }
 
 .json-number {
-  color: #34d399; /* Verde claro para números */
+  color: #4ade80; /* Verde claro para números */
 }
 
 .json-boolean {
-  color: #60a5fa; /* Azul claro para booleanos */
+  color: #60a5fa; /* Azul claro para booleanos (Tailwind blue-400) */
 }
 
 .json-null {
-  color: #60a5fa; /* Azul claro para null */
+  color: #9ca3af; /* Gris claro para null (Tailwind gray-400) */
 }
 
 .json-brackets {
-  color: var(--text-color);
+  color: var(--text-secondary);
 }
 
 .json-comma {
-  color: var(--text-color);
+  color: var(--text-secondary);
 }
 
 /* Forzar colores de fondo */
@@ -114,8 +114,6 @@ th {
   background-color: var(--table-header-bg) !important;
 }
 
-/* Eliminado tr:nth-child(even) para evitar confusión con los estilos de ocurrencias */
-
 tr:hover {
   background-color: var(--table-row-hover) !important;
 }
@@ -133,15 +131,15 @@ select, input, textarea {
 
 /* Ajustes específicos para ocurrencias en tema ámbar */
 .occurrence-row {
-  background-color: rgba(245, 158, 11, 0.15) !important;
+  background-color: rgba(251, 191, 36, 0.15) !important; /* Relleno ámbar brillante translúcido */
 }
 
 .occurrence-row:hover {
-  background-color: rgba(245, 158, 11, 0.25) !important;
+  background-color: rgba(251, 191, 36, 0.25) !important; /* Un poco más opaco en hover */
 }
 
 .occurrence-row td {
-  color: #fbbf24 !important; /* Amarillo ámbar brillante */
+  color: #fbdd74 !important; /* Amarillo ámbar más claro para el texto dentro de la ocurrencia */
 }
 
 .occurrence-row .collapse-btn {
@@ -150,19 +148,19 @@ select, input, textarea {
 
 /* Mejorar la visibilidad de la línea final de ocurrencia */
 .occurrence-end {
-  background-color: #3f3e3e !important; /* Color estandarizado para todos los temas */
-  border-bottom: 2px dashed #6366f1 !important; /* Borde consistente */
-  height: 8px !important; /* Altura aumentada para mejor visibilidad */
+  background-color: transparent !important;
+  border-bottom: 2px dashed var(--accent-color) !important; /* Borde con color de acento del tema */
+  height: 8px !important;
   padding: 0 !important;
-  margin-bottom: 8px !important; /* Espacio adicional después de la ocurrencia */
-  display: table-row !important; /* Forzar visualización */
+  margin-bottom: 8px !important;
+  display: table-row !important;
   visibility: visible !important;
   width: 100% !important;
 }
 
-/* Asegurar que todos los finales de ocurrencia tengan el mismo color */
+/* Asegurar que todos los finales de ocurrencia tengan el mismo color de fondo temático */
 tr.occurrence-end {
-  background-color: #6f5f44  !important;
+  background-color: #533e1b !important; /* Fondo ámbar oscuro y desaturado */
 }
 
 /* Estilos para los niveles de color en temas ámbar */
@@ -171,7 +169,7 @@ tr.occurrence-end {
 }
 
 .level-color-1 {
-  border-left: 3px solid #f59e0b !important; /* Ámbar */
+  border-left: 3px solid #fbbf24 !important; /* Ámbar brillante */
 }
 
 .level-color-2 {
@@ -179,7 +177,7 @@ tr.occurrence-end {
 }
 
 .level-color-3 {
-  border-left: 3px solid #92400e !important; /* Marrón */
+  border-left: 3px solid #92400e !important; /* Marrón más profundo */
 }
 
 /* Nota: Los estilos para current-file-info fueron centralizados en file-info.css */

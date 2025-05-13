@@ -8,13 +8,29 @@ const ApiDocumentation = {
     // Datos de la API
     apiData: null,
     
+    // Variables para almacenar datos
+    availableServices: [],
+    availableConfigs: [],
+    
+    // Servicio y configuración seleccionados
+    selectedService: null,
+    selectedConfig: null,
+    
+    // Elemento JSON editor activo
+    activeJsonEditor: null,
+    
     /**
      * Inicializa la documentación de la API
      */
     init: function() {
         console.log('Inicializando documentación de API');
-        this.loadApiData();
         this.setupEventListeners();
+        this.loadServices();
+        
+        // Si ya tenemos datos, renderizar la documentación
+        if (this.apiData) {
+            this.renderApiDocumentation();
+        }
     },
     
     /**
@@ -43,6 +59,26 @@ const ApiDocumentation = {
                 const endpointId = button.getAttribute('data-endpoint');
                 this.tryEndpoint(endpointId);
             }
+            
+            // Manejar clic en botón de formateo de JSON
+            if (event.target.id === 'format-json-btn') {
+                this.highlightJsonEditor();
+            }
+            
+            // Botones de métodos API (ida, vuelta, process)
+            if (event.target.closest('.api-method-button')) {
+                const button = event.target.closest('.api-method-button');
+                const methodId = button.dataset.id;
+                const methodPath = button.dataset.path;
+                const methodMethod = button.dataset.method;
+                
+                this.callApiMethod({
+                    id: methodId,
+                    name: button.textContent,
+                    path: methodPath,
+                    method: methodMethod
+                });
+            }
         });
         
         // Manejar búsqueda/filtrado
@@ -52,684 +88,346 @@ const ApiDocumentation = {
                 this.filterEndpoints(event.target.value.trim().toLowerCase());
             });
         }
+        
+        // Manejar cambios en el selector de servicios principal
+        const serviceSelector = document.getElementById('main-service-selector');
+        if (serviceSelector) {
+            serviceSelector.addEventListener('change', async (event) => {
+                const serviceNumber = event.target.value;
+                if (serviceNumber) {
+                    // Cargar datos del servicio
+                    await this.loadServiceData(serviceNumber);
+                    
+                    // Cargar configuraciones para este servicio
+                    await this.loadServiceConfigs(serviceNumber);
+                } else {
+                    this.clearServiceData();
+                }
+            });
+        }
+        
+        // Manejar cambios en el selector de configuraciones
+        const configSelector = document.getElementById('service-config-selector');
+        if (configSelector) {
+            configSelector.addEventListener('change', async (event) => {
+                const configId = event.target.value;
+                if (configId) {
+                    await this.loadConfigData(configId);
+                }
+            });
+        }
+        
+        // Manejar eventos de edición en el editor JSON
+        const jsonEditor = document.getElementById('service-json-editor');
+        if (jsonEditor) {
+            // Guardar referencia al editor activo
+            jsonEditor.addEventListener('focus', () => {
+                this.activeJsonEditor = jsonEditor;
+            });
+            
+            // Aplicar resaltado de sintaxis al perder el foco
+            jsonEditor.addEventListener('blur', () => {
+                this.highlightJsonEditor();
+            });
+            
+            // También resaltar después de cambios
+            jsonEditor.addEventListener('input', () => {
+                // Usar un debounce para no resaltar constantemente mientras se escribe
+                clearTimeout(this.jsonEditorTimeout);
+                this.jsonEditorTimeout = setTimeout(() => {
+                    this.highlightJsonEditor();
+                }, 1000); // Esperar 1 segundo de inactividad
+            });
+        }
     },
     
     /**
-     * Carga los datos de la API 
+     * Carga la lista de servicios disponibles
      */
-    loadApiData: function() {
-        // Datos de la API - en una aplicación real esto podría cargarse desde un archivo JSON
-        this.apiData = {
-            title: "API de Servicios y Excel",
-            version: "1.0.0",
-            description: "API para gestionar servicios y archivos Excel de estructuras de datos",
-            groups: [
-                {
-                    name: "Servicios",
-                    description: "Endpoints para gestionar y procesar servicios",
-                    endpoints: [
-                        {
-                            id: "get-services",
-                            method: "GET",
-                            path: "/api/services",
-                            summary: "Obtiene la lista de servicios disponibles",
-                            description: "Devuelve todos los servicios disponibles en el sistema con sus detalles",
-                            parameters: [],
-                            responses: [
-                                {
-                                    code: "200",
-                                    description: "Lista de servicios obtenida correctamente",
-                                    example: `{
-  "services": [
-    {
-      "service_number": "1083",
-      "service_name": "Consulta de Impuestos",
-      "structure_file": "20220515T120000_1083_structure.json",
-      "excel_file": "20220515T120000_SVO1083_Consulta_Impuestos.xlsx",
-      "timestamp": "2022-05-15T12:00:00.000Z"
+    loadServices: async function() {
+        try {
+            const response = await fetch('/api/services');
+            if (!response.ok) {
+                throw new Error(`Error ${response.status}: ${response.statusText}`);
+            }
+            
+            const data = await response.json();
+            this.availableServices = data.services || [];
+            console.log('Servicios cargados:', this.availableServices.length);
+            
+            // Actualizar selector de servicios
+            this.updateServiceSelector();
+            
+            return this.availableServices;
+        } catch (error) {
+            console.error('Error al cargar servicios:', error);
+            if (typeof ConfigUtils !== 'undefined') {
+                ConfigUtils.showNotification(`Error al cargar servicios: ${error.message}`, 'error');
+            }
+            return [];
+        }
     },
-    {
-      "service_number": "1010",
-      "service_name": "Consulta de Cuentas",
-      "structure_file": "20220510T090000_1010_structure.json",
-      "excel_file": "20220510T090000_SVO1010_Consulta_Cuentas.xlsx",
-      "timestamp": "2022-05-10T09:00:00.000Z"
-    }
-  ]
-}`
-                                },
-                                {
-                                    code: "500",
-                                    description: "Error al obtener la lista de servicios",
-                                    example: `{
-  "error": "Error al obtener la lista de servicios: Error de conexión con la base de datos"
-}`
-                                }
-                            ]
-                        },
-                        {
-                            id: "process-service",
-                            method: "POST",
-                            path: "/api/services/process",
-                            summary: "Procesa un servicio",
-                            description: "Procesa un servicio por número y opcionalmente con datos de stream",
-                            parameters: [
-                                {
-                                    name: "service_number",
-                                    type: "string",
-                                    required: true,
-                                    description: "Número de servicio a procesar"
-                                },
-                                {
-                                    name: "stream",
-                                    type: "string",
-                                    required: false,
-                                    description: "Stream de datos a procesar (opcional)"
-                                }
-                            ],
-                            requestExample: `{
-  "service_number": "1083",
-  "stream": "API1083SISTEMA........"
-}`,
-                            responses: [
-                                {
-                                    code: "200",
-                                    description: "Servicio procesado correctamente",
-                                    example: `{
-  "result": {
-    "header": {
-      "CANAL": "API",
-      "SERVICIO": "1083",
-      "USUARIO": "SISTEMA"
-    },
-    "response": {
-      "IMPUESTO": "IVA",
-      "MONTO": 1250.50
-    }
-  }
-}`
-                                },
-                                {
-                                    code: "400",
-                                    description: "Error en los parámetros",
-                                    example: `{
-  "error": "Se requiere el número de servicio"
-}`
-                                },
-                                {
-                                    code: "500",
-                                    description: "Error al procesar el servicio",
-                                    example: `{
-  "error": "Error al procesar servicio: Servicio no encontrado"
-}`
-                                }
-                            ]
-                        },
-                        {
-                            id: "ida-service",
-                            method: "POST",
-                            path: "/api/services/ida",
-                            summary: "Crea mensaje para servicio de ida",
-                            description: "Crea un mensaje en formato de stream basado en un JSON para un servicio de ida",
-                            parameters: [
-                                {
-                                    name: "service_number",
-                                    type: "string",
-                                    required: true,
-                                    description: "Número de servicio"
-                                },
-                                {
-                                    name: "CANAL",
-                                    type: "string",
-                                    required: false,
-                                    description: "Canal de envío (por defecto: API)"
-                                },
-                                {
-                                    name: "USUARIO",
-                                    type: "string",
-                                    required: false,
-                                    description: "Usuario (por defecto: SISTEMA)"
-                                },
-                                {
-                                    name: "data",
-                                    type: "object",
-                                    required: true,
-                                    description: "Datos para el mensaje"
-                                }
-                            ],
-                            requestExample: `{
-  "service_number": "1083",
-  "CANAL": "API",
-  "USUARIO": "SISTEMA",
-  "data": {
-    "CUIT": "30123456789",
-    "PERIODO": "202201"
-  }
-}`,
-                            responses: [
-                                {
-                                    code: "200",
-                                    description: "Mensaje creado correctamente",
-                                    example: `{
-  "service_number": "1083",
-  "service_name": "Consulta de Impuestos",
-  "message": "API1083SISTEMA30123456789202201",
-  "status": "success"
-}`
-                                },
-                                {
-                                    code: "400",
-                                    description: "Error en los parámetros",
-                                    example: `{
-  "error": "Se requiere un número de servicio en el campo service_number"
-}`
-                                },
-                                {
-                                    code: "500",
-                                    description: "Error al crear el mensaje",
-                                    example: `{
-  "error": "Error al crear mensaje: Estructura de servicio no encontrada"
-}`
-                                }
-                            ]
-                        },
-                        {
-                            id: "vuelta-service",
-                            method: "POST",
-                            path: "/api/services/vuelta",
-                            summary: "Procesa respuesta de servicio",
-                            description: "Procesa un stream de respuesta para un servicio de vuelta",
-                            parameters: [
-                                {
-                                    name: "service_number",
-                                    type: "string",
-                                    required: true,
-                                    description: "Número de servicio"
-                                },
-                                {
-                                    name: "stream",
-                                    type: "string",
-                                    required: true,
-                                    description: "Stream de respuesta a procesar"
-                                }
-                            ],
-                            requestExample: `{
-  "service_number": "1083",
-  "stream": "API1083SISTEMA....RESPUESTA...."
-}`,
-                            responses: [
-                                {
-                                    code: "200",
-                                    description: "Respuesta procesada correctamente",
-                                    example: `{
-  "IMPUESTO": "IVA",
-  "MONTO": 1250.50,
-  "ESTADO": "PAGADO"
-}`
-                                },
-                                {
-                                    code: "400",
-                                    description: "Error en los parámetros o validación",
-                                    example: `{
-  "error": "Se requiere el stream de datos",
-  "errorType": "VALIDATION_ERROR"
-}`
-                                },
-                                {
-                                    code: "500",
-                                    description: "Error al procesar la respuesta",
-                                    example: `{
-  "error": "Error al procesar el stream: Formato inválido",
-  "errorType": "PROCESSING_ERROR"
-}`
-                                }
-                            ]
-                        },
-                        {
-                            id: "service-versions",
-                            method: "GET",
-                            path: "/api/services/versions",
-                            summary: "Obtiene versiones de un servicio",
-                            description: "Obtiene todas las versiones disponibles de un servicio específico",
-                            parameters: [
-                                {
-                                    name: "serviceNumber",
-                                    type: "string",
-                                    required: true,
-                                    description: "Número de servicio",
-                                    location: "query"
-                                }
-                            ],
-                            responses: [
-                                {
-                                    code: "200",
-                                    description: "Versiones obtenidas correctamente",
-                                    example: `{
-  "serviceNumber": "1083",
-  "versions": [
-    {
-      "service_number": "1083",
-      "service_name": "Consulta de Impuestos",
-      "excel_file": "20220515T120000_SVO1083_Consulta_Impuestos.xlsx",
-      "timestamp": "2022-05-15T12:00:00.000Z"
-    },
-    {
-      "service_number": "1083",
-      "service_name": "Consulta de Impuestos",
-      "excel_file": "20220420T140000_SVO1083_Consulta_Impuestos.xlsx",
-      "timestamp": "2022-04-20T14:00:00.000Z"
-    }
-  ]
-}`
-                                },
-                                {
-                                    code: "400",
-                                    description: "Error en los parámetros",
-                                    example: `{
-  "error": "Se requiere un número de servicio"
-}`
-                                },
-                                {
-                                    code: "500",
-                                    description: "Error al obtener las versiones",
-                                    example: `{
-  "error": "Error al obtener versiones del servicio: No se encontraron datos"
-}`
-                                }
-                            ]
-                        }
-                    ]
-                },
-                {
-                    name: "Excel",
-                    description: "Endpoints para gestionar archivos Excel y sus estructuras",
-                    endpoints: [
-                        {
-                            id: "upload-excel",
-                            method: "POST",
-                            path: "/excel/upload",
-                            summary: "Sube y procesa un archivo Excel",
-                            description: "Sube un archivo Excel con estructura de servicio y lo procesa",
-                            parameters: [
-                                {
-                                    name: "file",
-                                    type: "file",
-                                    required: true,
-                                    description: "Archivo Excel a subir"
-                                },
-                                {
-                                    name: "update",
-                                    type: "boolean",
-                                    required: false,
-                                    description: "Indica si es una actualización de un servicio existente"
-                                }
-                            ],
-                            responses: [
-                                {
-                                    code: "200",
-                                    description: "Archivo Excel procesado correctamente",
-                                    example: `{
-  "message": "Archivo Excel procesado correctamente",
-  "service_number": "1083",
-  "service_name": "Consulta de Impuestos",
-  "structure_file": "20220515T120000_1083_structure.json"
-}`
-                                },
-                                {
-                                    code: "409",
-                                    description: "Archivo duplicado",
-                                    example: `{
-  "error": "La versión que está intentando subir es idéntica a una ya existente",
-  "message": "El sistema ha detectado que este archivo ya ha sido procesado anteriormente."
-}`
-                                },
-                                {
-                                    code: "500",
-                                    description: "Error al procesar el archivo",
-                                    example: `{
-  "error": "Error al procesar el archivo Excel: Formato incorrecto"
-}`
-                                }
-                            ]
-                        },
-                        {
-                            id: "excel-files",
-                            method: "GET",
-                            path: "/excel/files",
-                            summary: "Obtiene la lista de archivos Excel",
-                            description: "Obtiene todos los archivos Excel procesados en el sistema",
-                            parameters: [],
-                            responses: [
-                                {
-                                    code: "200",
-                                    description: "Lista de archivos obtenida correctamente",
-                                    example: `{
-  "files": [
-    {
-      "filename": "20220515T120000_SVO1083_Consulta_Impuestos.xlsx",
-      "service_name": "Consulta de Impuestos",
-      "upload_date": "2022-05-15 12:00:00",
-      "service_number": "1083"
-    },
-    {
-      "filename": "20220510T090000_SVO1010_Consulta_Cuentas.xlsx",
-      "service_name": "Consulta de Cuentas",
-      "upload_date": "2022-05-10 09:00:00",
-      "service_number": "1010"
-    }
-  ]
-}`
-                                },
-                                {
-                                    code: "500",
-                                    description: "Error al obtener la lista de archivos",
-                                    example: `{
-  "error": "Error al obtener la lista de archivos: Error al leer el directorio"
-}`
-                                }
-                            ]
-                        },
-                        {
-                            id: "get-structure",
-                            method: "GET",
-                            path: "/excel/structure",
-                            summary: "Obtiene la estructura de un archivo",
-                            description: "Obtiene la estructura completa de un archivo procesado",
-                            parameters: [
-                                {
-                                    name: "structure_file",
-                                    type: "string",
-                                    required: true,
-                                    description: "Nombre del archivo de estructura",
-                                    location: "query"
-                                }
-                            ],
-                            responses: [
-                                {
-                                    code: "200",
-                                    description: "Estructura obtenida correctamente",
-                                    example: `{
-  "header_structure": {
-    "fields": [
-      {"name": "CANAL", "length": "3", "type": "string", "required": true},
-      {"name": "SERVICIO", "length": "4", "type": "string", "required": true},
-      {"name": "USUARIO", "length": "8", "type": "string", "required": true}
-    ],
-    "totalLength": 15
-  },
-  "service_structure": {
-    "serviceName": "Consulta de Impuestos",
-    "serviceNumber": "1083",
-    "request": {
-      "elements": [...]
-    },
-    "response": {
-      "elements": [...]
-    }
-  }
-}`
-                                },
-                                {
-                                    code: "400",
-                                    description: "Error en los parámetros",
-                                    example: `{
-  "error": "Archivo de estructura no especificado"
-}`
-                                },
-                                {
-                                    code: "404",
-                                    description: "Estructura no encontrada",
-                                    example: `{
-  "error": "Estructura no encontrada: El archivo especificado no existe"
-}`
-                                },
-                                {
-                                    code: "500",
-                                    description: "Error al obtener la estructura",
-                                    example: `{
-  "error": "Error al cargar la estructura: Error al leer el archivo"
-}`
-                                }
-                            ]
-                        },
-                        {
-                            id: "structure-by-service",
-                            method: "GET",
-                            path: "/excel/structure-by-service",
-                            summary: "Obtiene estructura por número de servicio",
-                            description: "Obtiene la estructura más reciente para un número de servicio específico",
-                            parameters: [
-                                {
-                                    name: "service_number",
-                                    type: "string",
-                                    required: true,
-                                    description: "Número del servicio",
-                                    location: "query"
-                                }
-                            ],
-                            responses: [
-                                {
-                                    code: "200",
-                                    description: "Estructura obtenida correctamente",
-                                    example: `{
-  "header_structure": {
-    "fields": [
-      {"name": "CANAL", "length": "3", "type": "string", "required": true},
-      {"name": "SERVICIO", "length": "4", "type": "string", "required": true},
-      {"name": "USUARIO", "length": "8", "type": "string", "required": true}
-    ],
-    "totalLength": 15
-  },
-  "service_structure": {
-    "serviceName": "Consulta de Impuestos",
-    "serviceNumber": "1083",
-    "request": {
-      "elements": [...]
-    },
-    "response": {
-      "elements": [...]
-    }
-  }
-}`
-                                },
-                                {
-                                    code: "400",
-                                    description: "Error en los parámetros",
-                                    example: `{
-  "error": "Se requiere el número de servicio"
-}`
-                                },
-                                {
-                                    code: "404",
-                                    description: "Servicio no encontrado",
-                                    example: `{
-  "error": "No se encontró estructura para el servicio 9999"
-}`
-                                },
-                                {
-                                    code: "500",
-                                    description: "Error al obtener la estructura",
-                                    example: `{
-  "error": "Error al cargar la estructura: Error al leer el archivo"
-}`
-                                }
-                            ]
-                        }
-                    ]
-                },
-                {
-                    name: "Configuraciones",
-                    description: "Endpoints para gestionar configuraciones de servicios",
-                    endpoints: [
-                        {
-                            id: "save-config",
-                            method: "POST",
-                            path: "/service-config/save",
-                            summary: "Guarda una configuración de servicio",
-                            description: "Guarda una configuración para un servicio específico",
-                            parameters: [
-                                {
-                                    name: "service_number",
-                                    type: "string",
-                                    required: true,
-                                    description: "Número del servicio"
-                                },
-                                {
-                                    name: "config_name",
-                                    type: "string",
-                                    required: true,
-                                    description: "Nombre de la configuración"
-                                },
-                                {
-                                    name: "canal",
-                                    type: "string",
-                                    required: true,
-                                    description: "Canal para el servicio"
-                                },
-                                {
-                                    name: "field_values",
-                                    type: "object",
-                                    required: true,
-                                    description: "Valores de los campos configurados"
-                                }
-                            ],
-                            requestExample: `{
-  "service_number": "1083",
-  "config_name": "Configuración IVA",
-  "canal": "API",
-  "field_values": {
-    "CUIT": "30123456789",
-    "PERIODO": "202201"
-  }
-}`,
-                            responses: [
-                                {
-                                    code: "200",
-                                    description: "Configuración guardada correctamente",
-                                    example: `{
-  "message": "Configuración guardada correctamente",
-  "config_id": "1083_config_1651234567890",
-  "timestamp": "2022-05-15T12:00:00.000Z"
-}`
-                                },
-                                {
-                                    code: "400",
-                                    description: "Error en los parámetros",
-                                    example: `{
-  "error": "Se requiere un nombre para la configuración"
-}`
-                                },
-                                {
-                                    code: "500",
-                                    description: "Error al guardar la configuración",
-                                    example: `{
-  "error": "Error al guardar la configuración: Error al escribir el archivo"
-}`
-                                }
-                            ]
-                        },
-                        {
-                            id: "list-configs",
-                            method: "GET",
-                            path: "/service-config/list",
-                            summary: "Lista configuraciones de servicios",
-                            description: "Obtiene la lista de configuraciones guardadas, opcionalmente filtradas por servicio",
-                            parameters: [
-                                {
-                                    name: "service_number",
-                                    type: "string",
-                                    required: false,
-                                    description: "Número de servicio para filtrar (opcional)",
-                                    location: "query"
-                                }
-                            ],
-                            responses: [
-                                {
-                                    code: "200",
-                                    description: "Lista de configuraciones obtenida correctamente",
-                                    example: `{
-  "configs": [
-    {
-      "config_id": "1083_config_1651234567890",
-      "service_number": "1083",
-      "config_name": "Configuración IVA",
-      "canal": "API",
-      "timestamp": "2022-05-15T12:00:00.000Z"
-    },
-    {
-      "config_id": "1010_config_1651234567891",
-      "service_number": "1010",
-      "config_name": "Configuración Cuentas",
-      "canal": "OT",
-      "timestamp": "2022-05-10T09:00:00.000Z"
-    }
-  ]
-}`
-                                },
-                                {
-                                    code: "500",
-                                    description: "Error al obtener las configuraciones",
-                                    example: `{
-  "error": "Error al obtener configuraciones: Error al leer el directorio"
-}`
-                                }
-                            ]
-                        },
-                        {
-                            id: "get-config",
-                            method: "GET",
-                            path: "/service-config/get/:id",
-                            summary: "Obtiene una configuración",
-                            description: "Obtiene los detalles de una configuración específica por ID",
-                            parameters: [
-                                {
-                                    name: "id",
-                                    type: "string",
-                                    required: true,
-                                    description: "ID de la configuración",
-                                    location: "path"
-                                }
-                            ],
-                            responses: [
-                                {
-                                    code: "200",
-                                    description: "Configuración obtenida correctamente",
-                                    example: `{
-  "config_id": "1083_config_1651234567890",
-  "service_number": "1083",
-  "service_name": "Consulta de Impuestos",
-  "config_name": "Configuración IVA",
-  "canal": "API",
-  "field_values": {
-    "CUIT": "30123456789",
-    "PERIODO": "202201"
-  },
-  "timestamp": "2022-05-15T12:00:00.000Z"
-}`
-                                },
-                                {
-                                    code: "404",
-                                    description: "Configuración no encontrada",
-                                    example: `{
-  "error": "Configuración no encontrada"
-}`
-                                },
-                                {
-                                    code: "500",
-                                    description: "Error al obtener la configuración",
-                                    example: `{
-  "error": "Error al obtener la configuración: Error al leer el archivo"
-}`
-                                }
-                            ]
-                        }
-                    ]
-                }
-            ]
-        };
+    
+    /**
+     * Actualiza el selector de servicios principal
+     */
+    updateServiceSelector: function() {
+        const serviceSelector = document.getElementById('main-service-selector');
+        if (!serviceSelector) return;
         
-        // Renderizar la documentación
-        this.renderApiDocumentation();
+        // Limpiar selector actual
+        serviceSelector.innerHTML = '<option value="">-- Seleccione un servicio --</option>';
+        
+        // Agregar servicios al selector
+        if (this.availableServices && this.availableServices.length > 0) {
+            // Filtrar servicios únicos por número
+            const uniqueServices = [];
+            const serviceNumbers = new Set();
+            
+            this.availableServices.forEach(service => {
+                if (!serviceNumbers.has(service.service_number)) {
+                    serviceNumbers.add(service.service_number);
+                    uniqueServices.push(service);
+                }
+            });
+            
+            // Ordenar por número de servicio
+            uniqueServices.sort((a, b) => {
+                return a.service_number.localeCompare(b.service_number);
+            });
+            
+            // Agregar opciones
+            uniqueServices.forEach(service => {
+                const option = document.createElement('option');
+                option.value = service.service_number;
+                option.textContent = `${service.service_number} - ${service.service_name}`;
+                serviceSelector.appendChild(option);
+            });
+        }
+    },
+    
+    /**
+     * Carga las configuraciones disponibles para un servicio específico
+     */
+    loadServiceConfigs: async function(serviceNumber) {
+        try {
+            const response = await fetch(`/service-config/list?service_number=${serviceNumber}`);
+            if (!response.ok) {
+                throw new Error(`Error ${response.status}: ${response.statusText}`);
+            }
+            
+            const data = await response.json();
+            this.availableConfigs = data.configs || [];
+            console.log(`Configuraciones cargadas para servicio ${serviceNumber}:`, this.availableConfigs.length);
+            
+            // Actualizar selector de configuraciones
+            this.updateConfigSelector();
+            
+            return this.availableConfigs;
+        } catch (error) {
+            console.error(`Error al cargar configuraciones para servicio ${serviceNumber}:`, error);
+            if (typeof ConfigUtils !== 'undefined') {
+                ConfigUtils.showNotification(`Error al cargar configuraciones: ${error.message}`, 'error');
+            }
+            return [];
+        }
+    },
+    
+    /**
+     * Actualiza el selector de configuraciones
+     */
+    updateConfigSelector: function() {
+        const configSelector = document.getElementById('service-config-selector');
+        if (!configSelector) return;
+        
+        // Limpiar selector actual
+        configSelector.innerHTML = '<option value="">-- Seleccione una configuración --</option>';
+        
+        // Agregar configuraciones al selector
+        if (this.availableConfigs && this.availableConfigs.length > 0) {
+            this.availableConfigs.forEach(config => {
+                const option = document.createElement('option');
+                option.value = config.id;
+                option.textContent = `${config.serviceNumber}-${config.canal}-${config.version}`;
+                configSelector.appendChild(option);
+            });
+        } else {
+            // Si no hay configuraciones, agregar opción deshabilitada
+            const option = document.createElement('option');
+            option.disabled = true;
+            option.textContent = 'No hay configuraciones disponibles';
+            configSelector.appendChild(option);
+        }
+    },
+    
+    /**
+     * Carga los datos de un servicio específico
+     */
+    loadServiceData: async function(serviceNumber) {
+        try {
+            // Obtener estructura del servicio
+            const response = await fetch(`/excel/structure-by-service?service_number=${serviceNumber}`);
+            if (!response.ok) {
+                throw new Error(`Error ${response.status}: ${response.statusText}`);
+            }
+            
+            const data = await response.json();
+            
+            // Guardar servicio seleccionado
+            this.selectedService = {
+                number: serviceNumber,
+                structure: data
+            };
+            
+            console.log(`Servicio ${serviceNumber} cargado:`, this.selectedService);
+            
+            // Mostrar JSON en editor
+            this.updateServiceJsonEditor(data);
+            
+            // Actualizar botones de métodos API
+            this.updateApiMethodButtons();
+            
+            return data;
+        } catch (error) {
+            console.error(`Error al cargar datos del servicio ${serviceNumber}:`, error);
+            if (typeof ConfigUtils !== 'undefined') {
+                ConfigUtils.showNotification(`Error al cargar datos del servicio: ${error.message}`, 'error');
+            }
+            return null;
+        }
+    },
+    
+    /**
+     * Carga los datos de una configuración específica
+     */
+    loadConfigData: async function(configId) {
+        try {
+            if (!configId) {
+                return null;
+            }
+            
+            const response = await fetch(`/service-config/get/${configId}`);
+            if (!response.ok) {
+                throw new Error(`Error ${response.status}: ${response.statusText}`);
+            }
+            
+            const configData = await response.json();
+            this.selectedConfig = configData;
+            
+            console.log(`Configuración ${configId} cargada:`, configData);
+            
+            // Aplicar datos de configuración al JSON en editor
+            this.applyConfigToJsonEditor(configData);
+            
+            return configData;
+        } catch (error) {
+            console.error(`Error al cargar configuración ${configId}:`, error);
+            if (typeof ConfigUtils !== 'undefined') {
+                ConfigUtils.showNotification(`Error al cargar configuración: ${error.message}`, 'error');
+            }
+            return null;
+        }
+    },
+    
+    /**
+     * Aplica los datos de una configuración al editor JSON
+     */
+    applyConfigToJsonEditor: function(configData) {
+        if (!this.selectedService || !configData) {
+            return;
+        }
+        
+        try {
+            const jsonEditor = document.getElementById('service-json-editor');
+            if (!jsonEditor) return;
+            
+            // Parsear JSON actual
+            let currentJson;
+            try {
+                currentJson = JSON.parse(jsonEditor.textContent);
+            } catch (e) {
+                currentJson = {
+                    service_number: this.selectedService.number,
+                    CANAL: "API",
+                    USUARIO: "SISTEMA",
+                    data: {}
+                };
+            }
+            
+            // Aplicar valores de configuración
+            currentJson.service_number = configData.serviceNumber;
+            currentJson.CANAL = configData.canal;
+            
+            // Si hay valores de campos en la configuración, aplicarlos
+            if (configData.header) {
+                // Aplicar valores del encabezado
+                Object.assign(currentJson, configData.header);
+            }
+            
+            if (configData.request) {
+                // Aplicar valores de la solicitud
+                currentJson.data = configData.request;
+            }
+            
+            // Actualizar editor JSON
+            jsonEditor.textContent = JSON.stringify(currentJson, null, 2);
+            this.highlightJsonEditor();
+            
+        } catch (error) {
+            console.error('Error al aplicar configuración al editor JSON:', error);
+        }
+    },
+    
+    /**
+     * Actualiza el editor de JSON con los datos del servicio
+     */
+    updateServiceJsonEditor: function(data) {
+        const jsonEditor = document.getElementById('service-json-editor');
+        if (!jsonEditor) return;
+        
+        // Crear objeto de ejemplo según la estructura del servicio
+        const exampleJson = this.createExampleJson(data);
+        
+        // Mostrar JSON en editor
+        jsonEditor.textContent = JSON.stringify(exampleJson, null, 2);
+        
+        // Resaltar sintaxis
+        this.activeJsonEditor = jsonEditor;
+        this.highlightJsonEditor();
+        
+        // Habilitar edición directa
+        jsonEditor.contentEditable = "true";
+    },
+    
+    /**
+     * Limpia los datos del servicio y la configuración seleccionados
+     */
+    clearServiceData: function() {
+        // Limpiar servicio y configuración seleccionados
+        this.selectedService = null;
+        this.selectedConfig = null;
+        
+        // Limpiar editor JSON
+        const jsonEditor = document.getElementById('service-json-editor');
+        if (jsonEditor) {
+            jsonEditor.textContent = '{}';
+            this.highlightJsonEditor();
+        }
+        
+        // Limpiar selector de configuraciones
+        const configSelector = document.getElementById('service-config-selector');
+        if (configSelector) {
+            configSelector.innerHTML = '<option value="">-- Seleccione una configuración --</option>';
+        }
+        
+        // Actualizar botones de métodos
+        this.updateApiMethodButtons();
+        
+        // Limpiar resultados
+        const resultsContainer = document.getElementById('api-call-results');
+        if (resultsContainer) {
+            resultsContainer.style.display = 'none';
+        }
     },
     
     /**
@@ -739,7 +437,7 @@ const ApiDocumentation = {
         const apiContainer = document.getElementById('apiDocumentation');
         if (!apiContainer || !this.apiData) return;
         
-        // Crear header de la documentación
+        // Crear header de la documentación con selector de servicios Y configuraciones
         let html = `
             <div class="api-doc-container">
                 <div class="api-doc-header">
@@ -747,10 +445,57 @@ const ApiDocumentation = {
                     <h1>${this.apiData.title}</h1>
                     <p>${this.apiData.description}</p>
                     
+                    <!-- Sección de selección de servicio y configuración -->
+                    <div class="api-service-selector">
+                        <div class="service-row">
+                            <div class="service-col">
+                                <label for="main-service-selector">Servicio:</label>
+                                <select id="main-service-selector" class="api-service-select">
+                                    <option value="">-- Seleccione un servicio --</option>
+                                </select>
+                            </div>
+                            <div class="service-col">
+                                <label for="service-config-selector">Configuración:</label>
+                                <select id="service-config-selector" class="api-service-select">
+                                    <option value="">-- Seleccione una configuración --</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <div class="api-search-container">
                         <input type="text" class="api-search-input" placeholder="Buscar endpoints (método, ruta, descripción)...">
                     </div>
                 </div>
+                
+                <!-- Sección de prueba de servicios -->
+                <div class="api-service-tester">
+                    <h2>Probar Servicios</h2>
+                    
+                    <div class="service-json-container">
+                        <h3>Datos del servicio (JSON)</h3>
+                        <pre id="service-json-editor" class="service-json-editor json-editor" contenteditable="true">{}</pre>
+                        <div class="json-editor-tools">
+                            <button id="format-json-btn" class="tool-btn">Formatear JSON</button>
+                        </div>
+                    </div>
+                    
+                    <div class="api-method-container">
+                        <h3>Métodos disponibles</h3>
+                        <div id="api-method-buttons" class="api-method-buttons">
+                            <p class="text-center">Seleccione un servicio para ver métodos disponibles</p>
+                        </div>
+                    </div>
+                    
+                    <div id="api-call-results" class="api-call-results" style="display:none;">
+                        <div class="results-header">
+                            <h4>Resultado:</h4>
+                        </div>
+                        <pre class="results-json"></pre>
+                    </div>
+                </div>
+                
+                <h2>Documentación de endpoints</h2>
         `;
         
         // Crear grupos de endpoints
@@ -781,6 +526,34 @@ const ApiDocumentation = {
         // Insertar HTML en el contenedor
         apiContainer.innerHTML = html;
         
+        // Ajustar estilos para la sección de selección de servicio y configuración
+        const style = document.createElement('style');
+        style.textContent = `
+            .api-service-selector {
+                margin-bottom: 20px;
+                padding: 15px;
+                background-color: var(--card-bg);
+                border: 1px solid var(--border-color);
+                border-radius: var(--radius);
+            }
+            .service-row {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 15px;
+            }
+            .service-col {
+                flex: 1;
+                min-width: 200px;
+            }
+            .service-col label {
+                display: block;
+                margin-bottom: 8px;
+                font-weight: 500;
+                color: var(--text-color);
+            }
+        `;
+        document.head.appendChild(style);
+        
         // Abrir el primer grupo por defecto
         const firstGroup = apiContainer.querySelector('.api-group');
         if (firstGroup) {
@@ -789,128 +562,235 @@ const ApiDocumentation = {
     },
     
     /**
-     * Renderiza un endpoint individual
-     * @param {Object} endpoint - Datos del endpoint
-     * @returns {string} HTML del endpoint
+     * Actualiza los botones de métodos API según el servicio seleccionado
      */
-    renderEndpoint: function(endpoint) {
-        let html = `
-            <div class="api-endpoint" id="endpoint-${endpoint.id}" data-path="${endpoint.path}" data-method="${endpoint.method}">
-                <div class="endpoint-header">
-                    <span class="http-method ${endpoint.method.toLowerCase()}">${endpoint.method}</span>
-                    <span class="endpoint-path">${endpoint.path}</span>
-                    <span class="endpoint-summary">${endpoint.summary}</span>
-                </div>
-                <div class="endpoint-content">
-                    <div class="endpoint-description">${endpoint.description}</div>
-        `;
+    updateApiMethodButtons: function() {
+        const buttonsContainer = document.getElementById('api-method-buttons');
+        if (!buttonsContainer) return;
         
-        // Parámetros
-        if (endpoint.parameters && endpoint.parameters.length > 0) {
-            html += `
-                <div class="params-section">
-                    <div class="params-title">Parámetros</div>
-                    <table class="params-table">
-                        <thead>
-                            <tr>
-                                <th>Nombre</th>
-                                <th>Tipo</th>
-                                <th>Requerido</th>
-                                <th>Descripción</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-            `;
-            
-            endpoint.parameters.forEach(param => {
-                html += `
-                    <tr>
-                        <td class="param-name">${param.name}</td>
-                        <td class="param-type">${param.type}</td>
-                        <td>${param.required ? '<span class="param-required">Sí</span>' : 'No'}</td>
-                        <td>${param.description}</td>
-                    </tr>
-                `;
-            });
-            
-            html += `
-                        </tbody>
-                    </table>
-                </div>
-            `;
+        // Limpiar botones existentes
+        buttonsContainer.innerHTML = '';
+        
+        // Si no hay servicio seleccionado, no mostrar botones
+        if (!this.selectedService) {
+            buttonsContainer.innerHTML = '<p class="text-center">Seleccione un servicio para ver métodos disponibles</p>';
+            return;
         }
         
-        // Ejemplo de solicitud
-        if (endpoint.requestExample) {
-            html += `
-                <div class="example-container">
-                    <div class="example-title">Ejemplo de solicitud</div>
-                    <pre class="code-example">${this.syntaxHighlight(endpoint.requestExample)}</pre>
-                </div>
-            `;
+        // Crear botones para los métodos disponibles
+        const methods = [
+            { id: 'ida-service', name: 'Servicio de Ida', method: 'POST', path: '/api/services/ida' },
+            { id: 'vuelta-service', name: 'Servicio de Vuelta', method: 'POST', path: '/api/services/vuelta' },
+            { id: 'process-service', name: 'Procesar Servicio', method: 'POST', path: '/api/services/process' }
+        ];
+        
+        methods.forEach(method => {
+            const button = document.createElement('button');
+            button.className = 'api-method-button';
+            button.dataset.method = method.method;
+            button.dataset.path = method.path;
+            button.dataset.id = method.id;
+            button.textContent = method.name;
+            
+            buttonsContainer.appendChild(button);
+        });
+    },
+    
+    /**
+     * Crea un JSON de ejemplo según la estructura del servicio
+     */
+    createExampleJson: function(data) {
+        // JSON base para el servicio de ida
+        const exampleJson = {
+            service_number: this.selectedService ? this.selectedService.number : '3088',
+            CANAL: "API",
+            USUARIO: "SISTEMA",
+            data: {}
+        };
+        
+        // Si hay estructura de servicio
+        if (data && data.service_structure && data.service_structure.request 
+            && data.service_structure.request.elements) {
+            
+            // Función recursiva para crear ejemplo basado en elementos
+            const processElements = (elements, parentObj) => {
+                elements.forEach(element => {
+                    // Si el elemento tiene un nombre, agregarlo al objeto
+                    if (element.name) {
+                        // Crear valor según el tipo
+                        let value = "";
+                        
+                        if (element.type === "string") {
+                            value = element.example || "";
+                        } else if (element.type === "numeric") {
+                            value = element.example ? parseFloat(element.example) : 0;
+                        } else if (element.type === "date") {
+                            value = element.example || "20250101";
+                        } else {
+                            value = element.example || "";
+                        }
+                        
+                        // Guardar en objeto
+                        parentObj[element.name] = value;
+                    }
+                    
+                    // Si tiene elementos anidados
+                    if (element.elements && element.elements.length > 0) {
+                        // Crear objeto o array según el caso
+                        if (element.occurrence && (element.occurrence === "*" || parseInt(element.occurrence) > 1)) {
+                            // Es una ocurrencia múltiple, crear array con un objeto de ejemplo
+                            const childArray = [];
+                            const childObj = {};
+                            parentObj[element.name] = childArray;
+                            childArray.push(childObj);
+                            
+                            // Procesar elementos anidados
+                            processElements(element.elements, childObj);
+                        } else {
+                            // Es un objeto simple
+                            const childObj = {};
+                            if (element.name) {
+                                parentObj[element.name] = childObj;
+                                processElements(element.elements, childObj);
+                            } else {
+                                // Si no tiene nombre, agregar directamente al padre
+                                processElements(element.elements, parentObj);
+                            }
+                        }
+                    }
+                });
+            };
+            
+            // Procesar elementos de la solicitud
+            processElements(data.service_structure.request.elements, exampleJson.data);
         }
         
-        // Respuestas
-        if (endpoint.responses && endpoint.responses.length > 0) {
-            html += `
-                <div class="response-section">
-                    <div class="response-title">Respuestas</div>
-                    <table class="response-table">
-                        <thead>
-                            <tr>
-                                <th>Código</th>
-                                <th>Descripción</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-            `;
-            
-            endpoint.responses.forEach(response => {
-                const responseClass = response.code.startsWith('2') ? 'success' : 
-                                    response.code.startsWith('4') ? 'error' : 'warning';
-                
-                html += `
-                    <tr>
-                        <td><span class="response-code ${responseClass}">${response.code}</span></td>
-                        <td>${response.description}</td>
-                    </tr>
-                `;
-                
-                // Ejemplo de respuesta si está disponible
-                if (response.example) {
-                    html += `
-                        <tr>
-                            <td colspan="2">
-                                <div class="example-container">
-                                    <div class="example-title">Ejemplo de respuesta (${response.code})</div>
-                                    <pre class="code-example">${this.syntaxHighlight(response.example)}</pre>
-                                </div>
-                            </td>
-                        </tr>
-                    `;
+        return exampleJson;
+    },
+    
+    /**
+     * Llama a un método API con los datos del servicio
+     */
+    callApiMethod: async function(methodInfo) {
+        try {
+            // Verificar que hay un servicio seleccionado
+            if (!this.selectedService) {
+                if (typeof ConfigUtils !== 'undefined') {
+                    ConfigUtils.showNotification('Debe seleccionar un servicio', 'warning');
                 }
-            });
+                return;
+            }
             
-            html += `
-                        </tbody>
-                    </table>
-                </div>
-            `;
+            // Obtener JSON del editor
+            const jsonEditor = document.getElementById('service-json-editor');
+            if (!jsonEditor) {
+                if (typeof ConfigUtils !== 'undefined') {
+                    ConfigUtils.showNotification('Editor de JSON no encontrado', 'error');
+                }
+                return;
+            }
+            
+            // Parsear JSON del editor
+            let requestData;
+            try {
+                requestData = JSON.parse(jsonEditor.textContent);
+            } catch (error) {
+                if (typeof ConfigUtils !== 'undefined') {
+                    ConfigUtils.showNotification(`JSON inválido: ${error.message}`, 'error');
+                }
+                return;
+            }
+            
+            // Verificar que el JSON tiene un service_number
+            if (!requestData.service_number) {
+                requestData.service_number = this.selectedService.number;
+            }
+            
+            // Configurar opciones de fetch
+            const fetchOptions = {
+                method: methodInfo.method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(requestData)
+            };
+            
+            // Mostrar indicador de carga
+            const resultsContainer = document.getElementById('api-call-results');
+            if (resultsContainer) {
+                resultsContainer.innerHTML = '<div class="loading">Procesando solicitud...</div>';
+                resultsContainer.style.display = 'block';
+            }
+            
+            // Realizar solicitud
+            const response = await fetch(methodInfo.path, fetchOptions);
+            const responseData = await response.json();
+            
+            // Mostrar resultado
+            if (resultsContainer) {
+                // Crear contenedor para mostrar el resultado
+                resultsContainer.innerHTML = `
+                    <div class="results-header">
+                        <h4>Resultado: ${methodInfo.name}</h4>
+                        <span class="response-code ${response.ok ? 'success' : 'error'}">
+                            ${response.status} ${response.statusText}
+                        </span>
+                    </div>
+                    <pre class="results-json">${JSON.stringify(responseData, null, 2)}</pre>
+                `;
+                
+                // Resaltar sintaxis del JSON de respuesta
+                const resultsJson = resultsContainer.querySelector('.results-json');
+                resultsJson.innerHTML = this.syntaxHighlight(JSON.stringify(responseData, null, 2));
+            }
+            
+            // Notificar resultado
+            if (typeof ConfigUtils !== 'undefined') {
+                ConfigUtils.showNotification(
+                    `${methodInfo.name}: ${response.ok ? 'Éxito' : 'Error ' + response.status}`, 
+                    response.ok ? 'success' : 'error'
+                );
+            }
+            
+        } catch (error) {
+            console.error(`Error al llamar al método ${methodInfo.name}:`, error);
+            
+            // Mostrar error en resultados
+            const resultsContainer = document.getElementById('api-call-results');
+            if (resultsContainer) {
+                resultsContainer.innerHTML = `
+                    <div class="results-header">
+                        <h4>Error: ${methodInfo.name}</h4>
+                        <span class="response-code error">Error</span>
+                    </div>
+                    <pre class="results-json error-text">${error.message}</pre>
+                `;
+            }
+            
+            if (typeof ConfigUtils !== 'undefined') {
+                ConfigUtils.showNotification(`Error: ${error.message}`, 'error');
+            }
         }
+    },
+    
+    /**
+     * Aplica resaltado de sintaxis al editor JSON activo
+     */
+    highlightJsonEditor: function() {
+        if (!this.activeJsonEditor) return;
         
-        // Botón para probar el endpoint (solo para métodos POST)
-        if (endpoint.method === 'POST') {
-            html += `
-                <button class="try-it-btn" data-endpoint="${endpoint.id}">Probar Este Endpoint</button>
-            `;
+        try {
+            // Obtener texto actual
+            const text = this.activeJsonEditor.textContent;
+            // Parsear y formatear JSON para verificar que es válido
+            const formattedJson = JSON.stringify(JSON.parse(text), null, 2);
+            // Resaltar sintaxis
+            this.activeJsonEditor.innerHTML = this.syntaxHighlight(formattedJson);
+        } catch (error) {
+            // Si hay un error en el JSON, mantener el texto sin formato
+            console.warn('Error al resaltar sintaxis JSON:', error);
         }
-        
-        html += `
-                </div>
-            </div>
-        `;
-        
-        return html;
     },
     
     /**
@@ -954,53 +834,266 @@ const ApiDocumentation = {
         });
     },
     
+/**
+ * Renderiza un endpoint individual
+ * @param {Object} endpoint - Datos del endpoint
+ * @returns {string} HTML del endpoint
+ */
+    renderEndpoint: function(endpoint) {
+        // Si el endpoint no tiene ID, usar el path como ID
+        if (!endpoint.id) {
+            endpoint.id = this.slugify(endpoint.path);
+        }
+        
+        let html = `
+            <div class="api-endpoint" id="endpoint-${endpoint.id}" data-path="${endpoint.path}" data-method="${endpoint.method}">
+                <div class="endpoint-header">
+                    <span class="http-method ${endpoint.method.toLowerCase()}">${endpoint.method}</span>
+                    <span class="endpoint-path">${endpoint.path}</span>
+                    <span class="endpoint-summary">${endpoint.summary || ''}</span>
+                    <button class="toggle-btn">▼</button>
+                </div>
+                <div class="endpoint-content">
+                    <div class="endpoint-description">${endpoint.description || ''}</div>
+        `;
+        
+        // Parámetros de la solicitud
+        if (endpoint.parameters && endpoint.parameters.length > 0) {
+            html += `
+                <div class="params-title">Parámetros de solicitud</div>
+                <table class="params-table">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Tipo</th>
+                            <th>Requerido</th>
+                            <th>Descripción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            endpoint.parameters.forEach(param => {
+                html += `
+                    <tr>
+                        <td class="param-name">${param.name}</td>
+                        <td class="param-type">${param.type || ''}</td>
+                        <td>${param.required ? '<span class="param-required">Sí</span>' : 'No'}</td>
+                        <td>${param.description || ''}</td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                    </tbody>
+                </table>
+            `;
+        }
+        
+        // Ejemplo de solicitud
+        if (endpoint.requestExample) {
+            html += `
+                <div class="example-container">
+                    <div class="example-title">Ejemplo de solicitud</div>
+                    <pre class="code-example">${this.syntaxHighlight(endpoint.requestExample)}</pre>
+                </div>
+            `;
+        }
+        
+        // Respuestas
+        if (endpoint.responses && endpoint.responses.length > 0) {
+            html += `
+                <div class="response-title">Respuestas</div>
+                <table class="response-table">
+                    <thead>
+                        <tr>
+                            <th>Código</th>
+                            <th>Descripción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            endpoint.responses.forEach(response => {
+                const responseClass = response.code.startsWith('2') ? 'success' : 
+                                     (response.code.startsWith('4') || response.code.startsWith('5')) ? 'error' : 'warning';
+                
+                html += `
+                    <tr>
+                        <td><span class="response-code ${responseClass}">${response.code}</span></td>
+                        <td>${response.description || ''}</td>
+                    </tr>
+                `;
+                
+                // Ejemplo de respuesta
+                if (response.example) {
+                    html += `
+                        <tr>
+                            <td colspan="2">
+                                <div class="example-container">
+                                    <pre class="code-example">${this.syntaxHighlight(response.example)}</pre>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }
+            });
+            
+            html += `
+                    </tbody>
+                </table>
+            `;
+        }
+        
+        // Botón de prueba del endpoint
+        html += `
+                <button class="try-it-btn" data-endpoint="${endpoint.id}">Probar Endpoint</button>
+            </div>
+        </div>
+        `;
+        
+        return html;
+    },
+    
     /**
-     * Expande/contrae un grupo de endpoints
-     * @param {HTMLElement} group - El elemento del grupo
+     * Alterna la visibilidad de un grupo de endpoints
      */
     toggleGroup: function(group) {
         if (!group) return;
         
-        const content = group.querySelector('.api-group-content');
-        const toggleBtn = group.querySelector('.toggle-btn');
+        // Alternar clase expanded
+        group.classList.toggle('expanded');
         
-        if (group.classList.contains('expanded')) {
-            group.classList.remove('expanded');
-            if (toggleBtn) toggleBtn.textContent = '▼';
-        } else {
-            group.classList.add('expanded');
-            if (toggleBtn) toggleBtn.textContent = '▲';
+        // Actualizar estado del botón
+        const button = group.querySelector('.toggle-btn');
+        if (button) {
+            button.classList.toggle('expanded');
+            // Cambiar ícono según estado
+            button.textContent = group.classList.contains('expanded') ? '▲' : '▼';
         }
     },
     
     /**
-     * Expande/contrae un endpoint
-     * @param {HTMLElement} endpoint - El elemento del endpoint
+     * Alterna la visibilidad de un endpoint
      */
     toggleEndpoint: function(endpoint) {
         if (!endpoint) return;
         
-        if (endpoint.classList.contains('expanded')) {
-            endpoint.classList.remove('expanded');
-        } else {
-            endpoint.classList.add('expanded');
+        // Alternar clase expanded
+        endpoint.classList.toggle('expanded');
+        
+        // Actualizar estado del botón
+        const button = endpoint.querySelector('.toggle-btn');
+        if (button) {
+            button.classList.toggle('expanded');
+            // Cambiar ícono según estado
+            button.textContent = endpoint.classList.contains('expanded') ? '▲' : '▼';
         }
     },
     
     /**
-     * Filtra los endpoints según el texto de búsqueda
-     * @param {string} searchText - Texto a buscar
+     * Convierte un texto en un slug (URL-friendly)
+     */
+    slugify: function(text) {
+        return text.toString().toLowerCase()
+            .replace(/\s+/g, '-')           // Reemplazar espacios con guiones
+            .replace(/[^\w\-]+/g, '')       // Eliminar caracteres no válidos
+            .replace(/\-\-+/g, '-')         // Reemplazar múltiples guiones con uno solo
+            .replace(/^-+/, '')             // Eliminar guiones al inicio
+            .replace(/-+$/, '');            // Eliminar guiones al final
+    },
+    
+    /**
+     * Intenta un endpoint específico
+     */
+    tryEndpoint: function(endpointId) {
+        // Buscar el endpoint en los datos cargados
+        let targetEndpoint = null;
+        
+        if (this.apiData && this.apiData.groups) {
+            for (const group of this.apiData.groups) {
+                if (group.endpoints) {
+                    targetEndpoint = group.endpoints.find(e => e.id === endpointId);
+                    if (targetEndpoint) break;
+                }
+            }
+        }
+        
+        if (!targetEndpoint) {
+            console.error(`Endpoint with ID ${endpointId} not found`);
+            return;
+        }
+        
+        // Si estamos en la pestaña de servicios, usar la configuración seleccionada
+        if (this.selectedService) {
+            // Mostrar notificación
+            if (typeof ConfigUtils !== 'undefined') {
+                ConfigUtils.showNotification(
+                    `Probando endpoint ${targetEndpoint.method} ${targetEndpoint.path}...`,
+                    'info'
+                );
+            } else {
+                console.log(`Probando endpoint ${targetEndpoint.method} ${targetEndpoint.path}...`);
+            }
+            
+            // Obtener JSON del editor
+            const jsonEditor = document.getElementById('service-json-editor');
+            let requestData = {};
+            
+            if (jsonEditor) {
+                try {
+                    requestData = JSON.parse(jsonEditor.textContent);
+                } catch (error) {
+                    console.warn("Error al parsear JSON del editor:", error);
+                }
+            }
+            
+            // Determinar el método a utilizar según el endpoint
+            let methodInfo = {
+                id: targetEndpoint.id,
+                name: targetEndpoint.summary || targetEndpoint.path,
+                method: targetEndpoint.method,
+                path: targetEndpoint.path
+            };
+            
+            // Llamar al método API
+            this.callApiMethod(methodInfo);
+        } else {
+            // Notificar al usuario que debe seleccionar un servicio primero
+            if (typeof ConfigUtils !== 'undefined') {
+                ConfigUtils.showNotification(
+                    'Para probar los endpoints, seleccione primero un servicio en la parte superior.',
+                    'warning',
+                    5000
+                );
+            } else {
+                console.warn('Para probar los endpoints, seleccione primero un servicio');
+            }
+            
+            // Desplazarse hasta la sección de selección de servicio
+            const serviceSelector = document.getElementById('main-service-selector');
+            if (serviceSelector) {
+                serviceSelector.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+        
+        // Hacer visible este endpoint en la documentación
+        const endpointElement = document.getElementById(`endpoint-${endpointId}`);
+        if (endpointElement && !endpointElement.classList.contains('expanded')) {
+            this.toggleEndpoint(endpointElement);
+        }
+    },
+    
+    /**
+     * Filtra endpoints según texto de búsqueda
      */
     filterEndpoints: function(searchText) {
-        const endpoints = document.querySelectorAll('.api-endpoint');
-        
         if (!searchText) {
             // Si no hay texto de búsqueda, mostrar todos
-            endpoints.forEach(endpoint => {
+            document.querySelectorAll('.api-endpoint').forEach(endpoint => {
                 endpoint.style.display = '';
             });
             
-            // También mostrar todos los grupos
             document.querySelectorAll('.api-group').forEach(group => {
                 group.style.display = '';
             });
@@ -1009,80 +1102,40 @@ const ApiDocumentation = {
         }
         
         // Ocultar todos los endpoints primero
-        endpoints.forEach(endpoint => {
-            endpoint.style.display = 'none';
-        });
-        
-        // Mostrar solo los que coinciden con la búsqueda
-        endpoints.forEach(endpoint => {
+        document.querySelectorAll('.api-endpoint').forEach(endpoint => {
             const method = endpoint.getAttribute('data-method') || '';
             const path = endpoint.getAttribute('data-path') || '';
             const summary = endpoint.querySelector('.endpoint-summary')?.textContent || '';
             const description = endpoint.querySelector('.endpoint-description')?.textContent || '';
             
-            if (method.toLowerCase().includes(searchText) || 
+            // Verificar si coincide con la búsqueda
+            const isMatch = (
+                method.toLowerCase().includes(searchText) || 
                 path.toLowerCase().includes(searchText) || 
                 summary.toLowerCase().includes(searchText) || 
-                description.toLowerCase().includes(searchText)) {
-                
-                endpoint.style.display = '';
-                
-                // También mostrar el grupo padre
-                const parentGroup = endpoint.closest('.api-group');
-                if (parentGroup) {
-                    parentGroup.style.display = '';
-                    parentGroup.classList.add('expanded');
-                    parentGroup.querySelector('.api-group-content').style.maxHeight = 'none';
-                }
-                
-                // Expandir el endpoint para mostrar los detalles
-                this.toggleEndpoint(endpoint);
+                description.toLowerCase().includes(searchText)
+            );
+            
+            // Mostrar u ocultar según coincidencia
+            endpoint.style.display = isMatch ? '' : 'none';
+            
+            // Si coincide, asegurarse de que está expandido
+            if (isMatch) {
+                endpoint.classList.add('expanded');
             }
         });
         
-        // Ocultar grupos sin endpoints visibles
+        // Mostrar solo grupos con endpoints visibles
         document.querySelectorAll('.api-group').forEach(group => {
-            const visibleEndpoints = group.querySelectorAll('.api-endpoint[style=""]').length;
-            if (visibleEndpoints === 0) {
-                group.style.display = 'none';
+            const hasVisibleEndpoints = group.querySelector('.api-endpoint[style=""]') !== null;
+            group.style.display = hasVisibleEndpoints ? '' : 'none';
+            
+            // Si hay endpoints visibles, expandir el grupo
+            if (hasVisibleEndpoints) {
+                group.classList.add('expanded');
             }
         });
-    },
-    
-    /**
-     * Implementación simple de prueba de un endpoint
-     * @param {string} endpointId - ID del endpoint a probar
-     */
-    tryEndpoint: function(endpointId) {
-        // Buscar datos del endpoint
-        const endpoint = this.apiData.groups.flatMap(g => g.endpoints).find(e => e.id === endpointId);
-        
-        if (!endpoint) {
-            // Usando el método showNotification de ConfigUtils para mantener consistencia
-            ConfigUtils.showNotification(`Endpoint ${endpointId} no encontrado`, 'error');
-            return;
-        }
-        
-        // Mostrar diálogo de prueba usando showNotification de ConfigUtils
-        ConfigUtils.showNotification(`Prueba del endpoint ${endpoint.method} ${endpoint.path}\n\nEn una implementación real, aquí habría un formulario para probar el endpoint.`, 'info', true);
-    },
-    
-    /**
-     * Convierte un string a formato slug (para IDs)
-     * @param {string} text - Texto a convertir
-     * @returns {string} Slug generado
-     */
-    slugify: function(text) {
-        return text.toString().toLowerCase()
-            .replace(/\s+/g, '-')           // Reemplazar espacios con -
-            .replace(/[^\w\-]+/g, '')       // Eliminar caracteres que no sean palabra
-            .replace(/\-\-+/g, '-')         // Reemplazar múltiples - con uno solo
-            .replace(/^-+/, '')             // Recortar - del inicio
-            .replace(/-+$/, '');            // Recortar - del final
     }
 };
 
-// Inicializar cuando el DOM esté listo
-document.addEventListener('DOMContentLoaded', function() {
-    ApiDocumentation.init();
-});
+console.log('API Documentation System loaded');

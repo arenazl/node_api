@@ -128,6 +128,15 @@
   color: white;
 }
 
+/* Color específico para el icono del tema verde */
+.theme-option[data-theme="green"] svg {
+  color: #2AA110;
+}
+
+.theme-option[data-theme="green"].active svg {
+  color: white;
+}
+
 /* Ajustes para pantallas pequeñas */
 @media (max-width: 768px) {
   .theme-selector {

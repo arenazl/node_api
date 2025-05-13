@@ -1,0 +1,29 @@
+{
+  "serviceNumber": "1010",
+  "serviceName": "SERVICIO 1010 - Consulta Datos de Contrato por NIC",
+  "canal": "ME",
+  "version": "v2",
+  "timestamp": "2025-05-12T06:42:05.160Z",
+  "header": {
+    "LONGITUD DEL MENSAJE": "548498",
+    "CANAL": "ME",
+    "SERVICIO": "7855",
+    "CÓDIGO DE RETORNO": "9329",
+    "ID DEL MENSAJE": "137090030",
+    "FECHA": "20250512",
+    "HORA": "034155",
+    "USUARIO": "USUAR_8",
+    "Ubicación": "4056",
+    "TEXTO DEL CÓDIGO DE RETORNO": "TEXTO_76",
+    "ESTADO ENVIADO": "33",
+    "CAMPO COMPLEMENTARIO": "CAMPO"
+  },
+  "request": {
+    "SVC1010-NIC": "",
+    "SVC1010-TIP-PEDIDO": "",
+    "SVC1010-BANCO": "",
+    "SVC1010-SUCURSAL": "",
+    "SVC1010-COD-PRODUC": "",
+    "SVC1010-NRO-CUENTA": ""
+  }
+}

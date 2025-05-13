@@ -47,8 +47,8 @@ function createHeaderMessage(headerStructure, headerData) {
     const fieldLength = field.length;
     const fieldValue = headerData[fieldName] || '';
     
-    // Formatear valor según longitud
-    const formattedValue = formatValue(fieldValue, fieldLength);
+    // Formatear valor según longitud y tipo
+    const formattedValue = formatValue(fieldValue, fieldLength, field.fieldType || field.type);
     
     // Agregar al mensaje
     message += formattedValue;
@@ -87,8 +87,8 @@ function createDataMessage(serviceStructure, data, section) {
       const fieldLength = element.length;
       const fieldValue = data[fieldName] || '';
       
-      // Formatear valor según longitud
-      const formattedValue = formatValue(fieldValue, fieldLength);
+      // Formatear valor según longitud y tipo
+      const formattedValue = formatValue(fieldValue, fieldLength, element.fieldType);
       
       // Agregar al mensaje
       message += formattedValue;
@@ -165,8 +165,8 @@ function formatOccurrences(occurrenceElement, occurrenceData, maxCount) {
         const fieldLength = field.length;
         const fieldValue = occurrenceItem[fieldName] || '';
         
-        // Formatear valor según longitud
-        const formattedValue = formatValue(fieldValue, fieldLength);
+        // Formatear valor según longitud y tipo
+        const formattedValue = formatValue(fieldValue, fieldLength, field.fieldType);
         
         // Agregar al mensaje
         message += formattedValue;
@@ -213,26 +213,47 @@ function findNestedOccurrenceData(occurrenceItem, nestedOccurrenceId) {
 }
 
 /**
- * Formatea un valor según la longitud especificada
- * @param {string|number} value - Valor a formatear
- * @param {number} length - Longitud del campo
- * @returns {string} Valor formateado
+ * Formatea un valor según la longitud y tipo especificados
+ * @param {string|number|null|undefined} value - El valor a procesar.
+ * @param {number} length - La longitud final deseada.
+ * @param {string} type - El tipo de campo ('numerico', 'alfanumerico', etc.).
+ * @returns {string} - El valor formateado con la longitud fija.
  */
-function formatValue(value, length) {
-  // Convertir a string
-  let strValue = String(value || '');
+function formatValue(value, length, type) {
+  // Convertir valor a string, tratando null/undefined como string vacío
+  const strValue = String(value ?? '');
   
-  // Truncar si es más largo que la longitud
-  if (strValue.length > length) {
-    strValue = strValue.substring(0, length);
+  // Si el valor es vacío o solo espacios, devolver string vacío del tamaño requerido
+  if (strValue.trim() === '') {
+    return ' '.repeat(parseInt(length || 0));
   }
   
-  // Rellenar con espacios si es más corto que la longitud
-  while (strValue.length < length) {
-    strValue += ' ';
+  // Normalizar el tipo a minúsculas y sin acentos para comparaciones más robustas
+  const fieldType = (type || '').toLowerCase()
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  
+  const numLength = parseInt(length || 0);
+  if (numLength <= 0) return '';
+
+  // Truncar si es más largo que la longitud requerida
+  let processedValue = (strValue.length > numLength) ? strValue.substring(0, numLength) : strValue;
+
+  // VERIFICACIÓN SIMPLIFICADA PARA LOS DOS ÚNICOS TIPOS POSIBLES
+  
+  // Verificación para los tipos específicos de la estructura
+  if (fieldType === 'alfanumerico') {
+    return processedValue.padEnd(numLength, ' ');
   }
   
-  return strValue;
+  if (fieldType === 'numerico') {
+    // Para numéricos, rellenar con ceros a la izquierda
+    return processedValue.padStart(numLength, '0');
+  }
+
+  // Comportamiento predeterminado si el tipo no está definido o reconocido
+  // Asumimos tipo alfanumérico como comportamiento predeterminado más seguro
+  console.warn(`ADVERTENCIA: Tipo "${fieldType}" no reconocido para el valor "${strValue}", tratando como ALFANUMÉRICO.`);
+  return processedValue.padEnd(numLength, ' ');
 }
 
 module.exports = {

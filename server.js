@@ -31,6 +31,7 @@ const apiRoutes = require('./routes/api');
 const excelRoutes = require('./routes/excel');
 const serviceRoutes = require('./routes/services');
 const serviceConfigRoutes = require('./routes/service-config');
+const systemMaintenanceRoutes = require('./routes/system-maintenance');
 
 // Crear directorios necesarios si no existen
 const uploadsDir = path.join(__dirname, 'uploads');
@@ -44,18 +45,9 @@ fs.ensureDirSync(logsDir);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Configuración específica para Heroku
-const isHeroku = process.env.NODE_ENV === 'production';
-
-// Crear directorios adicionales para Heroku
+// Crear directorio temporal
 const tmpDir = path.join(__dirname, 'tmp');
 fs.ensureDirSync(tmpDir);
-
-// Advertencia sobre sistema de archivos efímero en Heroku
-if (isHeroku) {
-  console.warn('AVISO DE HEROKU: El sistema de archivos es efímero. Los archivos subidos y estructuras se perderán cuando la dyno se reinicie.');
-  console.warn('Considere implementar almacenamiento persistente (AWS S3, etc.) para entornos de producción.');
-}
 
 // Configurar manejo de errores
 process.on('uncaughtException', (error) => {
@@ -148,6 +140,7 @@ app.use('/api', apiRoutes);
 app.use('/excel', excelRoutes);
 app.use('/api/services', serviceRoutes);
 app.use('/service-config', serviceConfigRoutes);
+app.use('/system-maintenance', systemMaintenanceRoutes);
 
 // Ruta principal - Servir la interfaz web
 app.get('/', (req, res) => {
@@ -170,7 +163,6 @@ app.get('/health', (req, res) => {
   // Preparar información del entorno
   const environment = {
     nodeEnv: process.env.NODE_ENV || 'development',
-    isHeroku: isHeroku,
     port: PORT,
     platform: process.platform,
     nodeVersion: process.version

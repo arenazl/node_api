@@ -5,6 +5,7 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs-extra');
+const configFormatUpdater = require('../utils/config-format-updater');
 const router = express.Router();
 
 // Directorio para almacenar configuraciones
@@ -36,8 +37,8 @@ router.post('/save', async (req, res) => {
     const safeCanal = canal.replace(/[^a-zA-Z0-9]/g, '');
     const safeVersion = (version || 'v1').replace(/[^a-zA-Z0-9]/g, '');
     
-    // Crear nombre de archivo: serviceNumber_canal_version.json
-    const filename = `${serviceNumber}_${safeCanal}_${safeVersion}.json`;
+    // Crear nombre de archivo: serviceNumber-canal-version.json
+    const filename = `${serviceNumber}-${safeCanal}-${safeVersion}.json`;
     const filePath = path.join(configDir, filename);
     
     // Crear objeto de configuración
@@ -120,7 +121,13 @@ router.get('/list', async (req, res) => {
     for (const file of files) {
       try {
         // Extraer serviceNumber, canal y version del nombre del archivo
-        const match = file.match(/^(\d+)_([^_]+)_([^_\.]+)\.json$/);
+        // Comprobar primero el formato nuevo, después el antiguo
+        let match = file.match(/^(\d+)-([^-]+)-([^-\.]+)\.json$/);
+        
+        if (!match) {
+          // Intentar con formato antiguo
+          match = file.match(/^(\d+)_([^_]+)_([^_\.]+)\.json$/);
+        }
         
         if (match) {
           const [_, serviceNumber, canal, version] = match;
@@ -169,22 +176,17 @@ router.get('/list', async (req, res) => {
 router.get('/get/:id', async (req, res) => {
   try {
     let { id } = req.params;
-    let filename = id;
     
-    // Agregar extensión .json si no la tiene
-    if (!filename.endsWith('.json')) {
-      filename += '.json';
-    }
-    
-    // Validar nombre de archivo para evitar path traversal
-    if (!filename || filename.includes('..')) {
+    // Validar ID para evitar path traversal
+    if (!id || id.includes('..')) {
       return res.status(400).json({ error: 'Identificador de configuración inválido' });
     }
     
-    const filePath = path.join(configDir, filename);
+    // Usar la utilidad para buscar el archivo con formato nuevo o antiguo
+    const filePath = configFormatUpdater.getConfigFilePath(configDir, id);
     
-    // Verificar si el archivo existe
-    if (!fs.existsSync(filePath)) {
+    // Verificar si se encontró el archivo
+    if (!filePath) {
       return res.status(404).json({ error: 'Configuración no encontrada' });
     }
     
