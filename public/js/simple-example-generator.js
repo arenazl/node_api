@@ -8,166 +8,319 @@
 // Variable global para almacenar la última cantidad de ocurrencias generadas
 window.lastGeneratedOccurrenceCount = 0;
 
+
 // Función para generar ejemplos dinámicamente
-function generateSimpleExample(serviceNumber) {
-    console.log(`Generando ejemplo dinámico para servicio ${serviceNumber}`);
+
+/**
+ * Genera un ejemplo simple de stream para un servicio específico
+ * @param {string} serviceNumber - Número de servicio
+ * @returns {Promise<string>} - Stream de ejemplo generado
+ */
+async function generateSimpleExample(serviceNumber) {
+  try {
+    // 1. Cargar estructura del servicio
+    const { headerStructure, serviceStructure } = await findServiceByNumber(serviceNumber);
+    if (!headerStructure || !serviceStructure) {
+      throw new Error(`Estructura no encontrada para el servicio ${serviceNumber}`);
+    }
     
-    // 1. Primero obtenemos la estructura del servicio para saber cómo construir el ejemplo
-    return fetchServiceStructure(serviceNumber)
-        .then(structure => {
-            console.log(`Estructura obtenida para servicio ${serviceNumber}`);
-            
-            // 2. Generar la cabecera basada en la estructura real
-            const headerLength = structure.header_structure?.totalLength || 102;
-            return generateSimpleHeader(serviceNumber, headerLength)
-                .then(header => {
-                    // 3. Determinar el número de ocurrencias aleatoriamente (entre 2-5 ocurrencias para cualquier servicio)
-                    const occurrenceCount = Math.floor(Math.random() * 4) + 2;
-                    console.log(`Generando ${occurrenceCount} ocurrencias para el ejemplo ${serviceNumber}`);
-                    
-                    // Guardar el contador de ocurrencias en la variable global para que otros módulos puedan usarlo
-                    window.lastGeneratedOccurrenceCount = occurrenceCount;
-                    
-                    // 4. Calcular la longitud de cada ocurrencia basada en la estructura
-                    let occurrenceLength = 100; // Valor por defecto
-                    
-                    // Buscar elementos de tipo ocurrencia en la estructura de respuesta
-                    if (structure.service_structure?.response?.elements) {
-                        const elements = structure.service_structure.response.elements;
-                        for (const element of elements) {
-                            if (element.type === 'occurrence' && element.fields) {
-                                // Calcular longitud basada en los campos definidos
-                                occurrenceLength = calculateOccurrenceLength(element.fields);
-                                console.log(`Longitud de ocurrencia calculada a partir de la estructura: ${occurrenceLength}`);
-                                break;
-                            }
-                        }
-                    }
-                    
-                    // 5. Construir el cuerpo de la respuesta
-                    // Usar la estructura del servicio para generar los campos previos a las ocurrencias
-                    let body = '';
-                    let prefixLength = 0;
-                    let prefixFields = [];
-                    
-                    // Examinar los elementos en la estructura de respuesta para identificar los campos previos
-                    if (structure.service_structure?.response?.elements) {
-                        const elements = structure.service_structure.response.elements;
-                        
-                        console.log(`[ESTRUCTURA] Analizando campos previos a ocurrencias...`);
-                        
-                        // Procesar campos hasta encontrar la primera ocurrencia
-                        for (const element of elements) {
-                            if (element.type === 'occurrence') {
-                                break; // Terminar al encontrar la primera ocurrencia
-                            }
-                            
-                            if (element.type === 'field' && element.length) {
-                                const fieldName = element.name;
-                                const fieldLength = parseInt(element.length) || 0;
-                                
-                                // Generar un valor apropiado según el campo
-                                let fieldValue = '';
-                                
-                                // Intentar determinar el valor apropiado según el nombre del campo
-                                if (fieldName.toLowerCase().includes('estado')) {
-                                    fieldValue = '00'; // Estado éxito
-                                } else if (fieldName.toLowerCase().includes('cant') && fieldName.toLowerCase().includes('reg')) {
-                                    fieldValue = String(occurrenceCount).padStart(fieldLength, '0'); // Cantidad de registros
-                                } else if (fieldName.toLowerCase().includes('mas') && fieldName.toLowerCase().includes('dato')) {
-                                    fieldValue = '0'; // No hay más datos
-                                } else {
-                                    // Para otros campos, generar valores genéricos según su longitud
-                                    fieldValue = '0'.repeat(fieldLength);
-                                }
-                                
-                                // Asegurar que el valor tenga la longitud correcta
-                                if (fieldValue.length > fieldLength) {
-                                    fieldValue = fieldValue.substring(0, fieldLength);
-                                } else if (fieldValue.length < fieldLength) {
-                                    fieldValue = fieldValue.padEnd(fieldLength, ' ');
-                                }
-                                
-                                // Añadir el campo al cuerpo y a la lista de campos
-                                body += fieldValue;
-                                prefixLength += fieldLength;
-                                prefixFields.push({ name: fieldName, length: fieldLength, value: fieldValue });
-                                
-                                console.log(`[ESTRUCTURA] Campo previo: ${fieldName}, longitud: ${fieldLength}, valor: "${fieldValue}"`);
-                            }
-                        }
-                        
-                        console.log(`[ESTRUCTURA] Total campos previos: ${prefixFields.length}, longitud total: ${prefixLength} caracteres`);
-                    }
-                    
-                    // Añadir ocurrencias con la longitud calculada dinámicamente
-                    for (let i = 0; i < occurrenceCount; i++) {
-                        body += generateSimpleOccurrence(i, occurrenceLength);
-                    }
-                    
-                    // 6. Combinar cabecera y cuerpo
-                    const fullExample = header + body;
-                    console.log(`Ejemplo generado dinámicamente: ${fullExample.length} caracteres totales`);
-                    console.log(`  - Cabecera: ${header.length} caracteres`);
-                    console.log(`  - Cuerpo: ${body.length} caracteres`);
-                    console.log(`  - Ocurrencias: ${occurrenceCount} de ${occurrenceLength} caracteres cada una`);
-                    
-                    // Verificación adicional para cualquier servicio
-                    const expectedBodyLength = prefixLength + (occurrenceCount * occurrenceLength);
-                    console.log(`[DEBUG FINAL] Longitud del cuerpo: ${body.length}, Esperada: ${expectedBodyLength}`);
-                    
-                    if (body.length !== expectedBodyLength) {
-                        console.error(`[ALERTA] La longitud total del cuerpo (${body.length}) no coincide con la esperada (${expectedBodyLength})`);
-                        console.log(`[ANÁLISIS] Diferencia de ${body.length - expectedBodyLength} caracteres`);
-                        
-                        // Analizar más en detalle
-                        console.log(`[ANÁLISIS] Verificando longitudes individuales:`);
-                        console.log(`[ANÁLISIS] - Prefix: ${prefixLength} caracteres`);
-                        let totalOcurrencias = 0;
-                        for (let i = 0; i < occurrenceCount; i++) {
-                            const start = prefixLength + (i * occurrenceLength);
-                            const end = start + occurrenceLength;
-                            const ocurrenciaReal = body.substring(start, end);
-                            console.log(`[ANÁLISIS] - Ocurrencia ${i}: ${ocurrenciaReal.length} caracteres (desde posición ${start} hasta ${end})`);
-                            totalOcurrencias += ocurrenciaReal.length;
-                        }
-                        console.log(`[ANÁLISIS] Total ocurrencias: ${totalOcurrencias} caracteres`);
-                        console.log(`[ANÁLISIS] Prefix + Total ocurrencias: ${prefixLength + totalOcurrencias} caracteres`);
-                    } else {
-                        console.log(`[DEBUG FINAL] ¡VERIFICACIÓN EXITOSA! Longitud de cuerpo correcta: ${body.length}`);
-                    }
-                    
-                    // Log para mostrar longitud exacta de cada parte
-                    console.log(`[DEBUG FINAL] Estructura de cuerpo: prefix(${prefixLength}) + ${occurrenceCount} ocurrencias de ${occurrenceLength} caracteres = ${prefixLength + (occurrenceCount * occurrenceLength)}`);
-                    
-                    return fullExample;
-                });
-        })
-        .catch(error => {
-            console.error(`Error al generar ejemplo dinámico: ${error.message}`);
-            
-            // Si falla, generamos un ejemplo genérico como fallback
-            return generateSimpleHeader(serviceNumber, 102)
-                .then(header => {
-                    const occurrenceCount = Math.floor(Math.random() * 4) + 2;
-                    
-                    // Guardamos el contador incluso en el caso de fallback
-                    window.lastGeneratedOccurrenceCount = occurrenceCount;
-                    
-                    let body = 
-                        "00" +                          // Estado (éxito) - 2 posiciones
-                        String(occurrenceCount).padStart(2, '0') + // Cantidad de registros - 2 posiciones
-                        "0";                            // No hay más datos - 1 posición
-                    
-                    // Añadir ocurrencias genéricas
-                    for (let i = 0; i < occurrenceCount; i++) {
-                        body += generateSimpleOccurrence(i, 100);
-                    }
-                    
-                    return header + body;
-                });
-        });
+    // 2. Generar cabecera con código de retorno exitoso (0000)
+    const headerData = {
+      CANAL: "API",
+      SERVICIO: serviceNumber,
+      USUARIO: "SISTEMA",
+      "CODIGO-RETORNO": "0000", // Código de éxito
+      "TIPO-MENSAJE": "RESP"    // Es una respuesta
+    };
+    
+    // Crear mensaje de cabecera
+    const headerMessage = createHeaderMessage(headerStructure, headerData);
+    
+    // 3. Generar cuerpo de la respuesta con valores aleatorios
+    const responseData = generateRandomResponseData(serviceStructure.response);
+    
+    // 4. Formatear el mensaje de respuesta
+    let bodyMessage = "";
+    
+    // Verificar si tiene estructura de respuesta
+    if (serviceStructure.response && serviceStructure.response.elements) {
+      // Utilizar el formatDataMessage de message-creator
+      bodyMessage = formatRandomResponseMessage(serviceStructure.response);
+    }
+    
+    // 5. Combinar cabecera y cuerpo
+    const completeMessage = headerMessage + bodyMessage;
+    
+    return completeMessage;
+  } catch (error) {
+    console.error(`Error al generar ejemplo para el servicio ${serviceNumber}:`, error);
+    throw error;
+  }
 }
+
+/**
+ * Genera datos de respuesta aleatorios basados en la estructura
+ * @param {Object} responseStructure - Estructura de respuesta del servicio
+ * @returns {Object} - Datos aleatorios generados
+ */
+function generateRandomResponseData(responseStructure) {
+  const data = {};
+  
+  if (!responseStructure || !responseStructure.elements) {
+    return data;
+  }
+  
+  // Recorrer los elementos de la estructura
+  for (const element of responseStructure.elements) {
+    if (element.type === 'field') {
+      // Generar valor aleatorio para campo
+      const fieldName = element.name;
+      const fieldLength = element.length;
+      const fieldType = element.fieldType || element.type;
+      
+      // Generar valores significativos según nombre del campo
+      let value = '';
+      
+      if (fieldName.includes('ESTADO') || fieldName.includes('CODIGO')) {
+        value = '00'; // Código exitoso por defecto
+      } else if (fieldName.includes('CANT') || fieldName.includes('CAN-REG')) {
+        // Cantidad de registros - para ocurrencias
+        // Debe coincidir con el count de las ocurrencias que generemos después
+        const occElement = responseStructure.elements.find(e => e.type === 'occurrence');
+        value = occElement ? String(occElement.count || 3) : '03';
+      } else {
+        // Generar valor aleatorio según tipo
+        value = generateRandomValue(fieldLength, fieldType);
+      }
+      
+      data[fieldName] = value;
+      
+    } else if (element.type === 'occurrence') {
+      // Generar ocurrencias aleatorias
+      const occurrenceId = element.id || `occ_${element.index}`;
+      const occurrenceCount = element.count || 3; // Por defecto, 3 ocurrencias
+      
+      // Actualizar cantidad de registros en un campo relacionado si existe
+      const cantRegField = Object.keys(data).find(key => 
+        key.includes('CANT-REG') || key.includes('CAN-REG') || key.includes('CANT_REG'));
+      if (cantRegField) {
+        data[cantRegField] = String(occurrenceCount).padStart(2, '0');
+      }
+      
+      // Generar array de ocurrencias
+      const occurrences = [];
+      
+      for (let i = 0; i < occurrenceCount; i++) {
+        const occurrenceItem = {
+          index: i // Mantener índice para preservar orden
+        };
+        
+        // Generar valores para los campos de la ocurrencia
+        if (element.fields) {
+          for (const field of element.fields) {
+            if (field.type === 'field') {
+              const fieldName = field.name;
+              const fieldLength = field.length;
+              const fieldType = field.fieldType || field.type;
+              
+              // Generar valor significativo según nombre
+              let value = '';
+              
+              if (fieldName.includes('ID') || fieldName.includes('CODIGO')) {
+                // Generar IDs o códigos únicos
+                value = String(100000 + i).padStart(fieldLength, '0').substring(0, fieldLength);
+              } else if (fieldName.includes('MONTO') || fieldName.includes('IMPORTE')) {
+                // Generar montos significativos
+                const amount = Math.floor(1000 + Math.random() * 9000);
+                value = String(amount).padStart(fieldLength, '0').substring(0, fieldLength);
+              } else if (fieldName.includes('FECHA')) {
+                // Generar fechas
+                const today = new Date();
+                const year = today.getFullYear();
+                const month = String(today.getMonth() + 1).padStart(2, '0');
+                const day = String(today.getDate()).padStart(2, '0');
+                value = `${year}${month}${day}`.substring(0, fieldLength);
+              } else if (fieldName.includes('NOMBRE') || fieldName.includes('RAZON')) {
+                // Nombres genéricos
+                const names = ['JUAN PEREZ', 'MARIA GOMEZ', 'EMPRESA SA', 'COMERCIO XYZ'];
+                value = names[i % names.length].padEnd(fieldLength, ' ').substring(0, fieldLength);
+              } else {
+                // Valor aleatorio
+                value = generateRandomValue(fieldLength, fieldType);
+              }
+              
+              occurrenceItem[fieldName] = value;
+            } else if (field.type === 'occurrence') {
+              // Ocurrencias anidadas
+              const nestedOccId = field.id || `occ_${field.index}`;
+              const nestedCount = field.count || 2;
+              
+              const nestedOccurrences = [];
+              
+              for (let j = 0; j < nestedCount; j++) {
+                const nestedItem = {
+                  index: j
+                };
+                
+                // Generar valores para campos anidados
+                if (field.fields) {
+                  for (const nestedField of field.fields) {
+                    if (nestedField.type === 'field') {
+                      const nestedName = nestedField.name;
+                      const nestedLength = nestedField.length;
+                      const nestedType = nestedField.fieldType || nestedField.type;
+                      
+                      nestedItem[nestedName] = generateRandomValue(nestedLength, nestedType);
+                    }
+                  }
+                }
+                
+                nestedOccurrences.push(nestedItem);
+              }
+              
+              occurrenceItem[nestedOccId] = nestedOccurrences;
+            }
+          }
+        }
+        
+        occurrences.push(occurrenceItem);
+      }
+      
+      data[occurrenceId] = occurrences;
+    }
+  }
+  
+  return data;
+}
+
+/**
+ * Formatea un mensaje de respuesta aleatorio basado en la estructura
+ * @param {Object} responseStructure - Estructura de respuesta del servicio
+ * @returns {string} - Mensaje de respuesta formateado
+ */
+function formatRandomResponseMessage(responseStructure) {
+  let message = '';
+  
+  if (!responseStructure || !responseStructure.elements) {
+    return message;
+  }
+  
+  // Recorrer los elementos de la estructura
+  for (const element of responseStructure.elements) {
+    if (element.type === 'field') {
+      // Formatear campo
+      const fieldLength = element.length;
+      const fieldType = element.fieldType || element.type;
+      
+      // Generar valor aleatorio
+      const fieldValue = generateRandomValue(fieldLength, fieldType);
+      
+      // Agregar al mensaje
+      message += fieldValue;
+      
+    } else if (element.type === 'occurrence') {
+      // Formatear ocurrencias
+      const occurrenceCount = element.count || 3;
+      
+      // Primero agregar contador de ocurrencias si es necesario
+      // (en algunos formatos se incluye un número de 2 dígitos)
+      if (responseStructure.elements.some(e => e.name && 
+         (e.name.includes('CANT-REG') || e.name.includes('CAN-REG')))) {
+        message += String(occurrenceCount).padStart(2, '0');
+      }
+      
+      // Luego formatear cada ocurrencia
+      for (let i = 0; i < occurrenceCount; i++) {
+        // Para cada campo de la ocurrencia
+        if (element.fields) {
+          for (const field of element.fields) {
+            if (field.type === 'field') {
+              const fieldLength = field.length;
+              const fieldType = field.fieldType || field.type;
+              
+              // Generar valor aleatorio
+              const fieldValue = generateRandomValue(fieldLength, fieldType);
+              
+              // Agregar al mensaje
+              message += fieldValue;
+              
+            } else if (field.type === 'occurrence') {
+              // Formatear ocurrencias anidadas
+              const nestedCount = field.count || 2;
+              
+              // Primero agregar contador si es necesario
+              if (field.fields && field.fields.some(f => f.name && 
+                 (f.name.includes('CANT-REG') || f.name.includes('CAN-REG')))) {
+                message += String(nestedCount).padStart(2, '0');
+              }
+              
+              // Luego formatear cada ocurrencia anidada
+              for (let j = 0; j < nestedCount; j++) {
+                if (field.fields) {
+                  for (const nestedField of field.fields) {
+                    if (nestedField.type === 'field') {
+                      const nestedLength = nestedField.length;
+                      const nestedType = nestedField.fieldType || nestedField.type;
+                      
+                      // Generar valor aleatorio
+                      const nestedValue = generateRandomValue(nestedLength, nestedType);
+                      
+                      // Agregar al mensaje
+                      message += nestedValue;
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  return message;
+}
+
+/**
+ * Genera un valor aleatorio según el tipo de campo
+ * @param {number} length - Longitud del campo
+ * @param {string} fieldType - Tipo de campo (numérico o alfanumérico)
+ * @returns {string} - Valor aleatorio generado
+ */
+function generateRandomValue(length, fieldType) {
+  const numLength = parseInt(length) || 0;
+  if (numLength <= 0) return '';
+
+  // Normalizar el tipo a minúsculas
+  const type = (fieldType || '').toLowerCase();
+  const isNumeric = type === 'numerico' || type === 'numeric' ||
+                   type === 'number' || type.includes('num');
+
+  // Generar valor aleatorio según el tipo
+  let value = '';
+
+  if (isNumeric) {
+    // Para campos numéricos, generar dígitos aleatorios
+    for (let i = 0; i < numLength; i++) {
+      // Para el primer dígito, permitir que sea 0 solo si la longitud es 1
+      if (i === 0 && numLength > 1) {
+        value += Math.floor(Math.random() * 9) + 1; // 1-9 para el primer dígito
+      } else {
+        value += Math.floor(Math.random() * 10); // 0-9 para el resto
+      }
+    }
+  } else {
+    // Para campos alfanuméricos, generar caracteres aleatorios
+    // Caracteres permitidos para campos alfanuméricos
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 ';
+    for (let i = 0; i < numLength; i++) {
+      value += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+  }
+
+  return value;
+}
+
 
 /**
  * Obtiene la estructura del servicio mediante una llamada al servidor

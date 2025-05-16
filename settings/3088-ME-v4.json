@@ -2,8 +2,8 @@
   "serviceNumber": "3088",
   "serviceName": "SERVICIO 3088 - Imputador Genérico para varias operaciones",
   "canal": "ME",
-  "version": "v2",
-  "timestamp": "2025-05-14T12:13:42.566Z",
+  "version": "v4",
+  "timestamp": "2025-05-14T12:23:38.141Z",
   "header": {
     "LONGITUD DEL MENSAJE": "000643",
     "CANAL": "ME",

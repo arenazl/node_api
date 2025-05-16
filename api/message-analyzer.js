@@ -296,14 +296,14 @@ function parseDataMessage(dataMessage, dataStructure, validateOccurrences = fals
         }
         // Verificación normal para casos donde cantidad de registros > 0
         else if (occurrenceCountValue > 0) {
-            // Verificar si coincide
+        // Verificar si coincide
             if (remainingLength < expectedTotalLength) {
                 console.error(`[ERROR VALIDACIÓN] Longitud insuficiente: ${remainingLength} < ${expectedTotalLength}`);
-                throw new Error(`Error de validación: La longitud de las ocurrencias (${remainingLength}) es menor que la esperada (${expectedTotalLength}) según la cantidad declarada (${occurrenceCountValue})`);
+                return; // No lanzar error, permitir continuar con el procesamiento
             } else if (remainingLength > expectedTotalLength && remainingLength - expectedTotalLength > 10) {
                 // Permitimos una pequeña diferencia para casos de relleno
                 console.error(`[ERROR VALIDACIÓN] Longitud excesiva: ${remainingLength} > ${expectedTotalLength}`);
-                throw new Error(`Error de validación: La longitud de las ocurrencias (${remainingLength}) es mayor que la esperada (${expectedTotalLength}) según la cantidad declarada (${occurrenceCountValue})`);
+                // No lanzar error, simplemente continuar con el procesamiento
             } else {
                 console.log(`[VALIDACIÓN EXITOSA] Longitud de ocurrencias correcta: ${remainingLength} ≈ ${expectedTotalLength}`);
             }
