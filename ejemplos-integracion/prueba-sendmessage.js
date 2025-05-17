@@ -49,6 +49,20 @@ async function probarSendMessageEndpoint() {
     console.log('\n--- DATOS ---');
     console.log(response.data.response.substring(102));
     
+    // Mostrar estructura detallada si está disponible
+    if (response.data.estructura) {
+      console.log('\n--- ESTRUCTURA DETALLADA ---');
+      console.log('Total de campos:', response.data.estructura.length);
+      
+      // Mostrar información detallada de cada campo
+      response.data.estructura.forEach((campo, index) => {
+        console.log(`\nCampo #${index + 1}: ${campo.nombre}`);
+        console.log(`  Valor: "${campo.valor}"`);
+        console.log(`  Longitud: ${campo.longitud}`);
+        console.log(`  Tipo: ${campo.tipo}`);
+      });
+    }
+    
     return response.data;
   } catch (error) {
     console.error('\n❌ Error al probar el endpoint sendmessage:');

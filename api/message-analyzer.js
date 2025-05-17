@@ -146,10 +146,8 @@ function formatValue(value, length, type) {
   // Verificación para los tipos específicos de la estructura
   if (type === 'alfanumerico') {
     // Si el valor es más corto que la longitud requerida, generar un valor aleatorio para el resto
-    if (processedValue.length < numLength) {
       const randomSuffix = generateRandomValue(numLength - processedValue.length, type);
       return processedValue + randomSuffix;
-    }
     return processedValue;
   }
   
@@ -175,8 +173,8 @@ function generateRandomValue(length, fieldType) {
 
   // Normalizar el tipo a minúsculas
   const type = (fieldType || '').toLowerCase();
-  const isNumeric = type === 'numerico' || type === 'numeric' ||
-                   type === 'number' || type.includes('num');
+
+  const isNumeric = (type == 'numerico')
 
   // Generar valor aleatorio según el tipo
   let value = '';
@@ -231,6 +229,7 @@ function parseDataMessage(dataMessage, dataStructure, validateOccurrences = fals
   
   // Primera pasada: identificar campos importantes y procesar campos previos a ocurrencias
   for (const element of dataStructure.elements) {
+
     if (element.type === 'field') {
       // Procesar campo
       const fieldName = element.name;
@@ -267,13 +266,14 @@ function parseDataMessage(dataMessage, dataStructure, validateOccurrences = fals
       
       // Avanzar posición
       position += fieldLength;
-    } else if (element.type === 'occurrence') {
+    } 
+    else if (element.type === 'occurrence') {
       // Marcar la primera ocurrencia pero no procesarla aún
       firstOccurrenceElement = element;
-      break;
+      break; 
     }
   }
-  
+
     // Si estamos validando ocurrencias y encontramos un campo de contador y una definición de ocurrencia
     if (validateOccurrences && occurrenceCountValue !== null && firstOccurrenceElement) {
         // Calcular longitud esperada de ocurrencias
@@ -310,7 +310,7 @@ function parseDataMessage(dataMessage, dataStructure, validateOccurrences = fals
         }
     }
   
-  // Reiniciar posición para segunda pasada si no se procesaron las ocurrencias
+  // Reiniciar posición para segunda pasada si no se procresaon las ocurrencias
   if (firstOccurrenceElement) {
     // Segunda pasada: procesar las ocurrencias usando exactamente la cantidad declarada en el contador
     const occurrenceCount = occurrenceCountValue !== null ? occurrenceCountValue : firstOccurrenceElement.count;
@@ -381,9 +381,15 @@ function parseDataMessage(dataMessage, dataStructure, validateOccurrences = fals
           
           // Extraer valor del mensaje
           const fieldValue = dataMessage.substring(position, position + fieldLength).trim();
+
+        // Determinar el tipo de campo (numérico o alfanumérico)
+          const fieldType = element.fieldType;
           
-          // Agregar al objeto de datos
-          data[fieldName] = fieldValue;
+             // Formatear el valor según el tipo de campo usando la función formatValue
+        const formattedValue = formatValue(fieldValue, fieldLength, fieldType);
+      
+        // Agregar al objeto de datos
+        data[fieldName] = formattedValue;
           
           // Avanzar posición
           position += fieldLength;
@@ -396,15 +402,6 @@ function parseDataMessage(dataMessage, dataStructure, validateOccurrences = fals
   return data;
 }
 
-/**
- * Analiza una ocurrencia en el mensaje
- * @param {string} message - Mensaje completo
- * @param {number} startPosition - Posición inicial
- * @param {Object} occurrenceElement - Elemento de ocurrencia
- * @param {number} count - Cantidad de ocurrencias
- * @param {boolean} preserveOrder - Si es true, preserva el índice original en la estructura para mantener el orden
- * @returns {Object} Datos de ocurrencia y nueva posición
- */
 function parseOccurrence(message, startPosition, occurrenceElement, count, preserveOrder = false) {
   const occurrenceData = [];
   let position = startPosition;
@@ -430,10 +427,18 @@ function parseOccurrence(message, startPosition, occurrenceElement, count, prese
       // Aún así creamos una ocurrencia con los datos que hay o vacía si no hay nada
       // Esto garantiza que el número de ocurrencias mostradas coincida con el contador declarado
       
-      // Si no hay datos suficientes, generamos valores vacíos para los campos
+      // Si no hay datos suficientes, generamos valores aleatorios para los campos
       for (const field of fields) {
         if (field.type === 'field') {
-          occurrenceItem[field.name] = '';
+          const fieldName = field.name;
+          const fieldLength = field.length;
+          const fieldType = field.fieldType || field.type;
+          
+          // Usar formatValue con string vacío para generar un valor aleatorio
+          const formattedValue = formatValue('', fieldLength, fieldType);
+          
+          // Agregar al objeto de datos
+          occurrenceItem[fieldName] = formattedValue;
         } else if (field.type === 'occurrence') {
           occurrenceItem[`occurrence_${field.index}`] = [];
         }
@@ -477,7 +482,7 @@ function parseOccurrence(message, startPosition, occurrenceElement, count, prese
         console.log(`[DEBUG-OCC-FIELD] Campo completo: ${JSON.stringify(field)}`);
         
         // Formatear el valor según el tipo de campo usando la función formatValue
-        const formattedValue = formatValue(fieldValue, fieldLength, fieldType);
+        const formattedValue = formatValue(fieldValue, fieldLength, fieldType); // <-- MANTENER fieldValue AQUÍ
         
         console.log(`[DEBUG-OCC-FIELD] Valor formateado: "${formattedValue}"`);
         
@@ -518,6 +523,7 @@ function parseOccurrence(message, startPosition, occurrenceElement, count, prese
   
   return { occurrenceData, newPosition: position };
 }
+
 
 /**
  * Calcula la longitud total de una ocurrencia

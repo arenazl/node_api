@@ -1,0 +1,1607 @@
+Análisis de Estructura - Servicio 1004
+Fecha: 2025-05-17T11:23:10.618Z
+
+==== CONTENIDO DE dataStructure.elements (REQUERIMIENTO) ====
+[
+  {
+    "type": "field",
+    "index": 0,
+    "name": "SVC1004-NIP",
+    "length": 9,
+    "fieldType": "numerico",
+    "required": "OBLIGATORIO",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_0"
+  },
+  {
+    "type": "field",
+    "index": 1,
+    "name": "SVC1004-TIP-PEDIDO",
+    "length": 2,
+    "fieldType": "numerico",
+    "required": "OBLIGATORIO",
+    "values": "1=Consulta de Cliente por NIP",
+    "description": "",
+    "id": "field_1"
+  }
+]
+
+==== ANÁLISIS DE CAMPOS (REQUERIMIENTO) ====
+Índice | Nombre | Longitud | Tipo | Requerido | Descripción
+-------|--------|----------|------|-----------|------------
+0 | SVC1004-NIP | 9 | numerico | OBLIGATORIO | -
+1 | SVC1004-TIP-PEDIDO | 2 | numerico | OBLIGATORIO | -
+
+==== CONTENIDO DE dataStructure.elements (RESPUESTA) ====
+[
+  {
+    "type": "field",
+    "index": 0,
+    "name": "SVC1004-ESTADO",
+    "length": 2,
+    "fieldType": "numerico",
+    "required": "obligatorio",
+    "values": "00    CONSULTA CLIENTES SATISFACTORIA  \r\n03    ERROR DE DB2 EN MODULO EDO5002.                \r\n13    ERROR EN DATOS DE ACCESO - MODULO EDO5003.     \r\n99    ERROR EN SVC0000-CODRET.",
+    "description": "",
+    "id": "field_0"
+  },
+  {
+    "type": "field",
+    "index": 1,
+    "name": "SVC1004-N-ITN-PERS",
+    "length": 9,
+    "fieldType": "numerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "NIP",
+    "id": "field_1"
+  },
+  {
+    "type": "field",
+    "index": 2,
+    "name": "SVC1004-TIPO-NIF",
+    "length": 2,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "10     Clave énica de Identificación Tributaria (CUIT, valor específico para BAPRO).                                                       \r\n20     Clave de Identificación (CDI, valor específico para BAPRO)         \r\n30     Código énico de Identificación Laboral (CUIL, valor específico para  BAPRO).",
+    "description": "Tipo de Identificacion Fiscal",
+    "id": "field_2"
+  },
+  {
+    "type": "field",
+    "index": 3,
+    "name": "SVC1004-NIF",
+    "length": 11,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "Numero de Id Fiscal",
+    "id": "field_3"
+  },
+  {
+    "type": "field",
+    "index": 4,
+    "name": "SVC1004-C-DOCUM-ID",
+    "length": 1,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "1      Documento Nacional de Identidad (DNI, valor específico BAPRO).    \r\n2      Libreta de Enrolamiento (LE, valor específico BAPRO).             \r\n3      Libreta Cívica (LC, valor específico BAPRO).                      \r\n4      Cédula de Identidad para extranjeros de países limítrofes (CI,    \r\n       valor específico BAPRO).                                          \r\n6      Otros documentos (O, valor específico BAPRO).                     \r\n7      Clave énica de Identificación Tributaria (CUIT, valor específico  \r\n       para el BAPRO).                                                   \r\n8      Juzgados                                                          \r\n9      Pasaporte (P, valor específico BAPRO).",
+    "description": "Tipo de Documento",
+    "id": "field_4"
+  },
+  {
+    "type": "field",
+    "index": 5,
+    "name": "SVC1004-N-DOCUM-ID",
+    "length": 11,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "Nro de Documento",
+    "id": "field_5"
+  },
+  {
+    "type": "field",
+    "index": 6,
+    "name": "SVC1004-C-DU-DO-ID",
+    "length": 1,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_6"
+  },
+  {
+    "type": "field",
+    "index": 7,
+    "name": "SVC1004-S-DU-DO-ID",
+    "length": 3,
+    "fieldType": "numerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_7"
+  },
+  {
+    "type": "field",
+    "index": 8,
+    "name": "SVC1004-NOMDS-PERS",
+    "length": 80,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "Nombre y apellido",
+    "id": "field_8"
+  },
+  {
+    "type": "field",
+    "index": 9,
+    "name": "SVC1004-SUBNO-PERS",
+    "length": 10,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_9"
+  },
+  {
+    "type": "field",
+    "index": 10,
+    "name": "SVC1004-F-CO-CL-GR",
+    "length": 10,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "AAAA-MM-DD",
+    "description": "",
+    "id": "field_10"
+  },
+  {
+    "type": "field",
+    "index": 11,
+    "name": "SVC1004-F-FI-CL-GR",
+    "length": 10,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "AAAA-MM-DD",
+    "description": "",
+    "id": "field_11"
+  },
+  {
+    "type": "field",
+    "index": 12,
+    "name": "SVC1004-CNAE",
+    "length": 6,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_12"
+  },
+  {
+    "type": "field",
+    "index": 13,
+    "name": "SVC1004-SECTOR-PER",
+    "length": 4,
+    "fieldType": "numerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_13"
+  },
+  {
+    "type": "field",
+    "index": 14,
+    "name": "SVC1004-CL-SUJETO",
+    "length": 3,
+    "fieldType": "numerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_14"
+  },
+  {
+    "type": "field",
+    "index": 15,
+    "name": "SVC1004-TIPO-PERS",
+    "length": 3,
+    "fieldType": "numerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_15"
+  },
+  {
+    "type": "field",
+    "index": 16,
+    "name": "SVC1004-TIPO-ENT",
+    "length": 3,
+    "fieldType": "numerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_16"
+  },
+  {
+    "type": "field",
+    "index": 17,
+    "name": "SVC1004-TRATAMIENT",
+    "length": 1,
+    "fieldType": "numerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_17"
+  },
+  {
+    "type": "field",
+    "index": 18,
+    "name": "SVC1004-COD-IDIOMA",
+    "length": 3,
+    "fieldType": "numerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_18"
+  },
+  {
+    "type": "field",
+    "index": 19,
+    "name": "SVC1004-F-ULT-P-ANSES",
+    "length": 10,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "AAAA-MM-DD",
+    "description": "",
+    "id": "field_19"
+  },
+  {
+    "type": "field",
+    "index": 20,
+    "name": "SVC1004-F-VTOSOCIE",
+    "length": 10,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "AAAA-MM-DD",
+    "description": "",
+    "id": "field_20"
+  },
+  {
+    "type": "field",
+    "index": 21,
+    "name": "SVC1004-N-ITN-TENA",
+    "length": 4,
+    "fieldType": "numerico",
+    "required": "opcional",
+    "values": "0000 - Ninguno                                           \r\n0051 - Italia                                            \r\n0052 - Grecia                                            \r\n0053 - Kuwait                                            \r\n0054 - Dinamarca                                         \r\n0055 - Austria                                           \r\n0056 - Portugal                                          \r\n0057 - Hong-Kong                                         \r\n0059 - Marruecos                                         \r\n0060 - Argelia                                           \r\n0061 - Egipto                                            \r\n0062 - Singapur                                          \r\n0063 - Arabia Saudita                                    \r\n0064 - Australia                                         \r\n0065 - Puerto Rico                                       \r\n0066 - Canadá                                            \r\n0067 - México                                            \r\n0068 - Noruega                                           \r\n0069 - Honduras                                          \r\n0070 - Sudáfrica                                         \r\n0071 - Gibraltar                                         \r\n0072 - Cos.Rica                                          \r\n0073 - Panamá                                            \r\n0074 - Cuba                                              \r\n0075 - R.Dominicana                                      \r\n0076 - Colombia                                          \r\n0077 - Venezuela                                         \r\n0078 - Finlandia                                         \r\n0079 - Perú                                              \r\n0080 - Brasil                                            \r\n0081 - Alemania                                          \r\n0082 - Suiza                                             \r\n0083 - Francia                                           \r\n0084 - Bélgica                                           \r\n0085 - Holanda (Países Bajos)                            \r\n0086 - Reino Unido                                       \r\n0087 - Luxemburgo                                        \r\n0088 - Suecia                                            \r\n0089 - Chile                                             \r\n0090 - Andorra                                           \r\n0091 - Liberia                                           \r\n0092 - Uruguay                                           \r\n0093 - Argentina                                         \r\n0094 - India                                             \r\n0095 - Filipinas                                         \r\n0096 - China                                             \r\n0097 - Japón                                             \r\n0098 - Cor.Sur                                           \r\n0099 - Líbano                                            \r\n0100 - España                                            \r\n0101 - Mónaco                                            \r\n0102 - R.Cabo Verde                                      \r\n0103 - Irlanda                                           \r\n0104 - Islandia                                          \r\n0105 - Is.Féroe                                          \r\n0106 - Lietchtenstein                                    \r\n0107 - Ciudad del Vaticano                               \r\n0108 - Malta                                             \r\n0109 - Montserrat                                        \r\n0110 - Turquia                                           \r\n0111 - Polonia                                           \r\n0113 - Hungría                                           \r\n0114 - Rumanía                                           \r\n0115 - Bulgaria                                          \r\n0116 - Albania                                           \r\n0117 - R.Eslovaca                                        \r\n0118 - Ucrania                                           \r\n0119 - Bielorrusia                                       \r\n0120 - Moldavia                                          \r\n0121 - Rusia                                             \r\n0122 - Georgia                                           \r\n0123 - Armenia                                           \r\n0124 - Azerbaiyan                                        \r\n0125 - Kazajstán                                         \r\n0126 - Turkmenistán                                      \r\n0127 - Uzbekistán                                        \r\n0128 - Tayikistán                                        \r\n0129 - Kirguizistán                                      \r\n0131 - Eslovenia                                         \r\n0132 - Croacia                                           \r\n0133 - Bosnia-Herzegovina                                \r\n0134 - Estonia                                           \r\n0135 - Letonia                                           \r\n0136 - Lituania                                          \r\n0137 - San Marino                                        \r\n0138 - Is.Anglonormandas (Islas del Canal)               \r\n0139 - Is.Man                                            \r\n0140 - Is.Marianas                                       \r\n0141 - Is.Cook                                           \r\n0212 - Túnez                                             \r\n0216 - Libia                                             \r\n0224 - Sudán                                             \r\n0228 - Mauritania                                        \r\n0232 - Malí                                              \r\n0236 - Bourkina-Faso (Alto Volta)                        \r\n0239 - Is.Sandwich y Georgias del Sur                    \r\n0240 - Níger                                             \r\n0244 - Tchad                                             \r\n0248 - Senegal                                           \r\n0252 - Gambia                                            \r\n0257 - Guin.Bissau                                       \r\n0260 - Guinea                                            \r\n0264 - Sierra Leona                                      \r\n0272 - Cos.de Marfil                                     \r\n0276 - Ghana                                             \r\n0280 - Togo                                              \r\n0284 - Benin                                             \r\n0288 - Nigeria                                           \r\n0302 - Camerún                                           \r\n0306 - R.Centro Africana                                 \r\n0310 - Guin.Ecuatorial                                   \r\n0311 - Santo Tome y Príncipe                             \r\n0314 - Gabón                                             \r\n0316 - Guam                                              \r\n0318 - Congo                                             \r\n0322 - R.Congo                                           \r\n0324 - Rwanda                                            \r\n0328 - Burundi y Ruanda                                  \r\n0329 - Sta.Helena y dependencias                         \r\n0330 - Angola                                            \r\n0334 - Etiopía                                           \r\n0336 - Eritrea                                           \r\n0338 - Djibouti                                          \r\n0342 - Somalia                                           \r\n0346 - Kenya                                             \r\n0350 - Uganda                                            \r\n0352 - Tanzania                                          \r\n0355 - Seychelles y dependencias                         \r\n0366 - Mozambique                                        \r\n0370 - Madagascar                                        \r\n0372 - Reunión                                           \r\n0373 - Mauricio                                          \r\n0375 - Comores                                           \r\n0377 - Mayotte                                           \r\n0378 - Zambia                                            \r\n0382 - Zimbabwe                                          \r\n0386 - Malawi                                            \r\n0389 - Namibia                                           \r\n0391 - Botswana                                          \r\n0393 - Swaziland                                         \r\n0395 - Lesotho                                           \r\n0400 - Estados Unidos de America                         \r\n0406 - Groenlandia                                       \r\n0408 - Saint Pierre y Miquelón                           \r\n0413 - Bermudas                                          \r\n0416 - Guatemala                                         \r\n0421 - Belize                                            \r\n0428 - El Salvador                                       \r\n0432 - Nicaragua                                         \r\n0446 - Anguilla                                          \r\n0449 - San Cristóbal y Nevis                             \r\n0452 - Haití                                             \r\n0453 - Bahamas                                           \r\n0454 - Is.Turquesas y Caicos                             \r\n0457 - Is.V.Estados Unidos                               \r\n0458 - Guadalupe                                         \r\n0459 - Antigua y Barbuda                                 \r\n0460 - Dominica                                          \r\n0461 - Is.V.Británicas                                   \r\n0462 - Martinica                                         \r\n0463 - Is.Caymán                                         \r\n0464 - Jamaica                                           \r\n0465 - Sta.Lucía                                         \r\n0467 - San Vicente                                       \r\n0469 - Barbados                                          \r\n0472 - Trinidad y Tobago                                 \r\n0473 - Granada                                           \r\n0474 - Aruba                                             \r\n0478 - Antillas Holandesas                               \r\n0488 - Guyana                                            \r\n0492 - Surinam                                           \r\n0496 - Guy.Francesa                                      \r\n0500 - Ecuador                                           \r\n0516 - Bolivia                                           \r\n0520 - Paraguay                                          \r\n0529 - Is.Falkland                                       \r\n0600 - Chipre                                            \r\n0608 - Siria                                             \r\n0612 - Iraq                                              \r\n0616 - Irán                                              \r\n0624 - Israel                                            \r\n0628 - Jordania                                          \r\n0640 - Bahrain                                           \r\n0644 - Qatar                                             \r\n0647 - Emiratos Arabes Unidos                            \r\n0649 - Omán                                              \r\n0653 - Yemen                                             \r\n0660 - Afganistán                                        \r\n0662 - Pakistán                                          \r\n0666 - Bangladesh                                        \r\n0667 - Maldivas (Islas)                                  \r\n0669 - Sri Lanka                                         \r\n0672 - Nepal                                             \r\n0675 - Bhoutan                                           \r\n0676 - Myanmar (Birmania)                                \r\n0680 - Thailandia                                        \r\n0684 - Laos                                              \r\n0690 - Vietnam                                           \r\n0696 - Camboya                                           \r\n0700 - Indonesia                                         \r\n0701 - Malasia                                           \r\n0703 - Brunei                                            \r\n0716 - Mongolia                                          \r\n0724 - Cor.Norte                                         \r\n0736 - Taiwan                                            \r\n0743 - Macao                                             \r\n0801 - Papua-Nueva Guinea                                \r\n0803 - Nauru                                             \r\n0804 - N.Zelanda                                         \r\n0806 - Is.Salomón                                        \r\n0807 - Tuvalu                                            \r\n0809 - N.Caledonia y dependencias                        \r\n0811 - Is.Wallis y Futuna                                \r\n0812 - Kiribati                                          \r\n0813 - Is.Pitcairn                                       \r\n0815 - Fidji                                             \r\n0816 - Vanuatu                                           \r\n0817 - Tonga                                             \r\n0819 - Sam.Occidental                                    \r\n0822 - Polinesia Francesa                                \r\n0823 - Federación de Estados de Micronesia               \r\n0824 - I.Marshall                                        \r\n0825 - Palau                                             \r\n0959 - Serbia                                            \r\n0960 - R.Checa                                           \r\n0965 - Macedonia                                         \r\n0966 - Palestina                                         \r\n0972 - Jersey                                            \r\n0974 - Apátrida                                          \r\n0975 - Antartida                                         \r\n0976 - Sam.Americana                                     \r\n0977 - Is.Cocos                                          \r\n0978 - Is.Christmas                                      \r\n0979 - Sahara Occidental                                 \r\n0980 - Is.Heard y McDonalds                              \r\n0981 - Ter.Británico Océano Índico                       \r\n0982 - Montenegro                                        \r\n0983 - Is.Norfolk                                        \r\n0984 - Niue                                              \r\n0985 - Is.Svalbard y Jan Mayen                           \r\n0986 - Ter.Australes Franceses                           \r\n0987 - Is. Perifericas menores EE.UU                     \r\n3582 - Timor-Leste                                       \r\n3583 - Tokelau                                           \r\n3584 - Is.Bouvet",
+    "description": "Nacionalidad",
+    "id": "field_21"
+  },
+  {
+    "type": "field",
+    "index": 22,
+    "name": "SVC1004-C-NIV-CONP",
+    "length": 1,
+    "fieldType": "numerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_22"
+  },
+  {
+    "type": "field",
+    "index": 23,
+    "name": "SVC1004-C-NIV-CONI",
+    "length": 1,
+    "fieldType": "numerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_23"
+  },
+  {
+    "type": "field",
+    "index": 24,
+    "name": "SVC1004-CAN-REG-OR",
+    "length": 3,
+    "fieldType": "numerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_24"
+  },
+  {
+    "type": "field",
+    "index": 25,
+    "name": "SVC1004-F-ALTA",
+    "length": 10,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "AAAA-MM-DD",
+    "description": "",
+    "id": "field_25"
+  },
+  {
+    "type": "field",
+    "index": 26,
+    "name": "SVC1004-CO-OR-IN-P",
+    "length": 5,
+    "fieldType": "numerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_26"
+  },
+  {
+    "type": "field",
+    "index": 27,
+    "name": "SVC1004-F-ACTZ",
+    "length": 10,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "AAAA-MM-DD",
+    "description": "",
+    "id": "field_27"
+  },
+  {
+    "type": "field",
+    "index": 28,
+    "name": "SVC1004-C-BCO-GRRE",
+    "length": 5,
+    "fieldType": "numerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_28"
+  },
+  {
+    "type": "field",
+    "index": 29,
+    "name": "SVC1004-C-OF-GRRES",
+    "length": 5,
+    "fieldType": "numerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "Sucursal radicacion",
+    "id": "field_29"
+  },
+  {
+    "type": "field",
+    "index": 30,
+    "name": "SVC1004-PR-TELEFON",
+    "length": 3,
+    "fieldType": "numerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_30"
+  },
+  {
+    "type": "field",
+    "index": 31,
+    "name": "SVC1004-N-TELEFONO",
+    "length": 7,
+    "fieldType": "numerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_31"
+  },
+  {
+    "type": "field",
+    "index": 32,
+    "name": "SVC1004-C-COLEC-IN",
+    "length": 3,
+    "fieldType": "numerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_32"
+  },
+  {
+    "type": "field",
+    "index": 33,
+    "name": "SVC1004-DET-PERCIR",
+    "length": 1,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_33"
+  },
+  {
+    "type": "field",
+    "index": 34,
+    "name": "SVC1004-DET-PERJUD",
+    "length": 1,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_34"
+  },
+  {
+    "type": "field",
+    "index": 35,
+    "name": "SVC1004-DET-PERCIA",
+    "length": 1,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_35"
+  },
+  {
+    "type": "field",
+    "index": 36,
+    "name": "SVC1004-DET-PERRAI",
+    "length": 1,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_36"
+  },
+  {
+    "type": "field",
+    "index": 37,
+    "name": "SVC1004-DET-PERAVI",
+    "length": 1,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_37"
+  },
+  {
+    "type": "field",
+    "index": 38,
+    "name": "SVC1004-DET-PEREMB",
+    "length": 1,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_38"
+  },
+  {
+    "type": "field",
+    "index": 39,
+    "name": "SVC1004-DET-PERINC",
+    "length": 1,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_39"
+  },
+  {
+    "type": "field",
+    "index": 40,
+    "name": "SVC1004-DET-PERRGO",
+    "length": 1,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_40"
+  },
+  {
+    "type": "field",
+    "index": 41,
+    "name": "SVC1004-DET-PERMOR",
+    "length": 1,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_41"
+  },
+  {
+    "type": "field",
+    "index": 42,
+    "name": "SVC1004-DET-PERFAL",
+    "length": 1,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_42"
+  },
+  {
+    "type": "field",
+    "index": 43,
+    "name": "SVC1004-DET-PERALE",
+    "length": 1,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_43"
+  },
+  {
+    "type": "field",
+    "index": 44,
+    "name": "SVC1004-T-DIR-ELEC",
+    "length": 3,
+    "fieldType": "numerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_44"
+  },
+  {
+    "type": "field",
+    "index": 45,
+    "name": "SVC1004-PR-TELEFONICO",
+    "length": 9,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_45"
+  },
+  {
+    "type": "field",
+    "index": 46,
+    "name": "SVC1004-N-TELEFONICO",
+    "length": 12,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_46"
+  },
+  {
+    "type": "field",
+    "index": 47,
+    "name": "SVC1004-SUF-TELEFONICO",
+    "length": 4,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_47"
+  },
+  {
+    "type": "field",
+    "index": 48,
+    "name": "SVC1004-DIR-DE-URL",
+    "length": 250,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_48"
+  },
+  {
+    "type": "field",
+    "index": 49,
+    "name": "SVC1004-CLAVE-RESIDE",
+    "length": 1,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_49"
+  },
+  {
+    "type": "field",
+    "index": 50,
+    "name": "SVC1004-C-SIT-JUPE",
+    "length": 3,
+    "fieldType": "numerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_50"
+  },
+  {
+    "type": "field",
+    "index": 51,
+    "name": "SVC1004-IN-AFIJOTE",
+    "length": 1,
+    "fieldType": "numerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_51"
+  },
+  {
+    "type": "field",
+    "index": 52,
+    "name": "SVC1004-IN-OTDIREL",
+    "length": 1,
+    "fieldType": "numerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_52"
+  },
+  {
+    "type": "field",
+    "index": 53,
+    "name": "SVC1004-IN-OTRIDPE",
+    "length": 1,
+    "fieldType": "numerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_53"
+  },
+  {
+    "type": "field",
+    "index": 54,
+    "name": "SVC1004-C-GESDATPE",
+    "length": 3,
+    "fieldType": "numerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_54"
+  },
+  {
+    "type": "field",
+    "index": 55,
+    "name": "SVC1004-C-TRTINFPE",
+    "length": 3,
+    "fieldType": "numerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_55"
+  },
+  {
+    "type": "field",
+    "index": 56,
+    "name": "SVC1004-CANT-TIMES-IMPU",
+    "length": 1,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_56"
+  },
+  {
+    "type": "occurrence",
+    "index": 57,
+    "id": "occ_57",
+    "count": 6,
+    "fields": [
+      {
+        "type": "field",
+        "index": 58,
+        "name": "SVC1004-N-ITN-IMPU",
+        "length": 4,
+        "fieldType": "numerico",
+        "required": "opcional",
+        "values": "VALOR",
+        "description": "",
+        "parentId": "occ_57",
+        "id": "occ_57_field_58",
+        "level": 1
+      },
+      {
+        "type": "field",
+        "index": 59,
+        "name": "SVC1004-C-SIT-RFIS",
+        "length": 3,
+        "fieldType": "numerico",
+        "required": "opcional",
+        "values": "VALOR",
+        "description": "",
+        "parentId": "occ_57",
+        "id": "occ_57_field_59",
+        "level": 1
+      },
+      {
+        "type": "field",
+        "index": 60,
+        "name": "SVC1004-TPC-APLIMP",
+        "length": 11,
+        "fieldType": "numerico",
+        "required": "opcional",
+        "values": "VALOR",
+        "description": "",
+        "parentId": "occ_57",
+        "id": "occ_57_field_60",
+        "level": 1
+      }
+    ],
+    "level": 1,
+    "parentId": null
+  },
+  {
+    "type": "field",
+    "index": 61,
+    "name": "SVC1004-PF-A-F-NACIMI",
+    "length": 4,
+    "fieldType": "numerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "Año de nacimiento",
+    "id": "field_61"
+  },
+  {
+    "type": "field",
+    "index": 62,
+    "name": "SVC1004-PF-M-F-NACIMI",
+    "length": 2,
+    "fieldType": "numerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "Mes de nacimiento",
+    "id": "field_62"
+  },
+  {
+    "type": "field",
+    "index": 63,
+    "name": "SVC1004-PF-D-F-NACIMI",
+    "length": 2,
+    "fieldType": "numerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "Dia de nacimiento",
+    "id": "field_63"
+  },
+  {
+    "type": "field",
+    "index": 64,
+    "name": "SVC1004-PF-A-F-FALLEC",
+    "length": 4,
+    "fieldType": "numerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_64"
+  },
+  {
+    "type": "field",
+    "index": 65,
+    "name": "SVC1004-PF-M-F-FALLEC",
+    "length": 2,
+    "fieldType": "numerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_65"
+  },
+  {
+    "type": "field",
+    "index": 66,
+    "name": "SVC1004-PF-D-F-FALLEC",
+    "length": 2,
+    "fieldType": "numerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_66"
+  },
+  {
+    "type": "field",
+    "index": 67,
+    "name": "SVC1004-PF-N-ITN-PL-N",
+    "length": 9,
+    "fieldType": "numerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_67"
+  },
+  {
+    "type": "field",
+    "index": 68,
+    "name": "SVC1004-PF-SEXO",
+    "length": 1,
+    "fieldType": "numerico",
+    "required": "opcional",
+    "values": "0 Desconocido      \r\n1 Hombre/Masculino \r\n2 Mujer/Femenino   \r\n3 Sin determinar",
+    "description": "",
+    "id": "field_68"
+  },
+  {
+    "type": "field",
+    "index": 69,
+    "name": "SVC1004-PF-ESTA-CIVIL",
+    "length": 1,
+    "fieldType": "numerico",
+    "required": "opcional",
+    "values": "0 Ninguno\r\n1 Casado/a\r\n2 Soltero/a\r\n3 Viudo/a\r\n4 Divorciado/a\r\n5 Separado/a legal\r\n6 Separado/a de hecho\r\n7 Unido/a de hecho",
+    "description": "Estado civil",
+    "id": "field_69"
+  },
+  {
+    "type": "field",
+    "index": 70,
+    "name": "SVC1004-PF-NIVEL-ESTU",
+    "length": 1,
+    "fieldType": "numerico",
+    "required": "opcional",
+    "values": "0 No Corresponde\r\n1 Sin Estudios\r\n2 Primarios\r\n3 Secundarios\r\n4 Terciarios\r\n5 Universitario",
+    "description": "Nivel de Estudio",
+    "id": "field_70"
+  },
+  {
+    "type": "field",
+    "index": 71,
+    "name": "SVC1004-PF-NUM-HIJOS",
+    "length": 3,
+    "fieldType": "numerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_71"
+  },
+  {
+    "type": "field",
+    "index": 72,
+    "name": "SVC1004-PF-CNO",
+    "length": 5,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "110   Químico (en general, Licenciado, Ingeniero, Doctor).                    \r\n 120   Físico (en general, Licenciado, Doctor).                                \r\n 130   Astrónomo, Geólogo, Meteorólogo, Geofísico, Licenciado Doctor en        \r\n       Geológicas o Naturales.                                                 \r\n 140   Técnico en ciencias físicas, geológicas o químicas.                     \r\n 210   Arquitecto.                                                             \r\n 230   Ingeniero de telecomunicación.                                          \r\n 240   Ingeniero industrial.                                                   \r\n 250   Ingeniero naval.                                                        \r\n 260   Ingeniero aeronáutico.                                                  \r\n 270   Ingeniero de minas.                                                     \r\n 280   Ingeniero geógrafo.                                                     \r\n 320   Delineante o dibujante técnico.                                         \r\n 330   Ingeniero técnico topógrafo.                                            \r\n 340   Ingeniero técnico de obras públicas.                                    \r\n 350   Ingeniero técnico telecomunicación.                                     \r\n 360   Ingeniero técnico industrial.                                           \r\n 380   Ingeniero técnico aeronáutico.                                          \r\n 390   Ingeniero técnico de minas.                                             \r\n 412   Piloto de aviación.                                                     \r\n 415   Mecánico de vuelo.                                                      \r\n 416   Piloto de helicóptero.                                                  \r\n 417   Instructor de vuelo.                                                    \r\n 420   Capitán, oficial o piloto de navegación marítima.                       \r\n 430   Oficial maquinista de navegación marítima.                              \r\n 510   Botánico, biólogo o zoólogo.                                            \r\n 520   Profesional de bacteriología, bioquímica, farmacología o genética.      \r\n 530   Ingeniero agrónomo.                                                     \r\n 540   Geólogo.                                                                \r\n 550   Ingeniero técnico agrícola, agronómicas o biológicas.                   \r\n 560   Ingeniero técnico forestal o técnico en cultivos forestales.            \r\n 601   Reumatólogo.                                                            \r\n 602   Médico Aparato digestivo.                                               \r\n 603   Cardiólogo.                                                             \r\n 604   Médico Oftalmólogo.                                                     \r\n 605   Médico Ginecólogo.                                                      \r\n 606   Traumatólogo.                                                           \r\n 607   Médico Urólogo.                                                         \r\n 608   Psiquiatra.                                                             \r\n 610   Médico General.                                                         \r\n 611   Médico Cirujano, en general.                                            \r\n 612   Médico Aparato respiratorio.                                            \r\n 613   Médico Neurólogo.                                                       \r\n 614   Médico Radiología y Radioterapia.                                       \r\n 616   Médico de medicina interna.                                             \r\n 617   Pediatra o Puericultor.                                                 \r\n 618   Médico Aparato circulatorio.                                            \r\n 619   Otros médicos y cirujanos.                                              \r\n 620   Anastesista.                                                            \r\n 621   Médico Alergista.                                                       \r\n 622   Cirujano Plástico.                                                      \r\n 630   Dentista (Odontólogo).                                                  \r\n 650   Veterinario.                                                            \r\n 670   Farmacéutico.                                                           \r\n 680   Bromatólogo o Dietético.                                                \r\n 710   Enfermera o practicante.                                                \r\n 730   Masajista o Terapeuta.                                                  \r\n 740   Radiólogo.                                                              \r\n 750   Auxiliar de clínica y personal sanitario no titulado.                   \r\n 760   Optico u Optometrista.                                                  \r\n 810   Estadístico.                                                            \r\n 820   Matemático, Licenciado o Doctor en Ciencias Exactas.                    \r\n 830   Actuario.                                                               \r\n 840   Analista de Sistemas.                                                   \r\n 850   Programador de computadora, técnico de cálculo matemático o             \r\n       estadístico.                                                            \r\n 900   Economista (Licenciado o Doctor en Ciencias Económicas).                \r\n1100   Contador Público.                                                       \r\n1212   Fiscal.                                                                 \r\n1214   Abogado , Licenciado en Derecho.                                        \r\n1215   Importador Exportador.                                                  \r\n1220   Juez, Magistrado o Secretario judicial.                                 \r\n1232   Escribano.                                                              \r\n1233   Registrador de la Propiedad.                                            \r\n1243   Asesor jurídico.                                                        \r\n1290   Kinesiólogo.                                                            \r\n1292   Gestor.                                                                 \r\n1293   Asesor de empresas.                                                     \r\n1294   Asesor laboral.                                                         \r\n1295   Auditor.                                                                \r\n1296   Aministrador de campos.                                                 \r\n1297   Administrador de consorcios.                                            \r\n1310   Profesor de Universidad o de ense¦anza superior.                        \r\n1320   Maestro de Secundaria.                                                  \r\n1330   Maestro.                                                                \r\n1340   Maestra de jardín preescolar.                                           \r\n1350   Administrador de Empresas.                                              \r\n1390   Profesor no clasificado en otros grupos.                                \r\n1410   Sacerdote, religioso, o ministro de la religión.                        \r\n1510   Crítico o escritor.                                                     \r\n1520   Periodista o reportero gráfico.                                         \r\n1610   Escultor, grabador o pintor (arte).                                     \r\n1620   Decorador o dise¦ador comercial.                                        \r\n1630   Fotógrafo.                                                              \r\n1640   Camarógrafo de cine o de televisión.                                    \r\n1710   Cantante, compositor o músico.                                          \r\n1720   Bailarín o coreógrafo.                                                  \r\n1730   Actor, director de cine   teatro.                                       \r\n1740   Empresario y productor de espectáculos artísticos.                      \r\n1750   Artista de circo.                                                       \r\n1792   Locutor de radio o televisión.                                          \r\n1793   Animador de espectáculos.                                               \r\n1810   Boxeador, ciclista, futbolista o deportista profesional.                \r\n1820   Técnico de deportes.                                                    \r\n1890   Deportista profesional (otros).                                         \r\n1910   Archivista, bibliotecario o conservador de museos.                      \r\n1920   Psicólogo, Geográfo, Sociológo, Antropólogo, Historiador, Doctor o      \r\n       Licenciado en Ciencias Políticas.                                       \r\n1930   Asistente social.                                                       \r\n1942   Graduado social.                                                        \r\n1950   Intérprete, traductor o filólogo.                                       \r\n1962   Publicista.                                                             \r\n1963   Relaciones Públicas.                                                    \r\n2010   Funcionario Judicial.                                                   \r\n2020   Personal directivo de la Administración Pública.                        \r\n2023   Diplomático.                                                            \r\n2110   Director o Gerente de empresa.                                          \r\n2120   Jefe de departamento.                                                   \r\n3110   Jefe de oficinas administrativas públicas.                              \r\n3120   Jefe de oficinas administrativas privadas.                              \r\n3200   Topógrafo.                                                              \r\n3300   Empleado de caja, empleado de contabilidad o taquillero.                \r\n3500   Jefe e inspector de servicios en los transportes y comunicaciones.      \r\n3600   Guarda de transportes de viajes.                                        \r\n3700   Cartero, mensajero, ordenanza.                                          \r\n3800   Telefonista, telegrafista.                                              \r\n3931   Contable, empleado administrativo en general.                           \r\n3934   Empleado de notarias, de registros o de otros servicios jurídicos.      \r\n3935   Empleado de seguros.                                                    \r\n3936   Empleado bancario.                                                      \r\n3937   Funcionario Público.                                                    \r\n3941   Recepcionista, en general.                                              \r\n3944   Empleado de agencia de viajes.                                          \r\n3971   Entrevistador, agente de encuestas y censos.                            \r\n4000   Gerente de comercio.                                                    \r\n4100   Propietario de empresas o comercio.                                     \r\n4210   Jefe de ventas.                                                         \r\n4220   Jefe de compras.                                                        \r\n4310   Agente de ventas.                                                       \r\n4320   Agente de comercio, representante o viajante.                           \r\n4410   Agente de aduanas o de cambio y bolsa.                                  \r\n4420   Agente de seguros.                                                      \r\n4430   Agente de venta de servicios de publicidad.                             \r\n4440   Martillero público, subastador o tasador.                               \r\n4510   Empleado de comercios.                                                  \r\n4520   Vendedor ambulante, vendedor a domicilio o vendedor de diarios.         \r\n4530   Vidrierista.                                                            \r\n5000   Gerente de servicios de hotelería o similares.                          \r\n5100   Propietario de hotelería y similares.                                   \r\n5202   Mayordomo.                                                              \r\n5310   Cocinero.                                                               \r\n5320   Camarero.                                                               \r\n5401   Empleada doméstica.                                                     \r\n5405   Rentista (vive de rentas).                                              \r\n5406   Auxiliar o azafata de vuelo.                                            \r\n5510   Portero, Encargado o Conserje.                                          \r\n5520   Limpiavidrios o personal de limpieza de edificios.                      \r\n5600   Lavado, limpieza o planchado de ropa.                                   \r\n5702   Peluquero de se¦oras.                                                   \r\n5703   Peluquero de caballeros.                                                \r\n5704   Esteticista, especialista tratamiento de belleza.                       \r\n5705   Manicura.                                                               \r\n5810   Bombero.                                                                \r\n5820   Comisario o Inspector de policia.                                       \r\n5830   Personal de cárceles.                                                   \r\n5842   Policia Federal.                                                        \r\n5843   Policia de la Provincia de Bs.As..                                      \r\n5844   Agente de empresas de seguridad.                                        \r\n5850   Detective o investigador privado.                                       \r\n5860   Criminólogo.                                                            \r\n5910   Guia.                                                                   \r\n5920   Personal de pompas fúnebres.                                            \r\n5930   Personal de apuestas deportivas.                                        \r\n5940   Personal de servicios en espectáculos públicos.                         \r\n6010   Director o jefe de empresas o explotaciones agrarias.                   \r\n6020   Director o jefe de empresas o explotaciones de la pesca.                \r\n6110   Agricultor.                                                             \r\n6150   Metalúrgico.                                                            \r\n6200   Ganadero.                                                               \r\n6300   Trabajador forestal.                                                    \r\n6400   Cazador, pescador o similares.                                          \r\n7000   Capataz, encargado general o jefe de taller.                            \r\n7100   Cantero, minero.                                                        \r\n7200   Trabajador siderometalúrgico.                                           \r\n7300   Trabajador de la preparación y del tratamiento de la madera y de la     \r\n       fabricación de papel.                                                   \r\n7400   Trabajador en la preparación y obtención de productos químicos.         \r\n7500   Trabajador de productos textiles.                                       \r\n7600   Curtidor, trabajador del curtido de pieles.                             \r\n7710   Enólogo.                                                                \r\n7730   Carnicero.                                                              \r\n7740   Bodeguero.                                                              \r\n7750   Trabajador de productos lácteos o del tratamiento de la leche.          \r\n7760   Panadero, pastelero, confitero o preparador de pastas alimenticias.     \r\n7770   Trabajador del aceite y sus derivados.                                  \r\n7780   Trabajador de la elaboración y fabricación de bebidas.                  \r\n7800   Trabajador de la elaboración de tabaco.                                 \r\n7910   Modista o sastre.                                                       \r\n7920   Peletero.                                                               \r\n7930   Retirado FFAA.                                                          \r\n7940   Cortador (de prendas de vestir) o patronista.                           \r\n7950   Modelo profesional.                                                     \r\n7960   Tapicero.                                                               \r\n8010   Zapatero.                                                               \r\n8020   Trabajador del calzado (excepto zapateros).                             \r\n8030   Artesano del cuero.                                                     \r\n8110   Ebanista.                                                               \r\n8120   Operador de máquinas de labrar la madera.                               \r\n8200   Trabajador de la labra de piedras, mármoles y similares.                \r\n8310   Herrero.                                                                \r\n8320   Matricero, mecánico-ajustador, modelista, trabajador de la              \r\n       fabricación de herramientas.                                            \r\n8330   Ajustador de máquinas herramientas.                                     \r\n8342   Tornero.                                                                \r\n8343   Yesero.                                                                 \r\n8350   Afilador o pulidor de metales.                                          \r\n8360   Cerrajero.                                                              \r\n8410   Constructor.                                                            \r\n8422   Relojero.                                                               \r\n8425   Mecánico dental.                                                        \r\n8430   Mecánico de automóviles, camiones., etc..                               \r\n8440   Mecánico de motores de aviación.                                        \r\n8510   Mecánico electricista.                                                  \r\n8520   Ajustador de instalaciones y aparatos electrónicos.                     \r\n8530   Armador de aparatos eléctricos y electrónicos.                          \r\n8540   Colocador de antenas de radio y televisión.                             \r\n8550   Electricista.                                                           \r\n8560   Instalador de equipos telefónicos y telegráficos.                       \r\n8570   Instalador de líneas eléctricas y de telecomunicación.                  \r\n8610   Operador de emisora de radio o televisión.                              \r\n8620   Operador de equipo de sonorización y de proyección cinematográfica.     \r\n8710   Calefactor, instalador de tuberías.                                     \r\n8720   Soldador, plomero.                                                      \r\n8730   Calderero o chapista.                                                   \r\n8740   Montador de estructuras metálicas.                                      \r\n8800   Joyero.                                                                 \r\n8900   Ceramista.                                                              \r\n9000   Trabajador de la fabricación de productos de caucho y plástico.         \r\n9100   Trabajador de la confección de productos de papel y cartón.             \r\n9200   Encuadernador, impresor (sericigrafía) o trabajador artes gráficas.     \r\n9310   Pintor de edificios y construcciones.                                   \r\n9320   Pintor de automóviles.                                                  \r\n9400   Taxidermista.                                                           \r\n9510   Alba¦il, marmolista.                                                    \r\n9540   Carpintero o parquetista.                                               \r\n9550   Estuquista o lustrador.                                                 \r\n9560   Instrumentador.                                                         \r\n9570   Vidriero.                                                              \r\n9710   Estibador.                                                             \r\n9730   Conductor de grúas u operador de instalaciones de elevación.           \r\n9810   Contramaestre o marinero.                                              \r\n9830   Conductor de tren subterráneo o maquinista de FFCC.                    \r\n9850   Taxista, chofer de omnibus, camión, taxi o vehículos de motor.         \r\n9900   Peón.                                                                  \r\n9901   Estudiante.                                                            \r\n9902   Jubilado o Pensionado.                                                 \r\n9903   Ama de casa.                                                           \r\n9904   Militar Gendarme o profesional de las FFAA.",
+    "description": "Ocupacion",
+    "id": "field_72"
+  },
+  {
+    "type": "field",
+    "index": 73,
+    "name": "SVC1004-PF-PROFESION",
+    "length": 30,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_73"
+  },
+  {
+    "type": "field",
+    "index": 74,
+    "name": "SVC1004-PF-N-CLA-FPIN",
+    "length": 1,
+    "fieldType": "numerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_74"
+  },
+  {
+    "type": "field",
+    "index": 75,
+    "name": "SVC1004-PF-PIN",
+    "length": 5,
+    "fieldType": "numerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_75"
+  },
+  {
+    "type": "field",
+    "index": 76,
+    "name": "SVC1004-PF-F-ACTZ",
+    "length": 10,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_76"
+  },
+  {
+    "type": "field",
+    "index": 77,
+    "name": "SVC1004-PF-C-ACTDATPE",
+    "length": 3,
+    "fieldType": "numerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_77"
+  },
+  {
+    "type": "field",
+    "index": 78,
+    "name": "SVC1004-PF-C-SEGMENTO",
+    "length": 5,
+    "fieldType": "numerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_78"
+  },
+  {
+    "type": "field",
+    "index": 79,
+    "name": "SVC1004-PJ-F-CONSTITU",
+    "length": 10,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_79"
+  },
+  {
+    "type": "field",
+    "index": 80,
+    "name": "SVC1004-PJ-F-COM-OPER",
+    "length": 10,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_80"
+  },
+  {
+    "type": "field",
+    "index": 81,
+    "name": "SVC1004-PJ-F-DISOLUC",
+    "length": 10,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_81"
+  },
+  {
+    "type": "field",
+    "index": 82,
+    "name": "SVC1004-PJ-TPC-PAR-EX",
+    "length": 5,
+    "fieldType": "numerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_82"
+  },
+  {
+    "type": "field",
+    "index": 83,
+    "name": "SVC1004-PJ-F-ACTZ",
+    "length": 10,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_83"
+  },
+  {
+    "type": "field",
+    "index": 84,
+    "name": "SVC1004-N-ITN-DIRE",
+    "length": 9,
+    "fieldType": "numerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_84"
+  },
+  {
+    "type": "field",
+    "index": 85,
+    "name": "SVC1004-TIPO-DOM",
+    "length": 1,
+    "fieldType": "numerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_85"
+  },
+  {
+    "type": "field",
+    "index": 86,
+    "name": "SVC1004-F-ALTA-D",
+    "length": 10,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_86"
+  },
+  {
+    "type": "field",
+    "index": 87,
+    "name": "SVC1004-TI-VIA-PUB",
+    "length": 2,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_87"
+  },
+  {
+    "type": "field",
+    "index": 88,
+    "name": "SVC1004-NO-VIA-PUB",
+    "length": 50,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_88"
+  },
+  {
+    "type": "field",
+    "index": 89,
+    "name": "SVC1004-NU-VIA-PUB",
+    "length": 7,
+    "fieldType": "numerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_89"
+  },
+  {
+    "type": "field",
+    "index": 90,
+    "name": "SVC1004-NU-VIA-P-H",
+    "length": 7,
+    "fieldType": "numerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_90"
+  },
+  {
+    "type": "field",
+    "index": 91,
+    "name": "SVC1004-AC-VIA-PUB",
+    "length": 3,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_91"
+  },
+  {
+    "type": "field",
+    "index": 92,
+    "name": "SVC1004-PO-VIA-PUB",
+    "length": 2,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_92"
+  },
+  {
+    "type": "field",
+    "index": 93,
+    "name": "SVC1004-BL-VIA-PUB",
+    "length": 2,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_93"
+  },
+  {
+    "type": "field",
+    "index": 94,
+    "name": "SVC1004-ES-VIA-PUB",
+    "length": 4,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_94"
+  },
+  {
+    "type": "field",
+    "index": 95,
+    "name": "SVC1004-PLANTA-EDI",
+    "length": 4,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_95"
+  },
+  {
+    "type": "field",
+    "index": 96,
+    "name": "SVC1004-IND-PUE-PL",
+    "length": 4,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_96"
+  },
+  {
+    "type": "field",
+    "index": 97,
+    "name": "SVC1004-PARCELA",
+    "length": 5,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_97"
+  },
+  {
+    "type": "field",
+    "index": 98,
+    "name": "SVC1004-TI-ZONA-UR",
+    "length": 2,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_98"
+  },
+  {
+    "type": "field",
+    "index": 99,
+    "name": "SVC1004-NO-ZONA-UR",
+    "length": 25,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_99"
+  },
+  {
+    "type": "field",
+    "index": 100,
+    "name": "SVC1004-NOM-PL",
+    "length": 30,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_100"
+  },
+  {
+    "type": "field",
+    "index": 101,
+    "name": "SVC1004-N-ITN-TERR",
+    "length": 4,
+    "fieldType": "numerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_101"
+  },
+  {
+    "type": "field",
+    "index": 102,
+    "name": "SVC1004-IN-CAP-PR",
+    "length": 1,
+    "fieldType": "numerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_102"
+  },
+  {
+    "type": "field",
+    "index": 103,
+    "name": "SVC1004-N-ITN-PL",
+    "length": 9,
+    "fieldType": "numerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_103"
+  },
+  {
+    "type": "field",
+    "index": 104,
+    "name": "SVC1004-COD-POSTAL",
+    "length": 8,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_104"
+  },
+  {
+    "type": "field",
+    "index": 105,
+    "name": "SVC1004-MO-EX-DIR",
+    "length": 3,
+    "fieldType": "numerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_105"
+  },
+  {
+    "type": "field",
+    "index": 106,
+    "name": "SVC1004-F-FIN-VIG",
+    "length": 10,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_106"
+  },
+  {
+    "type": "field",
+    "index": 107,
+    "name": "SVC1004-C-LOC-DIRE",
+    "length": 6,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_107"
+  },
+  {
+    "type": "field",
+    "index": 108,
+    "name": "SVC1004-CO-SI-CO-D",
+    "length": 5,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_108"
+  },
+  {
+    "type": "field",
+    "index": 109,
+    "name": "SVC1004-N-ITN-VI-P",
+    "length": 9,
+    "fieldType": "numerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_109"
+  },
+  {
+    "type": "field",
+    "index": 110,
+    "name": "SVC1004-CAN-REG-OR-D",
+    "length": 3,
+    "fieldType": "numerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_110"
+  },
+  {
+    "type": "field",
+    "index": 111,
+    "name": "SVC1004-DET-DIRELA",
+    "length": 1,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_111"
+  },
+  {
+    "type": "field",
+    "index": 112,
+    "name": "SVC1004-DET-DIINTE",
+    "length": 1,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_112"
+  },
+  {
+    "type": "field",
+    "index": 113,
+    "name": "SVC1004-DET-DIOFFI",
+    "length": 1,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_113"
+  },
+  {
+    "type": "field",
+    "index": 114,
+    "name": "SVC1004-DET-DIOFGR",
+    "length": 1,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_114"
+  },
+  {
+    "type": "field",
+    "index": 115,
+    "name": "SVC1004-DET-DIBPER",
+    "length": 1,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_115"
+  },
+  {
+    "type": "field",
+    "index": 116,
+    "name": "SVC1004-DET-DICONT",
+    "length": 1,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_116"
+  },
+  {
+    "type": "field",
+    "index": 117,
+    "name": "SVC1004-N-ITN-PERS-D",
+    "length": 9,
+    "fieldType": "numerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_117"
+  },
+  {
+    "type": "field",
+    "index": 118,
+    "name": "SVC1004-C-SER-CORR",
+    "length": 3,
+    "fieldType": "numerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_118"
+  },
+  {
+    "type": "field",
+    "index": 119,
+    "name": "SVC1004-C-MODADSER",
+    "length": 3,
+    "fieldType": "numerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_119"
+  },
+  {
+    "type": "field",
+    "index": 120,
+    "name": "SVC1004-F-COMI-VIG",
+    "length": 10,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_120"
+  },
+  {
+    "type": "field",
+    "index": 121,
+    "name": "SVC1004-F-ALTA-PRR",
+    "length": 10,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_121"
+  },
+  {
+    "type": "field",
+    "index": 122,
+    "name": "SVC1004-F-ALTA-BD",
+    "length": 10,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_122"
+  },
+  {
+    "type": "field",
+    "index": 123,
+    "name": "SVC1004-COD-IDIOMA-D",
+    "length": 3,
+    "fieldType": "numerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_123"
+  },
+  {
+    "type": "field",
+    "index": 124,
+    "name": "SVC1004-DE-PR-TELEFON",
+    "length": 9,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_124"
+  },
+  {
+    "type": "field",
+    "index": 125,
+    "name": "SVC1004-DE-N-TELEFONO",
+    "length": 12,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_125"
+  },
+  {
+    "type": "field",
+    "index": 126,
+    "name": "SVC1004-DE-PR-CELULAR",
+    "length": 9,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_126"
+  },
+  {
+    "type": "field",
+    "index": 127,
+    "name": "SVC1004-DE-N-CELULAR",
+    "length": 12,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_127"
+  },
+  {
+    "type": "field",
+    "index": 128,
+    "name": "SVC1004-DE-DIR-DE-URL",
+    "length": 250,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_128"
+  },
+  {
+    "type": "field",
+    "index": 129,
+    "name": "SVC1004-APE-Y-NOM",
+    "length": 80,
+    "fieldType": "alfanumerico",
+    "required": "opcional",
+    "values": "VALOR",
+    "description": "",
+    "id": "field_129"
+  }
+]
+
+==== ANÁLISIS DE CAMPOS (RESPUESTA) ====
+Índice | Nombre | Longitud | Tipo | Requerido | Descripción
+-------|--------|----------|------|-----------|------------
+0 | SVC1004-ESTADO | 2 | numerico | obligatorio | -
+1 | SVC1004-N-ITN-PERS | 9 | numerico | opcional | NIP
+2 | SVC1004-TIPO-NIF | 2 | alfanumerico | opcional | Tipo de Identificacion Fiscal
+3 | SVC1004-NIF | 11 | alfanumerico | opcional | Numero de Id Fiscal
+4 | SVC1004-C-DOCUM-ID | 1 | alfanumerico | opcional | Tipo de Documento
+5 | SVC1004-N-DOCUM-ID | 11 | alfanumerico | opcional | Nro de Documento
+6 | SVC1004-C-DU-DO-ID | 1 | alfanumerico | opcional | -
+7 | SVC1004-S-DU-DO-ID | 3 | numerico | opcional | -
+8 | SVC1004-NOMDS-PERS | 80 | alfanumerico | opcional | Nombre y apellido
+9 | SVC1004-SUBNO-PERS | 10 | alfanumerico | opcional | -
+10 | SVC1004-F-CO-CL-GR | 10 | alfanumerico | opcional | -
+11 | SVC1004-F-FI-CL-GR | 10 | alfanumerico | opcional | -
+12 | SVC1004-CNAE | 6 | alfanumerico | opcional | -
+13 | SVC1004-SECTOR-PER | 4 | numerico | opcional | -
+14 | SVC1004-CL-SUJETO | 3 | numerico | opcional | -
+15 | SVC1004-TIPO-PERS | 3 | numerico | opcional | -
+16 | SVC1004-TIPO-ENT | 3 | numerico | opcional | -
+17 | SVC1004-TRATAMIENT | 1 | numerico | opcional | -
+18 | SVC1004-COD-IDIOMA | 3 | numerico | opcional | -
+19 | SVC1004-F-ULT-P-ANSES | 10 | alfanumerico | opcional | -
+20 | SVC1004-F-VTOSOCIE | 10 | alfanumerico | opcional | -
+21 | SVC1004-N-ITN-TENA | 4 | numerico | opcional | Nacionalidad
+22 | SVC1004-C-NIV-CONP | 1 | numerico | opcional | -
+23 | SVC1004-C-NIV-CONI | 1 | numerico | opcional | -
+24 | SVC1004-CAN-REG-OR | 3 | numerico | opcional | -
+25 | SVC1004-F-ALTA | 10 | alfanumerico | opcional | -
+26 | SVC1004-CO-OR-IN-P | 5 | numerico | opcional | -
+27 | SVC1004-F-ACTZ | 10 | alfanumerico | opcional | -
+28 | SVC1004-C-BCO-GRRE | 5 | numerico | opcional | -
+29 | SVC1004-C-OF-GRRES | 5 | numerico | opcional | Sucursal radicacion
+30 | SVC1004-PR-TELEFON | 3 | numerico | opcional | -
+31 | SVC1004-N-TELEFONO | 7 | numerico | opcional | -
+32 | SVC1004-C-COLEC-IN | 3 | numerico | opcional | -
+33 | SVC1004-DET-PERCIR | 1 | alfanumerico | opcional | -
+34 | SVC1004-DET-PERJUD | 1 | alfanumerico | opcional | -
+35 | SVC1004-DET-PERCIA | 1 | alfanumerico | opcional | -
+36 | SVC1004-DET-PERRAI | 1 | alfanumerico | opcional | -
+37 | SVC1004-DET-PERAVI | 1 | alfanumerico | opcional | -
+38 | SVC1004-DET-PEREMB | 1 | alfanumerico | opcional | -
+39 | SVC1004-DET-PERINC | 1 | alfanumerico | opcional | -
+40 | SVC1004-DET-PERRGO | 1 | alfanumerico | opcional | -
+41 | SVC1004-DET-PERMOR | 1 | alfanumerico | opcional | -
+42 | SVC1004-DET-PERFAL | 1 | alfanumerico | opcional | -
+43 | SVC1004-DET-PERALE | 1 | alfanumerico | opcional | -
+44 | SVC1004-T-DIR-ELEC | 3 | numerico | opcional | -
+45 | SVC1004-PR-TELEFONICO | 9 | alfanumerico | opcional | -
+46 | SVC1004-N-TELEFONICO | 12 | alfanumerico | opcional | -
+47 | SVC1004-SUF-TELEFONICO | 4 | alfanumerico | opcional | -
+48 | SVC1004-DIR-DE-URL | 250 | alfanumerico | opcional | -
+49 | SVC1004-CLAVE-RESIDE | 1 | alfanumerico | opcional | -
+50 | SVC1004-C-SIT-JUPE | 3 | numerico | opcional | -
+51 | SVC1004-IN-AFIJOTE | 1 | numerico | opcional | -
+52 | SVC1004-IN-OTDIREL | 1 | numerico | opcional | -
+53 | SVC1004-IN-OTRIDPE | 1 | numerico | opcional | -
+54 | SVC1004-C-GESDATPE | 3 | numerico | opcional | -
+55 | SVC1004-C-TRTINFPE | 3 | numerico | opcional | -
+56 | SVC1004-CANT-TIMES-IMPU | 1 | alfanumerico | opcional | -
+57 | OCURRENCIA (6 repeticiones) | - | - | - | -
+  58 | SVC1004-N-ITN-IMPU | 4 | numerico | opcional | -
+  59 | SVC1004-C-SIT-RFIS | 3 | numerico | opcional | -
+  60 | SVC1004-TPC-APLIMP | 11 | numerico | opcional | -
+61 | SVC1004-PF-A-F-NACIMI | 4 | numerico | opcional | Año de nacimiento
+62 | SVC1004-PF-M-F-NACIMI | 2 | numerico | opcional | Mes de nacimiento
+63 | SVC1004-PF-D-F-NACIMI | 2 | numerico | opcional | Dia de nacimiento
+64 | SVC1004-PF-A-F-FALLEC | 4 | numerico | opcional | -
+65 | SVC1004-PF-M-F-FALLEC | 2 | numerico | opcional | -
+66 | SVC1004-PF-D-F-FALLEC | 2 | numerico | opcional | -
+67 | SVC1004-PF-N-ITN-PL-N | 9 | numerico | opcional | -
+68 | SVC1004-PF-SEXO | 1 | numerico | opcional | -
+69 | SVC1004-PF-ESTA-CIVIL | 1 | numerico | opcional | Estado civil
+70 | SVC1004-PF-NIVEL-ESTU | 1 | numerico | opcional | Nivel de Estudio
+71 | SVC1004-PF-NUM-HIJOS | 3 | numerico | opcional | -
+72 | SVC1004-PF-CNO | 5 | alfanumerico | opcional | Ocupacion
+73 | SVC1004-PF-PROFESION | 30 | alfanumerico | opcional | -
+74 | SVC1004-PF-N-CLA-FPIN | 1 | numerico | opcional | -
+75 | SVC1004-PF-PIN | 5 | numerico | opcional | -
+76 | SVC1004-PF-F-ACTZ | 10 | alfanumerico | opcional | -
+77 | SVC1004-PF-C-ACTDATPE | 3 | numerico | opcional | -
+78 | SVC1004-PF-C-SEGMENTO | 5 | numerico | opcional | -
+79 | SVC1004-PJ-F-CONSTITU | 10 | alfanumerico | opcional | -
+80 | SVC1004-PJ-F-COM-OPER | 10 | alfanumerico | opcional | -
+81 | SVC1004-PJ-F-DISOLUC | 10 | alfanumerico | opcional | -
+82 | SVC1004-PJ-TPC-PAR-EX | 5 | numerico | opcional | -
+83 | SVC1004-PJ-F-ACTZ | 10 | alfanumerico | opcional | -
+84 | SVC1004-N-ITN-DIRE | 9 | numerico | opcional | -
+85 | SVC1004-TIPO-DOM | 1 | numerico | opcional | -
+86 | SVC1004-F-ALTA-D | 10 | alfanumerico | opcional | -
+87 | SVC1004-TI-VIA-PUB | 2 | alfanumerico | opcional | -
+88 | SVC1004-NO-VIA-PUB | 50 | alfanumerico | opcional | -
+89 | SVC1004-NU-VIA-PUB | 7 | numerico | opcional | -
+90 | SVC1004-NU-VIA-P-H | 7 | numerico | opcional | -
+91 | SVC1004-AC-VIA-PUB | 3 | alfanumerico | opcional | -
+92 | SVC1004-PO-VIA-PUB | 2 | alfanumerico | opcional | -
+93 | SVC1004-BL-VIA-PUB | 2 | alfanumerico | opcional | -
+94 | SVC1004-ES-VIA-PUB | 4 | alfanumerico | opcional | -
+95 | SVC1004-PLANTA-EDI | 4 | alfanumerico | opcional | -
+96 | SVC1004-IND-PUE-PL | 4 | alfanumerico | opcional | -
+97 | SVC1004-PARCELA | 5 | alfanumerico | opcional | -
+98 | SVC1004-TI-ZONA-UR | 2 | alfanumerico | opcional | -
+99 | SVC1004-NO-ZONA-UR | 25 | alfanumerico | opcional | -
+100 | SVC1004-NOM-PL | 30 | alfanumerico | opcional | -
+101 | SVC1004-N-ITN-TERR | 4 | numerico | opcional | -
+102 | SVC1004-IN-CAP-PR | 1 | numerico | opcional | -
+103 | SVC1004-N-ITN-PL | 9 | numerico | opcional | -
+104 | SVC1004-COD-POSTAL | 8 | alfanumerico | opcional | -
+105 | SVC1004-MO-EX-DIR | 3 | numerico | opcional | -
+106 | SVC1004-F-FIN-VIG | 10 | alfanumerico | opcional | -
+107 | SVC1004-C-LOC-DIRE | 6 | alfanumerico | opcional | -
+108 | SVC1004-CO-SI-CO-D | 5 | alfanumerico | opcional | -
+109 | SVC1004-N-ITN-VI-P | 9 | numerico | opcional | -
+110 | SVC1004-CAN-REG-OR-D | 3 | numerico | opcional | -
+111 | SVC1004-DET-DIRELA | 1 | alfanumerico | opcional | -
+112 | SVC1004-DET-DIINTE | 1 | alfanumerico | opcional | -
+113 | SVC1004-DET-DIOFFI | 1 | alfanumerico | opcional | -
+114 | SVC1004-DET-DIOFGR | 1 | alfanumerico | opcional | -
+115 | SVC1004-DET-DIBPER | 1 | alfanumerico | opcional | -
+116 | SVC1004-DET-DICONT | 1 | alfanumerico | opcional | -
+117 | SVC1004-N-ITN-PERS-D | 9 | numerico | opcional | -
+118 | SVC1004-C-SER-CORR | 3 | numerico | opcional | -
+119 | SVC1004-C-MODADSER | 3 | numerico | opcional | -
+120 | SVC1004-F-COMI-VIG | 10 | alfanumerico | opcional | -
+121 | SVC1004-F-ALTA-PRR | 10 | alfanumerico | opcional | -
+122 | SVC1004-F-ALTA-BD | 10 | alfanumerico | opcional | -
+123 | SVC1004-COD-IDIOMA-D | 3 | numerico | opcional | -
+124 | SVC1004-DE-PR-TELEFON | 9 | alfanumerico | opcional | -
+125 | SVC1004-DE-N-TELEFONO | 12 | alfanumerico | opcional | -
+126 | SVC1004-DE-PR-CELULAR | 9 | alfanumerico | opcional | -
+127 | SVC1004-DE-N-CELULAR | 12 | alfanumerico | opcional | -
+128 | SVC1004-DE-DIR-DE-URL | 250 | alfanumerico | opcional | -
+129 | SVC1004-APE-Y-NOM | 80 | alfanumerico | opcional | -

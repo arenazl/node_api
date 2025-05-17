@@ -152,13 +152,22 @@ router.post('/sendmessage', async (req, res) => {
     console.log(`[SENDMESSAGE] String de IDA generado: ${message.length} caracteres`);
     console.log(`[SENDMESSAGE] Primeros 100 caracteres del mensaje: "${message.substring(0, 100)}..."`);
 
-    // 5. Devolver resultado
+    // 5. Generar estructura detallada de campos
+    const estructura = generarEstructuraDetallada(headerStructure, serviceStructure, requestData);
+    console.log(`[SENDMESSAGE] Estructura detallada generada con ${estructura.length} campos`);
+
+    // 6. Devolver resultado
     res.json({
       request: {
         header: header, // Include original header from request
         parameters: parameters // Include original parameters from request
       },
-      response: message // The generated IDA string
+      response: message, // The generated IDA string
+      estructura: estructura, // Detailed structure of fields
+      estructuraCompleta: {
+        // Incluir toda la estructura del requerimiento para análisis
+        requestStructure: serviceStructure.request
+      }
     });
 
   } catch (error) {
@@ -168,6 +177,116 @@ router.post('/sendmessage', async (req, res) => {
     });
   }
 });
+
+/**
+ * Genera una estructura detallada de los campos que componen el mensaje
+ * @param {Object} headerStructure - Estructura de la cabecera
+ * @param {Object} serviceStructure - Estructura del servicio
+ * @param {Object} requestData - Datos de la solicitud
+ * @returns {Array} Array con los detalles de cada campo
+ */
+function generarEstructuraDetallada(headerStructure, serviceStructure, requestData) {
+  const estructura = [];
+  
+  // Solo procesar los campos del requerimiento, no los de la cabecera
+  if (serviceStructure && serviceStructure.request && serviceStructure.request.elements) {
+    console.log(`[ESTRUCTURA] Procesando ${serviceStructure.request.elements.length} elementos del requerimiento`);
+    
+    // Procesar elementos del requerimiento
+    procesarElementos(serviceStructure.request.elements, requestData.data, estructura);
+  }
+  
+  return estructura;
+}
+
+/**
+ * Procesa los elementos de la estructura y los añade al array de estructura
+ * @param {Array} elements - Elementos de la estructura
+ * @param {Object} data - Datos correspondientes
+ * @param {Array} estructura - Array donde se acumularán los resultados
+ */
+function procesarElementos(elements, data, estructura) {
+  for (const element of elements) {
+    if (element.type === 'field') {
+      // Procesar campo simple
+      const fieldName = element.name;
+      const fieldLength = parseInt(element.length) || 0;
+      const fieldType = (element.fieldType || element.type || "alfanumerico").toLowerCase();
+      const fieldValue = data[fieldName] || "";
+      
+      estructura.push({
+        nombre: fieldName,
+        valor: fieldValue,
+        longitud: fieldLength,
+        tipo: fieldType
+      });
+    } else if (element.type === 'occurrence') {
+      // Procesar ocurrencia
+      const occId = element.id || `occurrence_${element.index}`;
+      const occData = data[occId] || [];
+      
+      // Agregar un campo especial para indicar la cantidad de ocurrencias
+      estructura.push({
+        nombre: `${occId}_cantidad`,
+        valor: occData.length.toString(),
+        longitud: 0, // No tiene longitud fija en el mensaje
+        tipo: "contador_ocurrencias"
+      });
+      
+      // Procesar cada ocurrencia
+      if (element.fields) {
+        for (let i = 0; i < occData.length; i++) {
+          for (const field of element.fields) {
+            if (field.type === 'field') {
+              const fieldName = field.name;
+              const fieldLength = parseInt(field.length) || 0;
+              const fieldType = (field.fieldType || field.type || "alfanumerico").toLowerCase();
+              const fieldValue = occData[i][fieldName] || "";
+              
+              estructura.push({
+                nombre: `${occId}[${i}].${fieldName}`,
+                valor: fieldValue,
+                longitud: fieldLength,
+                tipo: fieldType
+              });
+            } else if (field.type === 'occurrence') {
+              // Si hay ocurrencias anidadas, procesarlas recursivamente
+              const nestedOccId = field.id || `occurrence_${field.index}`;
+              const nestedOccData = occData[i][nestedOccId] || [];
+              
+              estructura.push({
+                nombre: `${occId}[${i}].${nestedOccId}_cantidad`,
+                valor: nestedOccData.length.toString(),
+                longitud: 0,
+                tipo: "contador_ocurrencias"
+              });
+              
+              if (field.fields) {
+                for (let j = 0; j < nestedOccData.length; j++) {
+                  for (const nestedField of field.fields) {
+                    if (nestedField.type === 'field') {
+                      const nestedFieldName = nestedField.name;
+                      const nestedFieldLength = parseInt(nestedField.length) || 0;
+                      const nestedFieldType = (nestedField.fieldType || nestedField.type || "alfanumerico").toLowerCase();
+                      const nestedFieldValue = nestedOccData[j][nestedFieldName] || "";
+                      
+                      estructura.push({
+                        nombre: `${occId}[${i}].${nestedOccId}[${j}].${nestedFieldName}`,
+                        valor: nestedFieldValue,
+                        longitud: nestedFieldLength,
+                        tipo: nestedFieldType
+                      });
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
 
 /**
  * @route POST /api/services/receivemessage
@@ -262,19 +381,18 @@ router.post('/receivemessage', async (req, res) => {
       }
 
       // Filtrar ocurrencias vacías después del primer parseo
-      if (DEBUG_LOG) {
+
         console.log("[RECEIVEMESSAGE] Datos antes de filtrar ocurrencias vacías:", JSON.stringify(responseData, null, 2));
         const cleanResponseData = removeEmptyOccurrences(responseData);
         console.log("[RECEIVEMESSAGE] Response parseada y filtrada (primer paso):", JSON.stringify(cleanResponseData, null, 2));
         console.log("[RECEIVEMESSAGE] Campos eliminados:",
           Object.keys(responseData).filter(key => !cleanResponseData.hasOwnProperty(key)));
-      }
 
       // --- Nuevo paso: Convertir JSON de vuelta a string de posiciones fijas ---
-      if (DEBUG_LOG) {
+
         console.log("[RECEIVEMESSAGE] Convirtiendo JSON de vuelta a stream de posiciones fijas...");
         console.log(`[RECEIVEMESSAGE] Datos limpios a convertir:`, JSON.stringify(cleanResponseData, null, 2));
-      }
+
       const intermediateStream = messageAnalyzer.formatDataMessage(cleanResponseData, responseStructure);
       console.log(`[RECEIVEMESSAGE] Stream intermedio generado (${intermediateStream.length} caracteres): "${intermediateStream.substring(0, 100)}..."`); // Log first 100 chars
 
@@ -1613,13 +1731,22 @@ router.post('/sendmessage', async (req, res) => {
     const message = messageCreator.createMessage(headerStructure, serviceStructure, requestData, "request");
     console.log(`[SENDMESSAGE] String de IDA generado: ${message.length} caracteres`);
     
-    // 5. Devolver resultado
+    // 5. Generar estructura detallada de campos
+    const estructura = generarEstructuraDetallada(headerStructure, serviceStructure, requestData);
+    console.log(`[SENDMESSAGE] Estructura detallada generada con ${estructura.length} campos`);
+
+    // 6. Devolver resultado
     res.json({
       request: {
-        header,
-        parameters
+        header: header, // Include original header from request
+        parameters: parameters // Include original parameters from request
       },
-      response: message
+      response: message, // The generated IDA string
+      estructura: estructura, // Detailed structure of fields
+      estructuraCompleta: {
+        // Incluir toda la estructura del requerimiento para análisis
+        requestStructure: serviceStructure.request
+      }
     });
     
   } catch (error) {
