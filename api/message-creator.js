@@ -257,5 +257,6 @@ function formatValue(value, length, type) {
 }
 
 module.exports = {
-  createMessage
+  createMessage,
+  createHeaderMessage
 };

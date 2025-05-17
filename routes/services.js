@@ -54,6 +54,29 @@ router.post('/generate', async (req, res) => {
 });
 
 /**
+ * @route POST /api/services/create-header
+ * @description Crea un mensaje de cabecera usando la función del backend
+ */
+router.post('/create-header', async (req, res) => {
+  try {
+    const { headerStructure, headerData } = req.body;
+    
+    if (!headerStructure || !headerData) {
+      return res.status(400).json({ error: "Se requieren headerStructure y headerData" });
+    }
+    
+    // Crear mensaje de cabecera
+    const headerMessage = messageCreator.createHeaderMessage(headerStructure, headerData);
+    
+    // Devolver el resultado
+    res.json({ headerMessage });
+  } catch (error) {
+    console.error(`[CREATE-HEADER] Error:`, error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
  * @route POST /api/services/sendmessage
  * @description Genera el string de IDA a partir de parámetros personalizados
  */
@@ -188,9 +211,47 @@ router.post('/sendmessage', async (req, res) => {
 function generarEstructuraDetallada(headerStructure, serviceStructure, requestData) {
   const estructura = [];
   
-  // Solo procesar los campos del requerimiento, no los de la cabecera
+  // Procesar los campos de la cabecera
+  if (headerStructure && headerStructure.fields) {
+    console.log(`[ESTRUCTURA] Procesando ${headerStructure.fields.length} elementos de la cabecera`);
+    
+    // Añadir indicador de sección
+    estructura.push({
+      nombre: "SECCION",
+      valor: "CABECERA",
+      longitud: 0,
+      tipo: "separator"
+    });
+    
+    // Procesar cada campo de la cabecera
+    for (const field of headerStructure.fields) {
+      if (field.name === '*' || field.name === 'REQUERIMIENTO') continue; // Ignorar campos especiales
+      
+      const fieldName = field.name;
+      const fieldLength = parseInt(field.length) || 0;
+      const fieldType = (field.fieldType || field.type || "alfanumerico").toLowerCase();
+      const fieldValue = requestData.header[fieldName] || "";
+      
+      estructura.push({
+        nombre: fieldName,
+        valor: fieldValue,
+        longitud: fieldLength,
+        tipo: fieldType
+      });
+    }
+  }
+  
+  // Procesar los campos del requerimiento
   if (serviceStructure && serviceStructure.request && serviceStructure.request.elements) {
     console.log(`[ESTRUCTURA] Procesando ${serviceStructure.request.elements.length} elementos del requerimiento`);
+    
+    // Añadir indicador de sección
+    estructura.push({
+      nombre: "SECCION",
+      valor: "REQUERIMIENTO",
+      longitud: 0,
+      tipo: "separator"
+    });
     
     // Procesar elementos del requerimiento
     procesarElementos(serviceStructure.request.elements, requestData.data, estructura);
@@ -286,6 +347,195 @@ function procesarElementos(elements, data, estructura) {
       }
     }
   }
+}
+
+/**
+ * @route POST /api/services/sendmessage-detailed
+ * @description Genera el string de IDA a partir de parámetros personalizados y incluye desglose detallado de campos
+ */
+router.post('/sendmessage-detailed', async (req, res) => {
+  try {
+    const { header, parameters } = req.body;
+
+    // Validar datos de entrada
+    if (!header || !header.serviceNumber) {
+      return res.status(400).json({ error: "Se requiere header.serviceNumber" });
+    }
+
+    if (!header.canal) {
+      return res.status(400).json({ error: "Se requiere header.canal" });
+    }
+
+    const serviceNumber = header.serviceNumber;
+    const canal = header.canal;
+    console.log(`[SENDMESSAGE-DETAILED] Procesando servicio: ${serviceNumber}, canal: ${canal}`);
+
+    // 1. Buscar estructura del servicio sin forzar recarga
+    const { headerStructure, serviceStructure } = await findServiceByNumber(serviceNumber, false);
+    if (!headerStructure || !serviceStructure) {
+      return res.status(404).json({ error: `[SENDMESSAGE-DETAILED] Estructura no encontrada para el servicio ${serviceNumber}` });
+    }
+    console.log(`[SENDMESSAGE-DETAILED] Estructura encontrada para servicio ${serviceNumber}`);
+
+    // 2. Buscar configuración por canal
+    const configDir = path.join(__dirname, '..', 'settings');
+
+    // Buscar configuración por serviceNumber y canal
+    let configFound = false;
+    let configData = null;
+
+    try {
+      // Buscar archivos de configuración para este servicio
+      // Patrones comunes: 1004-ME-v2.json, 1004_ME_v2.json, etc.
+      const configFiles = fs.readdirSync(configDir)
+        .filter(file => file.endsWith('.json') &&
+                (file.startsWith(`${serviceNumber}-${canal}`) ||
+                 file.startsWith(`${serviceNumber}_${canal}`) ||
+                 file.includes(`${serviceNumber}-${canal}`) ||
+                 file.includes(`${serviceNumber}_${canal}`)));
+
+      if (configFiles.length > 0) {
+        // Usar la primera configuración encontrada
+        const configPath = path.join(configDir, configFiles[0]);
+        configData = await fs.readJson(configPath);
+        configFound = true;
+        console.log(`[SENDMESSAGE-DETAILED] Configuración encontrada: ${configFiles[0]}`);
+      } else {
+        console.log(`[SENDMESSAGE-DETAILED] No se encontró configuración para servicio ${serviceNumber} y canal ${canal}`);
+      }
+    } catch (configError) {
+      console.error(`[SENDMESSAGE-DETAILED] Error al buscar configuración:`, configError);
+    }
+
+    // 3. Combinar configuración con parámetros específicos
+    let requestData = {};
+
+    // Si encontramos configuración, usarla como base
+    if (configFound && configData) {
+      // Clonar objeto para no modificar el original
+      requestData = {
+        header: { ...configData.header || {} },
+        data: { ...configData.request || {} }
+      };
+    } else {
+      // Si no hay configuración, crear objeto básico
+      requestData = {
+        header: {
+          CANAL: canal,
+          SERVICIO: serviceNumber,
+          USUARIO: "SISTEMA"
+        },
+        data: {}
+      };
+    }
+
+    // Agregar parámetros específicos a los datos del request
+    if (parameters && typeof parameters === 'object') {
+      console.log(`[SENDMESSAGE-DETAILED] Parámetros recibidos:`, JSON.stringify(parameters, null, 2));
+      // Reemplazar/agregar parámetros en data
+      Object.assign(requestData.data, parameters);
+      console.log(`[SENDMESSAGE-DETAILED] Parámetros combinados con configuración:`, JSON.stringify(requestData.data, null, 2));
+    }
+
+    // 4. Crear mensaje de IDA
+    console.log(`[SENDMESSAGE-DETAILED] Creando mensaje de IDA con los siguientes datos:`, JSON.stringify(requestData, null, 2));
+    const message = messageCreator.createMessage(headerStructure, serviceStructure, requestData, "request");
+    console.log(`[SENDMESSAGE-DETAILED] String de IDA generado: ${message.length} caracteres`);
+    console.log(`[SENDMESSAGE-DETAILED] Primeros 100 caracteres del mensaje: "${message.substring(0, 100)}..."`);
+
+    // 5. Generar estructura detallada de campos
+    const estructura = generarEstructuraDetallada(headerStructure, serviceStructure, requestData);
+    console.log(`[SENDMESSAGE-DETAILED] Estructura detallada generada con ${estructura.length} campos`);
+
+    // 6. Generar desglose detallado campo por campo
+    const desgloseCampos = generarDesgloseCampos(estructura);
+    console.log(`[SENDMESSAGE-DETAILED] Desglose detallado campo por campo generado`);
+
+    // 7. Devolver resultado
+    res.json({
+      request: {
+        header: header, // Include original header from request
+        parameters: parameters // Include original parameters from request
+      },
+      response: message, // The generated IDA string
+      estructura: estructura, // Original detailed structure of fields
+      desgloseCampos: desgloseCampos, // Campo por campo detallado
+      estructuraCompleta: {
+        // Incluir toda la estructura del requerimiento para análisis
+        requestStructure: serviceStructure.request
+      }
+    });
+
+  } catch (error) {
+    console.error(`[SENDMESSAGE-DETAILED] Error en procesamiento:`, error);
+    res.status(error.statusCode || 500).json({
+      error: error.message || '[SENDMESSAGE-DETAILED] Error desconocido en procesamiento'
+    });
+  }
+});
+
+/**
+ * Genera un desglose detallado campo por campo del mensaje
+ * @param {Array} estructura - Estructura detallada de campos generada por generarEstructuraDetallada
+ * @returns {Object} Objeto con el desglose detallado campo por campo
+ */
+function generarDesgloseCampos(estructura) {
+  // Este objeto contendrá el desglose detallado de los campos
+  const desglose = {
+    seccionCabecera: [],
+    seccionRequerimiento: [],
+    resumenPorTipo: {
+      alfanumerico: { cantidad: 0, longitudTotal: 0 },
+      numerico: { cantidad: 0, longitudTotal: 0 },
+      otros: { cantidad: 0, longitudTotal: 0 }
+    },
+    totalCampos: 0,
+    longitudTotal: 0
+  };
+
+  let seccionActual = null;
+
+  // Recorrer la estructura campo por campo
+  for (const campo of estructura) {
+    // Determinar la sección actual
+    if (campo.nombre === "SECCION") {
+      seccionActual = campo.valor;
+      continue;
+    }
+
+    // Crear objeto con la información detallada del campo
+    const campoDet = {
+      nombre: campo.nombre,
+      valor: campo.valor,
+      longitud: campo.longitud,
+      tipo: campo.tipo
+    };
+
+    // Agregar a la sección correspondiente
+    if (seccionActual === "CABECERA") {
+      desglose.seccionCabecera.push(campoDet);
+    } else if (seccionActual === "REQUERIMIENTO") {
+      desglose.seccionRequerimiento.push(campoDet);
+    }
+
+    // Actualizar estadísticas
+    desglose.totalCampos++;
+    desglose.longitudTotal += campo.longitud;
+
+    // Actualizar contadores por tipo
+    if (campo.tipo === "alfanumerico") {
+      desglose.resumenPorTipo.alfanumerico.cantidad++;
+      desglose.resumenPorTipo.alfanumerico.longitudTotal += campo.longitud;
+    } else if (campo.tipo === "numerico") {
+      desglose.resumenPorTipo.numerico.cantidad++;
+      desglose.resumenPorTipo.numerico.longitudTotal += campo.longitud;
+    } else if (campo.tipo !== "separator" && campo.longitud > 0) {
+      desglose.resumenPorTipo.otros.cantidad++;
+      desglose.resumenPorTipo.otros.longitudTotal += campo.longitud;
+    }
+  }
+
+  return desglose;
 }
 
 /**

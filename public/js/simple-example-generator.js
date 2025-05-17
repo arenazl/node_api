@@ -33,8 +33,8 @@ async function generateSimpleExample(serviceNumber) {
       "TIPO-MENSAJE": "RESP"    // Es una respuesta
     };
     
-    // Crear mensaje de cabecera
-    const headerMessage = createHeaderMessage(headerStructure, headerData);
+    // Crear mensaje de cabecera llamando al backend
+    const headerMessage = await createHeaderMessage(headerStructure, headerData);
     
     // 3. Generar cuerpo de la respuesta con valores aleatorios
     const responseData = generateRandomResponseData(serviceStructure.response);
@@ -57,6 +57,163 @@ async function generateSimpleExample(serviceNumber) {
     throw error;
   }
 }
+
+
+/**
+ * Busca un servicio por número
+ * @param {string} serviceNumber - Número de servicio
+ * @param {boolean} forceRefresh - Si es true, ignorar caché y recargar estructura
+ * @returns {Promise<Object>} Estructuras de cabecera y servicio
+ */
+async function findServiceByNumber(serviceNumber, forceRefresh = false) {
+  try {
+    if (!serviceNumber) {
+      const error = new Error('Número de servicio no proporcionado');
+      error.statusCode = 400;
+      throw error;
+    }
+    
+    // Verificar caché de estructuras silenciosamente
+    if (!forceRefresh &&
+        window.serviceCache &&
+        window.serviceCache.structures &&
+        window.serviceCache.structures[serviceNumber]) {
+      return window.serviceCache.structures[serviceNumber];
+    }
+
+    // Solo logear si necesitamos buscar el servicio
+    console.log(`Buscando servicio con número: ${serviceNumber}`);
+    
+    // Obtener la lista de servicios
+    const services = await getAvailableServices();
+    
+    // Buscar el servicio por número
+    const service = services.find(s => s.service_number === serviceNumber);
+    if (!service) {
+      const error = new Error(`Servicio no encontrado: ${serviceNumber}`);
+      error.statusCode = 404;
+      throw error;
+    }
+    
+    console.log(`Servicio encontrado: ${service.service_name}, archivo: ${service.excel_file}`);
+    
+    // Resultado que se devolverá
+    let result = null;
+    
+    // En el navegador, usamos la API para obtener la estructura
+    try {
+      // Llamar a la API para obtener la estructura
+      const response = await fetch(`/excel/structure-by-service?service_number=${serviceNumber}`);
+      if (!response.ok) {
+        throw new Error(`Error ${response.status} al buscar estructura`);
+      }
+      const structure = await response.json();
+      
+      // Verificar que la estructura tenga los componentes necesarios
+      if (!structure.header_structure) {
+        console.warn(`La estructura no contiene header_structure`);
+      }
+      
+      if (!structure.service_structure) {
+        console.warn(`La estructura no contiene service_structure`);
+      }
+      
+      result = {
+        headerStructure: structure.header_structure || {},
+        serviceStructure: structure.service_structure || {}
+      };
+    } catch (error) {
+      console.error(`Error al obtener estructura para el servicio ${serviceNumber}:`, error);
+      throw error;
+    }
+    
+    if (!result) {
+      throw new Error(`No se pudo cargar el servicio ${serviceNumber}: estructura no encontrada`);
+    }
+    
+    // Guardar en caché
+    if (!window.serviceCache) {
+      window.serviceCache = { structures: {} };
+    } else if (!window.serviceCache.structures) {
+      window.serviceCache.structures = {};
+    }
+    window.serviceCache.structures[serviceNumber] = result;
+    
+    return result;
+    
+  } catch (error) {
+    console.error(`Error al cargar servicio ${serviceNumber}:`, error);
+    
+    // Asegurar que todos los errores tienen un código de estado
+    if (!error.statusCode) {
+      error.statusCode = 500;
+    }
+    
+    // Crear mensaje de error más descriptivo
+    if (error.message.includes('no encontrado')) {
+      error.message = `Error al cargar estructura: ${error.message}`;
+    } else {
+      error.message = `Error al cargar estructura para servicio ${serviceNumber}: ${error.message}`;
+    }
+    
+    throw error;
+  }
+}
+
+
+/**
+ * Crea un mensaje de cabecera llamando al backend
+ * @param {Object} headerStructure - Estructura de la cabecera
+ * @param {Object} headerData - Datos de la cabecera
+ * @returns {Promise<string>} - Mensaje de cabecera formateado
+ */
+async function createHeaderMessage(headerStructure, headerData) {
+  try {
+    // Llamar al endpoint del backend para generar la cabecera
+    const response = await fetch('/api/services/create-header', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        headerStructure,
+        headerData
+      })
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Error ${response.status} al crear cabecera`);
+    }
+    
+    const data = await response.json();
+    if (data.headerMessage) {
+      return data.headerMessage;
+    } else {
+      throw new Error('Respuesta del servidor no contiene headerMessage');
+    }
+  } catch (error) {
+    console.error('Error al crear cabecera:', error);
+    
+    // En caso de fallo, generar una cabecera simple localmente
+    console.warn('Generando cabecera simple como fallback');
+    return generateSimpleHeader(headerData.SERVICIO || '0000', headerStructure.totalLength || 102);
+  }
+}
+
+async function getAvailableServices() {
+  try {
+    const response = await fetch('/api/services');
+    if (!response.ok) {
+      throw new Error(`Error ${response.status} al obtener servicios`);
+    }
+    const data = await response.json();
+    return data.services || [];
+  } catch (error) {
+    console.error('Error al obtener servicios:', error);
+    return [];
+  }
+}
+
 
 /**
  * Genera datos de respuesta aleatorios basados en la estructura
@@ -292,9 +449,7 @@ function generateRandomValue(length, fieldType) {
   if (numLength <= 0) return '';
 
   // Normalizar el tipo a minúsculas
-  const type = (fieldType || '').toLowerCase();
-  const isNumeric = type === 'numerico' || type === 'numeric' ||
-                   type === 'number' || type.includes('num');
+  const isNumeric = (fieldType  == 'numerico')
 
   // Generar valor aleatorio según el tipo
   let value = '';

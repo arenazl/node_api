@@ -1,0 +1,14 @@
+{
+  "headerStructure": {
+    "fields": [
+      {
+        "name": "TEST",
+        "length": 4,
+        "type": "alfanumerico"
+      }
+    ]
+  },
+  "headerData": {
+    "TEST": "ABCD"
+  }
+}

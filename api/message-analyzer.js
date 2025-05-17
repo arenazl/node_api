@@ -146,8 +146,10 @@ function formatValue(value, length, type) {
   // Verificación para los tipos específicos de la estructura
   if (type === 'alfanumerico') {
     // Si el valor es más corto que la longitud requerida, generar un valor aleatorio para el resto
+    if (processedValue.length < numLength) {
       const randomSuffix = generateRandomValue(numLength - processedValue.length, type);
       return processedValue + randomSuffix;
+    }
     return processedValue;
   }
   
@@ -157,8 +159,13 @@ function formatValue(value, length, type) {
       const randomPrefix = generateRandomValue(numLength - processedValue.length, type);
       return randomPrefix + processedValue;
     }
-    
-  return processedValue;
+    return processedValue;
+  }
+
+  // Comportamiento predeterminado si el tipo no está definido o reconocido
+  // Generar un valor aleatorio
+  console.warn(`ADVERTENCIA: Tipo "${type}" no reconocido para el valor "${strValue}", generando valor aleatorio.`);
+  return generateRandomValue(numLength, 'alfanumerico');
 }
 
 /**
@@ -199,12 +206,6 @@ function generateRandomValue(length, fieldType) {
   }
 
   return value;
-}
-
-  // Comportamiento predeterminado si el tipo no está definido o reconocido
-  // Generar un valor aleatorio
-  console.warn(`ADVERTENCIA: Tipo "${fieldType}" no reconocido para el valor "${strValue}", generando valor aleatorio.`);
-  return generateRandomValue(numLength, 'alfanumerico');
 }
 
 /**
@@ -362,7 +363,7 @@ function parseDataMessage(dataMessage, dataStructure, validateOccurrences = fals
       console.log(`[OCURRENCIAS] Agregado mapa de ocurrencias anidadas: ${JSON.stringify(data._nestedOccurrenceMap)}`);
     }
     
-    // Actualizar posición
+    // Actualizar p osición
     position = newPosition;
     
     // Procesar elementos restantes después de ocurrencias (si hay)

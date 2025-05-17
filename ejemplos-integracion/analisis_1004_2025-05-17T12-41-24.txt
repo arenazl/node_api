@@ -1,0 +1,34 @@
+
+=== ANÁLISIS DETALLADO DEL SERVICIO 1004 ===
+Fecha: 2025-05-17T12:41:24.042Z
+
+--- DESGLOSE DETALLADO DE CAMPOS ---
+
+Estadísticas generales:
+- Total de campos: 14
+- Longitud total: 113 caracteres
+
+Resumen por tipo de dato:
+- Tipo alfanumerico: 4 campos, 59 caracteres
+- Tipo numerico: 10 campos, 54 caracteres
+
+Campos de la cabecera (12):
+- LONGITUD DEL MENSAJE: valor="000113", longitud=6, tipo=numerico
+- CANAL               : valor="ME", longitud=2, tipo=alfanumerico
+- SERVICIO            : valor="1004", longitud=4, tipo=numerico
+- CÓDIGO DE RETORNO   : valor="0000", longitud=4, tipo=numerico
+- ID DEL MENSAJE      : valor="000000001", longitud=9, tipo=numerico
+- FECHA               : valor="21052009", longitud=8, tipo=numerico
+- HORA                : valor="155959", longitud=6, tipo=numerico
+- USUARIO             : valor="P076950", longitud=7, tipo=alfanumerico
+- Ubicación           : valor="1047", longitud=4, tipo=numerico
+- TEXTO DEL CÓDIGO DE RETORNO: valor="", longitud=45, tipo=alfanumerico
+- ESTADO ENVIADO      : valor="", longitud=2, tipo=numerico
+- CAMPO COMPLEMENTARIO: valor="", longitud=5, tipo=alfanumerico
+
+Campos del requerimiento (2):
+- SVC1004-NIP         : valor="", longitud=9, tipo=numerico
+- SVC1004-TIP-PEDIDO  : valor="", longitud=2, tipo=numerico
+
+--- STRING DE IDA COMPLETO ---
+000113ME1004000000000000121052009155959P0769501047                                                               
