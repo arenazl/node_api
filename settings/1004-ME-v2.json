@@ -3,7 +3,7 @@
   "serviceName": "SERVICIO 1004 - CONSULTA DE UN CLIENTE POR NUMERO INTERNO DE PERSONA",
   "canal": "ME",
   "version": "v2",
-  "timestamp": "2025-05-11T23:35:53.164Z",
+  "timestamp": "2025-05-24T10:23:15.102Z",
   "header": {
     "LONGITUD DEL MENSAJE": "000113",
     "CANAL": "ME",
@@ -19,7 +19,7 @@
     "CAMPO COMPLEMENTARIO": ""
   },
   "request": {
-    "SVC1004-NIP": "",
-    "SVC1004-TIP-PEDIDO": ""
+    "SVC1004-NIP": "2352112",
+    "SVC1004-TIP-PEDIDO": "1"
   }
 }

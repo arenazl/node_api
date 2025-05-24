@@ -193,3 +193,44 @@ pre.json-editor .json-comma,
 .json-collapse-btn:hover {
   background-color: #6366f1 !important; /* Índigo más claro al hacer hover */
 }
+
+/* Estilos específicos para ocurrencias anidadas */
+.json-container .json-occurrence-key,
+pre .json-occurrence-key,
+pre.json-editor .json-occurrence-key,
+.json-input-container .json-occurrence-key,
+.result-container .json-occurrence-key,
+#jsonContent .json-occurrence-key,
+#idaJsonInput .json-occurrence-key,
+#idaResult .json-occurrence-key,
+#vueltaResult .json-occurrence-key {
+  color: #a5b4fc !important; /* Violeta claro para ocurrencias anidadas */
+  font-weight: 600 !important;
+}
+
+/* Estilo para arrays vacíos en ocurrencias anidadas */
+.json-empty-nested-occurrence {
+  color: #9ca3af !important; /* Gris claro */
+  font-style: italic !important;
+}
+
+/* Estilos específicos para ocurrencia 14 */
+.json-occurrence-14 {
+  background-color: rgba(59, 130, 246, 0.2) !important; /* Fondo azul muy transparente */
+  border-radius: 3px;
+  padding: 1px 3px;
+}
+
+/* Estilos específicos para ocurrencia 18 */
+.json-occurrence-18 {
+  background-color: rgba(16, 185, 129, 0.2) !important; /* Fondo verde muy transparente */
+  border-radius: 3px;
+  padding: 1px 3px;
+}
+
+/* Estilos específicos para ocurrencia 21 */
+.json-occurrence-21 {
+  background-color: rgba(249, 115, 22, 0.2) !important; /* Fondo naranja muy transparente */
+  border-radius: 3px;
+  padding: 1px 3px;
+}

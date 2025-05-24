@@ -16,7 +16,8 @@ router.delete('/clear-dirs', async (req, res) => {
     const dirs = [
       { path: path.join(__dirname, '..', 'structures'), keep: ['.gitkeep'] },
       { path: path.join(__dirname, '..', 'uploads'), keep: ['.gitkeep'] },
-      { path: path.join(__dirname, '..', 'ejemplos'), keep: [] }
+      { path: path.join(__dirname, '..', 'headers'), keep: ['.gitkeep'] },
+      { path: path.join(__dirname, '..', 'settings'), keep: ['.gitkeep'] }
     ];
     
     const results = [];

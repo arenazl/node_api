@@ -9,7 +9,7 @@
 .config-form {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 0rem;
 }
 
 .version-display {
@@ -124,7 +124,6 @@
 
 /* Estilo especial para el botón de guardar configuración */
 #saveConfigBtn {
-  background: linear-gradient(135deg, #4f46e5, #6366f1); /* Gradiente atractivo */
   padding: 0.85rem 1.75rem; /* Más padding para mayor tamaño */
   font-weight: 600; /* Texto más grueso */
   box-shadow: 0 0 15px rgba(99, 102, 241, 0.5); /* Sombra brillante */

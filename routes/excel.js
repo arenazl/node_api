@@ -658,10 +658,10 @@ async function getStructure(structureFile) {
   try {
     const structure = await fs.readJson(structurePath);
     return structure;
-  } catch (error) {
-    error.statusCode = 500;
-    error.message = `Error al cargar archivo de estructura: ${error.message}`;
-    throw error;
+    } catch (err) {
+      const error = new Error(`Error al cargar archivo de estructura: ${err.message}`);
+      error.statusCode = 500;
+      throw error;
   }
 }
 

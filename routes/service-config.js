@@ -86,28 +86,31 @@ router.post('/save', async (req, res) => {
  * @route GET /service-config/list
  * @description Obtiene la lista de configuraciones guardadas
  * @query service_number - Opcional, filtrar por número de servicio
+ * @query refresh - Opcional, forzar recarga de caché (true o false)
  */
 router.get('/list', async (req, res) => {
   try {
-    const { service_number } = req.query;
+    const { service_number, refresh } = req.query;
+    const forceRefresh = refresh === 'true';
+    console.log(`[CONFIG] Listando configuraciones${service_number ? ` para servicio ${service_number}` : ' (todas)'}${forceRefresh ? ' (forzando recarga)' : ''}`);
     
-    // IMPORTANTE: Forzar actualización de la caché de servicios cuando se carga la configuración
-    // Esto garantiza que los nuevos servicios cargados aparezcan inmediatamente
-    try {
-      console.log("[CONFIG] Forzando recarga de caché de servicios para actualizar la lista...");
-      // Importar el módulo de servicios para forzar recarga
-      const serviceRouter = require('./services');
-      
-      // Forzar recarga con forceRefresh = true
-      await serviceRouter.getAvailableServices(true);
-      console.log("[CONFIG] Caché de servicios actualizada exitosamente");
-    } catch (cacheError) {
-      console.error("[CONFIG] Error al recargar caché de servicios:", cacheError);
-      // Continuamos a pesar del error para no bloquear la funcionalidad principal
+    // IMPORTANTE: Forzar actualización de la caché de servicios cuando se solicita específicamente
+    // o cuando se carga la configuración por primera vez
+    if (forceRefresh) {
+      try {
+        console.log("[CONFIG] Forzando recarga de caché de servicios para actualizar la lista...");
+        const serviceRouter = require('./services');
+        await serviceRouter.getAvailableServices(true);
+        console.log("[CONFIG] Caché de servicios actualizada exitosamente");
+      } catch (cacheError) {
+        console.error("[CONFIG] Error al recargar caché de servicios:", cacheError);
+        // Continuamos a pesar del error para no bloquear la funcionalidad principal
+      }
     }
     
     // Verificar si el directorio existe
     if (!fs.existsSync(configDir)) {
+      console.log(`[CONFIG] Directorio de configuraciones no existe: ${configDir}`);
       return res.json({ configs: [] });
     }
     
@@ -117,40 +120,38 @@ router.get('/list', async (req, res) => {
     
     // Obtener información de cada configuración
     const configs = [];
+    const processedConfigs = new Set(); // Para evitar configs duplicadas
     
     for (const file of files) {
       try {
-        // Extraer serviceNumber, canal y version del nombre del archivo
-        // Comprobar primero el formato nuevo, después el antiguo
-        let match = file.match(/^(\d+)-([^-]+)-([^-\.]+)\.json$/);
+        // Leer el contenido del archivo JSON directamente
+        const filePath = path.join(configDir, file);
+        const config = await fs.readJson(filePath);
         
-        if (!match) {
-          // Intentar con formato antiguo
-          match = file.match(/^(\d+)_([^_]+)_([^_\.]+)\.json$/);
+        // Extraer la información necesaria del contenido del archivo
+        const serviceNumber = config.serviceNumber || "";
+        
+        // Filtrar por número de servicio si se especificó
+        if (service_number && serviceNumber !== service_number) {
+          continue;
         }
         
-        if (match) {
-          const [_, serviceNumber, canal, version] = match;
-          
-          // Si se especificó un número de servicio y no coincide, saltar
-          if (service_number && serviceNumber !== service_number) {
-            continue;
-          }
-          
-          // Leer el archivo para obtener más información
-          const filePath = path.join(configDir, file);
-          const config = await fs.readJson(filePath);
-          
-          configs.push({
-            id: file.replace('.json', ''),
-            serviceNumber,
-            serviceName: config.serviceName || `Servicio ${serviceNumber}`,
-            canal,
-            version,
-            filename: file,
-            timestamp: config.timestamp || new Date().toISOString()
-          });
-        }
+        // Crear una clave única para esta configuración para evitar duplicados
+        const configKey = `${serviceNumber}-${config.canal}-${config.version}`;
+        
+        // Si ya hemos procesado una configuración idéntica, saltarla
+        if (processedConfigs.has(configKey)) continue;
+        processedConfigs.add(configKey);
+        
+        configs.push({
+          id: file.replace('.json', ''),
+          serviceNumber,
+          serviceName: config.serviceName || `Servicio ${serviceNumber}`,
+          canal: config.canal || "",
+          version: config.version || "v1",
+          filename: file,
+          timestamp: config.timestamp || new Date().toISOString()
+        });
       } catch (fileError) {
         console.error(`Error al procesar archivo ${file}:`, fileError);
       }

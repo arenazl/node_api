@@ -14,7 +14,7 @@ const serverExampleGenerator = require('../utils/server-example-generator');
 const API_URL = 'http://localhost:3000';
 
 // Servicio a probar - puedes modificar estos valores
-const SERVICIO = '1004';  // Número del servicio a probar
+const SERVICIO = '3088';  // Número del servicio a probar
 
 /**
  * Genera un string de VUELTA con valores aleatorios
@@ -74,8 +74,11 @@ async function probarReceiveMessageEndpoint() {
   try {
     console.log(`\n--- Probando /api/services/receivemessage para servicio ${SERVICIO} ---`);
     
-    // Usar el string de IDA generado anteriormente
-    const stringVuelta = "000113ME1004000000000000121052009155959P0769501047                                                    06344343401";
+    // Usar un string de VUELTA para el servicio 3088 con cabecera y datos (aunque estén vacíos)
+    const stringVuelta = "000643ME30880000000000007618092012114044PASCUAL1047                                             00" +
+                        "                                                                                                    " +
+                        "                                                                                                    " +
+                        "                                                                                                    ";
     
     // Datos para el request
     const requestData = {

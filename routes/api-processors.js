@@ -3,6 +3,7 @@
  */
 
 const messageAnalyzer = require('../api/message-analyzer');
+const { fixResponseOccurrences } = require('../utils/fix-nested-occurrences');
 
 /**
  * Procesa un servicio de vuelta
@@ -76,7 +77,10 @@ async function processVuelta(req, res, findServiceByNumber, removeEmptyOccurrenc
       }
       
       // Filtrar ocurrencias vacías antes de retornar
-      const cleanResponseData = removeEmptyOccurrences(responseData);
+      let cleanResponseData = removeEmptyOccurrences(responseData);
+      
+      // NUEVO: Aplicar corrección para ocurrencias anidadas
+      cleanResponseData = fixResponseOccurrences(cleanResponseData);
       
       // Construir resultado final
       const parsedData = {

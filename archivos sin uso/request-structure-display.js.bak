@@ -1,0 +1,164 @@
+/**
+ * Request Structure Display
+ * 
+ * Este módulo se encarga de la visualización y formato de estructura de solicitudes
+ * para servicios de IDA, mostrando los campos requeridos y opcionales de forma clara.
+ */
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('[Services UI - IDA] Inicializando visualización de estructura de solicitudes...');
+    
+    // Evento para mostrar estructura del servicio seleccionado
+    const idaServiceSelect = document.getElementById('idaServiceSelect');
+    if (idaServiceSelect) {
+        idaServiceSelect.addEventListener('change', function() {
+            const serviceNumber = this.value;
+            if (serviceNumber) {
+                displayServiceStructure(serviceNumber);
+            }
+        });
+    }
+});
+
+/**
+ * Muestra la estructura de un servicio específico
+ * @param {string} serviceNumber - Número de servicio
+ */
+function displayServiceStructure(serviceNumber) {
+    console.log(`[Services UI - IDA] Mostrando estructura para servicio ${serviceNumber}`);
+    
+    // Esta función se ampliará en el futuro para mostrar una visualización más detallada
+    // de la estructura del servicio seleccionado, incluyendo campos requeridos y ejemplos.
+    
+    // Por ahora, simplemente registramos la solicitud y salimos
+    // Ya que esta funcionalidad depende del JSON formatter que se carga separadamente
+}
+
+/**
+ * Formatea la visualización de una estructura de servicio
+ * @param {Object} structure - Objeto con la estructura del servicio
+ * @param {HTMLElement} containerElement - Elemento donde mostrar la estructura
+ */
+function formatServiceStructure(structure, containerElement) {
+    if (!containerElement || !structure) return;
+    
+    // Limpiamos el contenedor
+    containerElement.innerHTML = '';
+    
+    // Crear un elemento para la estructura de request
+    const requestSection = document.createElement('div');
+    requestSection.className = 'structure-section';
+    
+    // Crear título para la sección de request
+    const requestTitle = document.createElement('h4');
+    requestTitle.textContent = 'Estructura de Solicitud';
+    requestSection.appendChild(requestTitle);
+    
+    // Crear tabla para los campos de request
+    if (structure.request && structure.request.length > 0) {
+        const requestTable = createFieldsTable(structure.request);
+        requestSection.appendChild(requestTable);
+    } else {
+        const noFields = document.createElement('p');
+        noFields.textContent = 'No hay campos definidos para la solicitud';
+        requestSection.appendChild(noFields);
+    }
+    
+    // Añadir la sección de request al contenedor
+    containerElement.appendChild(requestSection);
+}
+
+/**
+ * Crea una tabla para visualizar campos de una estructura
+ * @param {Array} fields - Array de objetos de campo
+ * @return {HTMLTableElement} - Tabla HTML con los campos
+ */
+function createFieldsTable(fields) {
+    const table = document.createElement('table');
+    table.className = 'fields-table';
+    
+    // Crear encabezado
+    const thead = document.createElement('thead');
+    const headerRow = document.createElement('tr');
+    
+    const headers = ['Campo', 'Tipo', 'Longitud', 'Requerido', 'Descripción'];
+    headers.forEach(headerText => {
+        const th = document.createElement('th');
+        th.textContent = headerText;
+        headerRow.appendChild(th);
+    });
+    
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
+    
+    // Crear cuerpo de la tabla
+    const tbody = document.createElement('tbody');
+    
+    fields.forEach(field => {
+        const row = document.createElement('tr');
+        
+        // Campo
+        const nameCell = document.createElement('td');
+        nameCell.textContent = field.name || '';
+        row.appendChild(nameCell);
+        
+        // Tipo
+        const typeCell = document.createElement('td');
+        typeCell.textContent = field.type || '';
+        row.appendChild(typeCell);
+        
+        // Longitud
+        const lengthCell = document.createElement('td');
+        lengthCell.textContent = field.length || '';
+        row.appendChild(lengthCell);
+        
+        // Requerido
+        const requiredCell = document.createElement('td');
+        requiredCell.textContent = field.required ? 'Sí' : 'No';
+        row.appendChild(requiredCell);
+        
+        // Descripción
+        const descCell = document.createElement('td');
+        descCell.textContent = field.description || '';
+        row.appendChild(descCell);
+        
+        tbody.appendChild(row);
+    });
+    
+    table.appendChild(tbody);
+    return table;
+}
+
+/**
+ * Obtiene la estructura de un servicio desde la API
+ * @param {string} serviceNumber - Número de servicio
+ * @returns {Promise<Object>} - Promesa que resuelve con la estructura del servicio
+ */
+function getServiceStructure(serviceNumber) {
+    return new Promise((resolve, reject) => {
+        // Esta función utilizará la API para obtener la estructura del servicio
+        // cuando esté implementada. Por ahora, devolvemos una estructura de ejemplo.
+        
+        setTimeout(() => {
+            resolve({
+                service_number: serviceNumber,
+                request: [
+                    {
+                        name: "campo1",
+                        type: "string",
+                        length: 10,
+                        required: true,
+                        description: "Campo de ejemplo 1"
+                    },
+                    {
+                        name: "campo2",
+                        type: "number",
+                        length: 5,
+                        required: false,
+                        description: "Campo de ejemplo 2"
+                    }
+                ]
+            });
+        }, 500);
+    });
+}

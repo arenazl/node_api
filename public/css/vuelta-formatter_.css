@@ -1,0 +1,198 @@
+/**
+ * Vuelta Response Formatter CSS
+ * Estilos para la visualización mejorada de datos de respuesta (vuelta)
+ */
+
+/* Contenedor principal de visualización JSON */
+.json-object,
+.json-array {
+  position: relative;
+  padding: 0.5rem;
+  margin: 0.25rem 0;
+  border-radius: 4px;
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+.dark-theme .json-object,
+.dark-theme .json-array {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Estructura de propiedades */
+.json-properties {
+  padding-left: 1rem;
+}
+
+/* Elementos individuales */
+.json-item {
+  display: flex;
+  padding: 0.25rem 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.dark-theme .json-item {
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+.json-item:last-child {
+  border-bottom: none;
+}
+
+/* Alternancia de colores para filas */
+.json-item-even {
+  background-color: rgba(0, 0, 0, 0.01);
+}
+
+.json-item-odd {
+  background-color: rgba(0, 0, 0, 0.03);
+}
+
+.dark-theme .json-item-even {
+  background-color: rgba(255, 255, 255, 0.02);
+}
+
+.dark-theme .json-item-odd {
+  background-color: rgba(255, 255, 255, 0.04);
+}
+
+/* Claves de propiedades */
+.json-key {
+  font-weight: bold;
+  padding-right: 0.5rem;
+  min-width: 150px;
+  color: #0066cc;
+}
+
+.dark-theme .json-key {
+  color: #66b3ff;
+}
+
+/* Valores */
+.json-value {
+  flex: 1;
+  font-family: 'Courier New', monospace;
+  overflow-wrap: break-word;
+  word-break: break-all;
+}
+
+/* Tipos de valores */
+.json-string {
+  color: #008800;
+}
+
+.json-number {
+  color: #0066cc;
+}
+
+.json-boolean {
+  color: #cc6600;
+}
+
+.json-null, 
+.json-undefined {
+  color: #888;
+  font-style: italic;
+}
+
+/* Valores vacíos */
+.json-empty-value {
+  color: #999;
+  font-style: italic;
+}
+
+/* Objetos vacíos */
+.json-empty {
+  color: #888;
+  font-style: italic;
+  padding: 0.25rem;
+}
+
+/* Ocurrencias */
+.json-occurrence-container {
+  margin-top: 0.5rem;
+  border-left: 3px solid #66b3ff;
+  padding-left: 0.5rem;
+}
+
+.json-occurrence {
+  border-left: 2px solid #66b3ff;
+  padding-left: 0.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.json-occurrence-name {
+  color: #0066cc;
+  font-weight: bold;
+}
+
+.json-occurrence-prefix {
+  color: #0066cc;
+}
+
+.json-occurrence-number {
+  color: #cc6600;
+  font-weight: bold;
+}
+
+/* Elementos vacíos en arrays */
+.json-item-empty {
+  color: #888;
+  font-style: italic;
+  padding: 0.25rem;
+}
+
+/* Botón expansor/colapsador */
+.json-expander {
+  position: absolute;
+  left: -1rem;
+  top: 0.25rem;
+  width: 1.25rem;
+  height: 1.25rem;
+  text-align: center;
+  line-height: 1.25rem;
+  cursor: pointer;
+  font-weight: bold;
+  background-color: #f0f0f0;
+  border-radius: 3px;
+  user-select: none;
+}
+
+.dark-theme .json-expander {
+  background-color: #333;
+}
+
+.json-collapsed {
+  display: none;
+}
+
+/* Mensaje para resultados vacíos */
+.empty-result {
+  padding: 1rem;
+  color: #888;
+  font-style: italic;
+  text-align: center;
+  border: 1px dashed #ccc;
+  border-radius: 4px;
+  margin: 1rem 0;
+}
+
+/* Campos de servicio especiales */
+.json-key-service {
+  color: #cc0000;
+}
+
+.dark-theme .json-key-service {
+  color: #ff6666;
+}
+
+/* Responsive para pantallas pequeñas */
+@media (max-width: 768px) {
+  .json-item {
+    flex-direction: column;
+  }
+  
+  .json-key {
+    min-width: auto;
+    margin-bottom: 0.25rem;
+  }
+}

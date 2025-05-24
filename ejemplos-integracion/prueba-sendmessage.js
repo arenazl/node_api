@@ -9,7 +9,7 @@ const axios = require('axios');
 const API_URL = 'http://localhost:3000';
 
 // Servicio a probar - puedes modificar estos valores
-const SERVICIO = '1004';  // Número del servicio a probar
+const SERVICIO = '3088';  // Número del servicio a probar
 const CANAL = 'ME';       // Canal para el servicio
 
 // Función para probar el endpoint /api/services/sendmessage
@@ -24,9 +24,68 @@ async function probarSendMessageEndpoint() {
         canal: CANAL
       },
       parameters: {
-        // Parámetros requeridos para el servicio 1004
-        "SVC1004-NIP": 63443434,
-        "SVC1004-TIP-PEDIDO": 1
+        // Parámetros requeridos para el servicio 3088
+        "OPC1": "TEST",
+        "OPC2": "1",
+        // Añadiendo ocurrencias para probar el procesamiento
+        "SVC3088-TIP-PEDIDO": "1",
+        "occ_1": [
+          {
+            "SVC3088-NRO-OPER-SERV": "12345",
+            "SVC3088-BCO-ORIG": "99999",
+            "SVC3088-SUC-ORIG": "12345",
+            "SVC3088-BCO-DEST": "88888",
+            "SVC3088-SUC-DEST": "54321",
+            "SVC3088-NRO-ORDEN": "123",
+            "SVC3088-FECHA-PROC": "2025-05-24",
+            "SVC3088-FECHA-MOVI": "2025-05-25",
+            "SVC3088-FECHA-VALOR": "2025-05-26",
+            "SVC3088-CALC-COMIS": "01",
+            "SVC3088-CONCEPTO": "PAGO DE FACTURA",
+            "SVC3088-CANT-CUENTAS": "2",
+            "SVC3088-CANT-IMPORTES": "1",
+            "SVC3088-CANT-SUCURSALES": "3",
+            "SVC3088-ID-MENS-ORIG": "123456789",
+            "SVC3088-CON-ID-OPS": "OPERACION-A123456",
+            "SVC3088-TITULAR": "JUAN PEREZ",
+            // Ocurrencias anidadas
+            // Ocurrencia anidada como objeto simple (para probar el caso de error)
+            "occ_14": {
+              "SVC3088-PROD-RUBRO": "11111",
+              "SVC3088-CUENTA-NIV": "22222"
+            },
+            // Ocurrencia anidada como array normal
+            "occ_18": [
+              {
+                "SVC3088-IMPORTE": "1000"
+              }
+            ],
+            // Otra ocurrencia anidada como objeto simple
+            "occ_21": {
+              "SVC3088-BCO": "1",
+              "SVC3088-SUCU": "2"
+            }
+          },
+          {
+            "SVC3088-NRO-OPER-SERV": "67890",
+            "SVC3088-BCO-ORIG": "55555",
+            "SVC3088-SUC-ORIG": "10001",
+            "SVC3088-BCO-DEST": "33333",
+            "SVC3088-SUC-DEST": "88889",
+            "SVC3088-NRO-ORDEN": "456",
+            "SVC3088-FECHA-PROC": "2025-05-27",
+            "SVC3088-FECHA-MOVI": "2025-05-28",
+            "SVC3088-FECHA-VALOR": "2025-05-29",
+            "SVC3088-CALC-COMIS": "02",
+            "SVC3088-CONCEPTO": "TRANSFERENCIA BANCARIA",
+            "SVC3088-CANT-CUENTAS": "1",
+            "SVC3088-CANT-IMPORTES": "2",
+            "SVC3088-CANT-SUCURSALES": "1",
+            "SVC3088-ID-MENS-ORIG": "987654321",
+            "SVC3088-CON-ID-OPS": "OPERACION-B987654",
+            "SVC3088-TITULAR": "MARIA GONZALEZ"
+          }
+        ]
       }
     };
     

@@ -1,0 +1,134 @@
+/**
+ * Estilos para la visualización del formateador de servicio de vuelta
+ *
+ * Este archivo contiene los estilos dinámicos para mejorar 
+ * la visualización de datos JSON en la respuesta del servicio de vuelta.
+ */
+
+/* Contenedor de resultados de vuelta */
+.result-container {
+  background-color: #1e293b;
+  border-radius: 8px;
+  padding: 0;
+  max-height: 600px;
+  overflow: auto;
+}
+
+/* Estilos generales para ocurrencias anidadas */
+.json-occurrence-key {
+  color: #a78bfa !important; /* Violeta claro base para todas las ocurrencias */
+  font-weight: bold !important;
+}
+
+/* Estilo general para cualquier ocurrencia por atributo data */
+.json-key[data-occurrence] {
+  font-weight: bold !important;
+  padding: 2px 4px;
+  border-radius: 3px;
+  background-color: rgba(100, 116, 139, 0.1); /* Fondo por defecto */
+}
+
+/* Sistema de colorización dinámica basado en el módulo del índice */
+/* Los colores se aplican cíclicamente según el módulo del número de ocurrencia */
+
+/* Ocurrencia módulo 0 (múltiplos de 5: 0, 5, 10, 15, 20...) */
+.json-key[data-occurrence-mod="0"] {
+  color: #60a5fa !important; /* Azul */
+  background-color: rgba(59, 130, 246, 0.1);
+}
+
+/* Ocurrencia módulo 1 (1, 6, 11, 16, 21...) */
+.json-key[data-occurrence-mod="1"] {
+  color: #fb923c !important; /* Naranja */
+  background-color: rgba(249, 115, 22, 0.1);
+}
+
+/* Ocurrencia módulo 2 (2, 7, 12, 17, 22...) */
+.json-key[data-occurrence-mod="2"] {
+  color: #34d399 !important; /* Verde */
+  background-color: rgba(16, 185, 129, 0.1);
+}
+
+/* Ocurrencia módulo 3 (3, 8, 13, 18, 23...) */
+.json-key[data-occurrence-mod="3"] {
+  color: #a78bfa !important; /* Violeta */
+  background-color: rgba(167, 139, 250, 0.1);
+}
+
+/* Ocurrencia módulo 4 (4, 9, 14, 19, 24...) */
+.json-key[data-occurrence-mod="4"] {
+  color: #f87171 !important; /* Rojo */
+  background-color: rgba(248, 113, 113, 0.1);
+}
+
+/* Estilo para ocurrencias vacías generalizadas */
+.json-empty[data-empty-occurrence] {
+  color: #9ca3af !important; /* Gris claro */
+  font-style: italic !important;
+}
+
+/* Sistema de colores para marcadores de ocurrencia vacía (cíclico) */
+.json-empty-marker {
+  font-style: normal !important;
+  font-weight: bold !important;
+  color: #9ca3af !important; /* Color por defecto */
+}
+
+/* Marcadores por módulo */
+.json-empty-marker[data-mod="0"] {
+  color: #60a5fa !important; /* Azul */
+}
+
+.json-empty-marker[data-mod="1"] {
+  color: #fb923c !important; /* Naranja */
+}
+
+.json-empty-marker[data-mod="2"] {
+  color: #34d399 !important; /* Verde */
+}
+
+.json-empty-marker[data-mod="3"] {
+  color: #a78bfa !important; /* Violeta */
+}
+
+.json-empty-marker[data-mod="4"] {
+  color: #f87171 !important; /* Rojo */
+}
+
+/* Colores de fondos dinámicos para las ocurrencias */
+.json-occurrence-array,
+.json-brackets.json-occurrence {
+  background-color: rgba(100, 116, 139, 0.05); /* Fondo por defecto */
+}
+
+/* Fondos por módulo */
+.json-occurrence-array[data-mod="0"],
+.json-brackets.json-occurrence[data-mod="0"] {
+  background-color: rgba(59, 130, 246, 0.05); /* Azul */
+}
+
+.json-occurrence-array[data-mod="1"],
+.json-brackets.json-occurrence[data-mod="1"] {
+  background-color: rgba(249, 115, 22, 0.05); /* Naranja */
+}
+
+.json-occurrence-array[data-mod="2"],
+.json-brackets.json-occurrence[data-mod="2"] {
+  background-color: rgba(16, 185, 129, 0.05); /* Verde */
+}
+
+.json-occurrence-array[data-mod="3"],
+.json-brackets.json-occurrence[data-mod="3"] {
+  background-color: rgba(167, 139, 250, 0.05); /* Violeta */
+}
+
+.json-occurrence-array[data-mod="4"],
+.json-brackets.json-occurrence[data-mod="4"] {
+  background-color: rgba(248, 113, 113, 0.05); /* Rojo */
+}
+
+/* Ocurrencias dentro de los mensajes de error */
+.json-brackets.json-empty-nested-occurrence {
+  color: #9ca3af; /* Gris claro */
+  font-style: italic;
+}

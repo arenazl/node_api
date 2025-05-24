@@ -2,6 +2,8 @@
  * Módulo para analizar mensajes MQ
  */
 
+const stringFormatUtils = require('../utils/string-format-utils'); // Importado para usar formatFieldToString
+
 /**
  * Analiza un mensaje MQ según las estructuras proporcionadas
  * @param {string} message - Mensaje a analizar
@@ -25,7 +27,7 @@ function parseMessage(message, headerStructure, serviceStructure) {
   
   // Analizar datos
   const dataMessage = message.substring(headerLength);
-  const dataStructure = serviceStructure[section];
+  const dataStructure = serviceStructure["response"];
   const dataData = parseDataMessage(dataMessage, dataStructure);
   
   // Combinar resultados
@@ -65,31 +67,13 @@ function parseHeaderMessage(headerMessage, headerStructure) {
     const fieldName = field.name;
     const fieldLength = field.length;
     
-    // Extraer valor del mensaje
+    // Extraer valor del mensaje y trim
     const fieldValue = headerMessage.substring(position, position + fieldLength).trim();
     
-    // Determinar el tipo de campo (numérico o alfanumérico)
-    const fieldType = field.type;
+    // Almacenar el valor tal cual (después de trim)
+    headerData[fieldName] = fieldValue;
     
-    // Formatear el valor según el tipo de campo
-    let formattedValue = fieldValue;
-    
-    // Si el campo está vacío, mantenerlo vacío
-    if (fieldValue === '') {
-      formattedValue = '';
-    }
-    // Si es numérico y solo tiene ceros, mantenerlo como está
-    else if (fieldType && fieldType.toLowerCase().includes('numerico') && /^0+$/.test(fieldValue)) {
-      formattedValue = fieldValue;
-    }
-    
-    // Agregar al objeto de datos
-    headerData[fieldName] = formattedValue;
-    
-    // Agregar log para depuración
-    if (fieldType) {
-      console.log(`[DEBUG-HEADER] Campo: ${fieldName}, Valor: "${fieldValue}", Tipo: ${fieldType}, Formateado: "${formattedValue}"`);
-    }
+    // console.log(`[DEBUG-HEADER] Campo: ${fieldName}, Valor: "${fieldValue}", Tipo: ${field.type}`);
     
     // Avanzar posición
     position += fieldLength;
@@ -119,94 +103,8 @@ function determineSection(headerData, serviceStructure) {
   return 'request';
 }
 
-/**
- * Formatea un valor según su tipo (numérico o alfanumérico)
- * @param {string} value - Valor a formatear
- * @param {number} length - Longitud requerida
- * @param {string} type - Tipo de campo (numérico o alfanumérico)
- * @returns {string} - Valor formateado
- */
-function formatValue(value, length, type) {
-  // Convertir valor a string, tratando null/undefined como string vacío
-  const strValue = String(value ?? '');
-  
-  // Si el valor es vacío o solo espacios, generar un valor aleatorio
-  if (strValue.trim() === '') {
-    return generateRandomValue(parseInt(length || 0), type);
-  }
-  
-  const numLength = parseInt(length || 0);
-  if (numLength <= 0) return '';
-
-  // Truncar si es más largo que la longitud requerida
-  let processedValue = (strValue.length > numLength) ? strValue.substring(0, numLength) : strValue;
-
-  // VERIFICACIÓN SIMPLIFICADA PARA LOS DOS ÚNICOS TIPOS POSIBLES
-  
-  // Verificación para los tipos específicos de la estructura
-  if (type === 'alfanumerico') {
-    // Si el valor es más corto que la longitud requerida, generar un valor aleatorio para el resto
-    if (processedValue.length < numLength) {
-      const randomSuffix = generateRandomValue(numLength - processedValue.length, type);
-      return processedValue + randomSuffix;
-    }
-    return processedValue;
-  }
-  
-  if (type === 'numerico') {
-    // Si el valor es más corto que la longitud requerida, generar un valor aleatorio para el resto
-    if (processedValue.length < numLength) {
-      const randomPrefix = generateRandomValue(numLength - processedValue.length, type);
-      return randomPrefix + processedValue;
-    }
-    return processedValue;
-  }
-
-  // Comportamiento predeterminado si el tipo no está definido o reconocido
-  // Generar un valor aleatorio
-  console.warn(`ADVERTENCIA: Tipo "${type}" no reconocido para el valor "${strValue}", generando valor aleatorio.`);
-  return generateRandomValue(numLength, 'alfanumerico');
-}
-
-/**
- * Genera un valor aleatorio según el tipo de campo
- * @param {number} length - Longitud del campo
- * @param {string} fieldType - Tipo de campo (numérico o alfanumérico)
- * @returns {string} - Valor aleatorio generado
- */
-function generateRandomValue(length, fieldType) {
-  const numLength = parseInt(length) || 0;
-  if (numLength <= 0) return '';
-
-  // Normalizar el tipo a minúsculas
-  const type = (fieldType || '').toLowerCase();
-
-  const isNumeric = (type == 'numerico')
-
-  // Generar valor aleatorio según el tipo
-  let value = '';
-
-  if (isNumeric) {
-    // Para campos numéricos, generar dígitos aleatorios
-    for (let i = 0; i < numLength; i++) {
-      // Para el primer dígito, permitir que sea 0 solo si la longitud es 1
-      if (i === 0 && numLength > 1) {
-        value += Math.floor(Math.random() * 9) + 1; // 1-9 para el primer dígito
-      } else {
-        value += Math.floor(Math.random() * 10); // 0-9 para el resto
-      }
-    }
-  } else {
-    // Para campos alfanuméricos, generar caracteres aleatorios
-    // Caracteres permitidos para campos alfanuméricos
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 ';
-    for (let i = 0; i < numLength; i++) {
-      value += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-  }
-
-  return value;
-}
+// Removed local formatValue and generateRandomValue as they introduced unwanted randomization during parsing.
+// Parsing should reflect the actual content of the message string.
 
 /**
  * Analiza la parte de datos del mensaje
@@ -242,26 +140,20 @@ function parseDataMessage(dataMessage, dataStructure, validateOccurrences = fals
       const fieldValue = dataMessage.substring(position, position + fieldLength).trim();
       
       // Determinar el tipo de campo (numérico o alfanumérico)
-      const fieldType = element.fieldType || element.type;
+      const fieldType = element.fieldType || element.type; // Keep for potential future use if type-specific parsing is needed
       
-      console.log(`[DEBUG-FIELD] Campo: ${fieldName}, Longitud: ${fieldLength}, Valor original: "${fieldValue}"`);
-      console.log(`[DEBUG-FIELD] Tipo en estructura: ${fieldType || 'NO ENCONTRADO'}`);
-      console.log(`[DEBUG-FIELD] Elemento completo: ${JSON.stringify(element)}`);
+      // console.log(`[DEBUG-FIELD] Campo: ${fieldName}, Longitud: ${fieldLength}, Valor original: "${fieldValue}"`);
+      // console.log(`[DEBUG-FIELD] Tipo en estructura: ${fieldType || 'NO ENCONTRADO'}`);
       
-      // Formatear el valor según el tipo de campo usando la función formatValue
-      // para mantener consistencia con cómo se tratan los campos de ocurrencias
-      const formattedValue = formatValue(fieldValue, fieldLength, fieldType);
-      console.log(`[DEBUG-FIELD] Valor formateado: "${formattedValue}"`);
-      
-      // Agregar al objeto de datos
-      data[fieldName] = formattedValue;
+      // Almacenar el valor tal cual (después de trim)
+      data[fieldName] = fieldValue;
       
       // Identificar campo de cantidad de registros si existe
-      if (validateOccurrences && 
-          fieldName.toLowerCase().includes('cant') && 
+      if (validateOccurrences &&
+          fieldName.toLowerCase().includes('cant') &&
           fieldName.toLowerCase().includes('reg')) {
         occurrenceCountField = element;
-        occurrenceCountValue = parseInt(fieldValue) || 0;
+        occurrenceCountValue = parseInt(fieldValue) || 0; // Still parse the count
         console.log(`Campo contador de ocurrencias encontrado: ${fieldName} = ${occurrenceCountValue}`);
       }
       
@@ -386,11 +278,11 @@ function parseDataMessage(dataMessage, dataStructure, validateOccurrences = fals
         // Determinar el tipo de campo (numérico o alfanumérico)
           const fieldType = element.fieldType;
           
-             // Formatear el valor según el tipo de campo usando la función formatValue
-        const formattedValue = formatValue(fieldValue, fieldLength, fieldType);
+          // Formatear el valor según el tipo de campo usando la función formatValue de string-format-utils
+          const formattedValue = stringFormatUtils.formatValue(fieldValue, fieldLength, fieldType);
       
-        // Agregar al objeto de datos
-        data[fieldName] = formattedValue;
+          // Agregar al objeto de datos
+          data[fieldName] = formattedValue;
           
           // Avanzar posición
           position += fieldLength;
@@ -403,6 +295,15 @@ function parseDataMessage(dataMessage, dataStructure, validateOccurrences = fals
   return data;
 }
 
+/**
+ * Analiza una ocurrencia y sus ocurrencias anidadas
+ * @param {string} message - Mensaje a analizar
+ * @param {number} startPosition - Posición inicial en el mensaje
+ * @param {Object} occurrenceElement - Definición de la ocurrencia
+ * @param {number} count - Cantidad de ocurrencias a procesar
+ * @param {boolean} preserveOrder - Si se debe preservar el orden original
+ * @returns {Object} Datos de la ocurrencia y nueva posición
+ */
 function parseOccurrence(message, startPosition, occurrenceElement, count, preserveOrder = false) {
   const occurrenceData = [];
   let position = startPosition;
@@ -428,103 +329,93 @@ function parseOccurrence(message, startPosition, occurrenceElement, count, prese
       // Aún así creamos una ocurrencia con los datos que hay o vacía si no hay nada
       // Esto garantiza que el número de ocurrencias mostradas coincida con el contador declarado
       
-      // Si no hay datos suficientes, generamos valores aleatorios para los campos
+      // Si no hay datos suficientes, creamos una ocurrencia con campos vacíos
+      // para mantener la estructura de N ocurrencias si es necesario por el contador.
       for (const field of fields) {
         if (field.type === 'field') {
-          const fieldName = field.name;
-          const fieldLength = field.length;
-          const fieldType = field.fieldType || field.type;
-          
-          // Usar formatValue con string vacío para generar un valor aleatorio
-          const formattedValue = formatValue('', fieldLength, fieldType);
-          
-          // Agregar al objeto de datos
-          occurrenceItem[fieldName] = formattedValue;
+          occurrenceItem[field.name] = ''; // Campo vacío
         } else if (field.type === 'occurrence') {
-          occurrenceItem[`occurrence_${field.index}`] = [];
+          occurrenceItem[`occurrence_${field.index}`] = []; // Array de ocurrencias anidadas vacío
         }
       }
-      
-      // Agregar la ocurrencia vacía o parcial y saltamos al siguiente bucle
       occurrenceData.push(occurrenceItem);
+      // No se avanza 'position' porque no consumimos datos del string para esta ocurrencia vacía.
+      // Sin embargo, la lógica externa que llama a parseOccurrence debe manejar el avance de posición
+      // basado en occurrenceLength * count, o el string de entrada debe ser lo suficientemente largo.
+      // Para el parseo fiel, si el string es corto, las últimas ocurrencias serán parcialmente vacías o totalmente vacías.
       continue;
     }
     
-    // Preservar el índice original si se solicita (para ocurrencias sanitizadas)
-    if (preserveOrder) {
-      // Agregar el índice original para mantener el orden en las ocurrencias sanitizadas
-      // Extraer el índice original de la estructura para mantener los huecos
-      if (occurrenceElement && occurrenceElement.index !== undefined) {
-        // Usar el índice base de la definición + offset para mantener el orden exacto
-        occurrenceItem.index = parseInt(occurrenceElement.index) + i;
-        console.log(`[SANITIZADO] Agregado índice ${occurrenceItem.index} a ocurrencia para mantener orden original exacto (base: ${occurrenceElement.index}, offset: ${i})`);
-      } else {
-        // Fallback al índice de bucle
-        occurrenceItem.index = i;
-        console.log(`[SANITIZADO] Agregado índice ${i} a ocurrencia sin información de estructura`);
-      }
+    // Preservar el índice original si se solicita
+    if (preserveOrder && occurrenceElement && occurrenceElement.index !== undefined) {
+      occurrenceItem.index = parseInt(occurrenceElement.index) + i;
+    } else {
+      occurrenceItem.index = i; // Fallback
     }
     
     // Procesar campos de la ocurrencia
     for (const field of fields) {
       if (field.type === 'field') {
-        // Procesar campo
         const fieldName = field.name;
         const fieldLength = field.length;
         
-        // Extraer valor del mensaje
+        // Extraer valor del mensaje y trim
         const fieldValue = message.substring(itemPosition, itemPosition + fieldLength).trim();
-        
-        // Determinar el tipo de campo (numérico o alfanumérico)
-        const fieldType = field.fieldType || field.type;
-        
-        console.log(`[DEBUG-OCC-FIELD] Ocurrencia campo: ${fieldName}, Longitud: ${fieldLength}, Valor original: "${fieldValue}"`);
-        console.log(`[DEBUG-OCC-FIELD] Tipo en estructura: ${fieldType || 'NO ENCONTRADO'}`);
-        console.log(`[DEBUG-OCC-FIELD] Campo completo: ${JSON.stringify(field)}`);
-        
-        // Formatear el valor según el tipo de campo usando la función formatValue
-        const formattedValue = formatValue(fieldValue, fieldLength, fieldType); // <-- MANTENER fieldValue AQUÍ
-        
-        console.log(`[DEBUG-OCC-FIELD] Valor formateado: "${formattedValue}"`);
-        
-        // Agregar al objeto de datos
-        occurrenceItem[fieldName] = formattedValue;
-        
-        // Mostrar la estructura completa del campo para depuración
-        console.log(`[DEBUG-OCC-ESTRUCTURA] Campo: ${JSON.stringify(field)}`);
-        
-        // Avanzar posición
+        occurrenceItem[fieldName] = fieldValue;
         itemPosition += fieldLength;
+
       } else if (field.type === 'occurrence') {
         // Procesar ocurrencia anidada
-        const nestedOccurrenceCount = field.count;
+        const nestedOccurrenceCount = field.count || 0;
         
-        // Extraer datos de ocurrencia anidada - pasar el flag preserveOrder
-        const { occurrenceData: nestedData, newPosition } = parseOccurrence(
-          message, itemPosition, field, nestedOccurrenceCount, preserveOrder
-        );
+        // Asegurarse de que siempre se retorne un array válido, incluso si count=0
+        let nestedData = [];
+        let newNestedPosition = itemPosition;
         
-        // Agregar al objeto de datos - mantener el índice original exacto
-        // Esto es crítico para ocurrencias como índice 14, 18, 21 (donde hay huecos)
+        // Solo procesar ocurrencias anidadas si hay un count > 0
+        if (nestedOccurrenceCount > 0) {
+          const result = parseOccurrence(
+            message, itemPosition, field, nestedOccurrenceCount, preserveOrder
+          );
+          nestedData = result.occurrenceData;
+          newNestedPosition = result.newPosition;
+        } else {
+          // Si count=0, calcular cuánto avanzar en el mensaje
+          const nestedOccLength = calculateOccurrenceLength(field.fields || []) * nestedOccurrenceCount;
+          newNestedPosition = itemPosition + nestedOccLength;
+          
+          // Crear un array vacío pero con metadatos
+          nestedData = [];
+          // Añadir propiedades para identificación
+          nestedData._parentIndex = occurrenceElement.index;
+          nestedData._occurrenceIndex = field.index;
+          nestedData._count = 0;
+        }
+        
+        // Guardar datos y añadir metadatos importantes para procesamiento frontend
         const nestedOccKey = `occurrence_${field.index}`;
         occurrenceItem[nestedOccKey] = nestedData;
-        console.log(`[SANITIZADO] Ocurrencia anidada agregada con key exacta: ${nestedOccKey}`);
         
-        // Actualizar posición
-        itemPosition = newPosition;
+        // Añadir metadatos específicos para ocurrencias anidadas
+        occurrenceItem._hasNestedOccurrence = true;
+        if (!occurrenceItem._nestedOccurrences) {
+          occurrenceItem._nestedOccurrences = {};
+        }
+        occurrenceItem._nestedOccurrences[field.index] = {
+          index: field.index,
+          id: field.id || null,
+          count: nestedOccurrenceCount
+        };
+        
+        itemPosition = newNestedPosition;
       }
     }
-    
-    // Agregar item a la lista de ocurrencias
     occurrenceData.push(occurrenceItem);
-    
-    // Avanzar posición para la siguiente ocurrencia
-    position += occurrenceLength;
+    position += occurrenceLength; // Avanzar posición para la siguiente ocurrencia REAL
   }
   
   return { occurrenceData, newPosition: position };
 }
-
 
 /**
  * Calcula la longitud total de una ocurrencia
@@ -533,142 +424,28 @@ function parseOccurrence(message, startPosition, occurrenceElement, count, prese
  */
 function calculateOccurrenceLength(fields) {
   let totalLength = 0;
-  
+  if (!fields) return 0; // Si no hay campos, la longitud es 0
+
   for (const field of fields) {
     if (field.type === 'field') {
-      totalLength += field.length;
+      totalLength += field.length || 0; // Sumar longitud del campo, o 0 si no está definida
     } else if (field.type === 'occurrence') {
       // Para ocurrencias anidadas, multiplicar longitud por cantidad
       const nestedLength = calculateOccurrenceLength(field.fields || []);
-      totalLength += nestedLength * field.count;
+      totalLength += nestedLength * (field.count || 0); // Multiplicar por cantidad, o 0 si no está definida
     }
   }
-  
   return totalLength;
 }
 
-// Exportar módulo con todas las funciones necesarias
-/**
- * Formatea un objeto de datos JSON en un string de posiciones fijas
- * @param {Object} data - Objeto de datos JSON
- * @param {Object} dataStructure - Estructura de datos
- * @returns {string} String de posiciones fijas
- */
-function formatDataMessage(data, dataStructure) {
-  if (!dataStructure || !dataStructure.elements) {
-    throw new Error('Estructura de datos inválida o no proporcionada para formatear');
-  }
-
-  let formattedString = '';
-
-  for (const element of dataStructure.elements) {
-    if (element.type === 'field') {
-      const fieldName = element.name;
-      const fieldLength = parseInt(element.length) || 0;
-      const fieldType = element.fieldType || element.type;
-      const fieldValue = data[fieldName] ?? ''; // Get value from JSON, default to empty string
-
-      // Format the value to the required length and type
-      const formattedValue = formatValueForString(fieldValue, fieldLength, fieldType);
-      formattedString += formattedValue;
-
-    } else if (element.type === 'occurrence') {
-      const occKey = element.id || `occurrence_${element.index}`;
-      const occurrenceArray = data[occKey] || []; // Get occurrence array from JSON, default to empty array
-      // The count field should be handled as a regular field before the occurrence element
-      // We format the actual number of items in the array, but the count field in the string
-      // should reflect this count. This requires the count field to be present in the JSON data.
-      // Assuming the count field is named something like 'CANT-REG-OR' and is processed before the occurrence.
-
-      // Format the occurrence array
-      const formattedOccurrences = formatOccurrence(occurrenceArray, element.fields || element.elements || []);
-      formattedString += formattedOccurrences;
-    }
-  }
-
-  return formattedString;
-}
-
-/**
- * Formatea un array de ocurrencias en un string de posiciones fijas
- * @param {Array<Object>} occurrenceArray - Array de objetos de ocurrencia
- * @param {Array<Object>} occurrenceStructure - Estructura de una sola ocurrencia (campos)
- * @returns {string} String de posiciones fijas para las ocurrencias
- */
-function formatOccurrence(occurrenceArray, occurrenceStructure) {
-  let formattedOccurrencesString = '';
-
-  for (const item of occurrenceArray) {
-    let formattedItemString = '';
-    for (const field of occurrenceStructure) {
-      if (field.type === 'field') {
-        const fieldName = field.name;
-        const fieldLength = parseInt(field.length) || 0;
-        const fieldType = field.fieldType || field.type;
-        const fieldValue = item[fieldName] ?? ''; // Get value from occurrence item, default to empty string
-
-        // Format the value
-        const formattedValue = formatValueForString(fieldValue, fieldLength, fieldType);
-        formattedItemString += formattedValue;
-
-      } else if (field.type === 'occurrence') {
-         // Handle nested occurrences recursively
-         const nestedOccKey = field.id || `occurrence_${field.index}`;
-         const nestedOccurrenceArray = item[nestedOccKey] || [];
-         const formattedNestedOccurrences = formatOccurrence(nestedOccurrenceArray, field.fields || field.elements || []);
-         formattedItemString += formattedNestedOccurrences;
-      }
-    }
-    formattedOccurrencesString += formattedItemString;
-  }
-
-  return formattedOccurrencesString;
-}
-
-
-/**
- * Formatea un valor para ser incluido en un string de posiciones fijas.
- * Rellena con espacios a la derecha para alfanuméricos y ceros a la izquierda para numéricos.
- * @param {*} value - El valor a formatear.
- * @param {number} length - La longitud deseada del campo.
- * @param {string} type - El tipo de dato ('alfanumerico', 'numerico').
- * @returns {string} El valor formateado a la longitud especificada.
- */
-function formatValueForString(value, length, type) {
-  const strValue = String(value ?? '');
-  const numLength = parseInt(length) || 0;
-
-  if (numLength <= 0) {
-    return '';
-  }
-
-  const fieldType = (type || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-
-  if (fieldType === 'alfanumerico') {
-    // Pad with spaces on the right
-    return strValue.padEnd(numLength, ' ').substring(0, numLength);
-  } else if (fieldType === 'numerico') {
-    // Pad with zeros on the left
-    // Ensure it's a valid number string before padding
-    const numericValue = strValue.replace(/[^0-9]/g, ''); // Remove non-digits
-    return numericValue.padStart(numLength, '0').substring(0, numLength);
-  } else {
-    // Default to alfanumerico padding if type is unknown
-    console.warn(`ADVERTENCIA: Tipo "${fieldType}" no reconocido para formatear "${strValue}", usando relleno alfanumérico.`);
-    return strValue.padEnd(numLength, ' ').substring(0, numLength);
-  }
-}
-
-// Exportar módulo con todas las funciones necesarias
+// Exportar solo las funciones necesarias para el parseo.
+// Las funciones de formateo a string (formatDataMessage, formatOccurrence, formatValueForString)
+// y la antigua formatValue (que randomizaba) se eliminan de este módulo.
 module.exports = {
   parseMessage,
-  parseHeaderMessage,
+  parseHeaderMessage, // Aunque simple, se mantiene por si se añaden lógicas de parseo de cabecera más complejas
   parseDataMessage,
-  parseOccurrence,
-  calculateHeaderLength,
-  calculateOccurrenceLength,
-  formatValue, // Keep the existing parse-time formatValue
-  formatDataMessage, // Add the new function
-  formatOccurrence, // Add the new helper function
-  formatValueForString // Add the new helper function
+  // parseOccurrence, // No se exporta directamente, es un helper de parseDataMessage
+  calculateHeaderLength, // Podría ser útil externamente
+  calculateOccurrenceLength // Podría ser útil externamente
 };

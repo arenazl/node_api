@@ -2,6 +2,8 @@
  * Módulo para crear mensajes MQ
  */
 
+const stringFormatUtils = require('../utils/string-format-utils');
+
 /**
  * Crea un mensaje MQ a partir de los datos proporcionados
  * @param {Object} headerStructure - Estructura de la cabecera
@@ -220,43 +222,12 @@ function findNestedOccurrenceData(occurrenceItem, nestedOccurrenceId) {
  * @returns {string} - El valor formateado con la longitud fija.
  */
 function formatValue(value, length, type) {
-  // Convertir valor a string, tratando null/undefined como string vacío
-  const strValue = String(value ?? '');
-  
-  // Si el valor es vacío o solo espacios, devolver string vacío del tamaño requerido
-  if (strValue.trim() === '') {
-    return ' '.repeat(parseInt(length || 0));
-  }
-  
-  // Normalizar el tipo a minúsculas y sin acentos para comparaciones más robustas
-  const fieldType = (type || '').toLowerCase()
-      .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  
-  const numLength = parseInt(length || 0);
-  if (numLength <= 0) return '';
-
-  // Truncar si es más largo que la longitud requerida
-  let processedValue = (strValue.length > numLength) ? strValue.substring(0, numLength) : strValue;
-
-  // VERIFICACIÓN SIMPLIFICADA PARA LOS DOS ÚNICOS TIPOS POSIBLES
-  
-  // Verificación para los tipos específicos de la estructura
-  if (fieldType === 'alfanumerico') {
-    return processedValue.padEnd(numLength, ' ');
-  }
-  
-  if (fieldType === 'numerico') {
-    // Para numéricos, rellenar con ceros a la izquierda
-    return processedValue.padStart(numLength, '0');
-  }
-
-  // Comportamiento predeterminado si el tipo no está definido o reconocido
-  // Asumimos tipo alfanumérico como comportamiento predeterminado más seguro
-  console.warn(`ADVERTENCIA: Tipo "${fieldType}" no reconocido para el valor "${strValue}", tratando como ALFANUMÉRICO.`);
-  return processedValue.padEnd(numLength, ' ');
+  // Delegar a la función centralizada en string-format-utils.js
+  return stringFormatUtils.formatValue(value, length, type);
 }
 
 module.exports = {
   createMessage,
-  createHeaderMessage
+  createHeaderMessage,
+  // formatValue // No es necesario exportar formatValue si solo se usa internamente
 };

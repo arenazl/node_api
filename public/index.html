@@ -279,11 +279,7 @@
                 <div id="versionDisplay" class="version-display">v1</div>
                 <input type="hidden" id="versionInput" value="v1">
               </div>
-              
-              <div class="form-group config-buttons">
-                <button type="button" id="autoFillBtn" class="action-btn secondary-btn">Auto Llenar Campos</button>
-              </div>
-              
+                          
               <div class="config-tabs">
                 <div class="config-tabs-nav">
                   <button class="config-tab-btn active" data-config-tab="headerConfig">Cabecera</button>
@@ -366,6 +362,7 @@
             <div class="services-nav">
               <button class="services-tab-btn active" data-service-tab="ida">Servicio de Ida</button>
               <button class="services-tab-btn" data-service-tab="vuelta">Servicio de Vuelta</button>
+              
               <button class="services-tab-btn" data-service-tab="documentacion">Documentación</button>
             </div>
             
@@ -433,6 +430,14 @@
                     </select>
                   </div>
                   
+                  <div class="form-group">
+                    <label for="vueltaConfigSelect">Seleccione una configuración:</label>
+                    <select id="vueltaConfigSelect" class="service-select">
+                      <option value="">-- Seleccione una configuración --</option>
+                      <!-- Las opciones se cargarán dinámicamente -->
+                    </select>
+                  </div>
+                  
                   <div class="button-group" style="margin-bottom: 15px;">
                     <button id="processVueltaBtn" class="service-button">Procesar Servicio de Vuelta</button>
                     <button id="generateExampleBtn" class="service-button secondary-btn">Generar Ejemplo</button>
@@ -492,36 +497,40 @@
   <script src="/socket.io/socket.io.js"></script>
   
   <!-- App Scripts -->
-  <script src="/js/json-formatter.js"></script>
-  <script src="/js/json-initializer.js"></script>
-  <script src="/js/main.js"></script>
-  <script src="/js/service-tabs.js"></script>
+  <script src="/js/json/json-formatter.js"></script>
+  <script src="/js/json/json-initializer.js"></script>
+  <script src="/js/api_client/service-api-client.js"></script>
+  <!-- Modular configuration system - Load utilities first -->
+  <script src="/js/config/config-utils.js"></script>
+  <script src="/js/config/config-service-loader.js"></script>
+  <script src="/js/config/config-occurrence-handler.js"></script>
+  <script src="/js/config/config-utils-extension.js"></script>
+  <script src="/js/config/config-data-handler.js"></script>
+  <script src="/js/config/config-storage.js"></script>
+  <script src="/js/config/config-storage-manager.js"></script>
+  <script src="/js/config/config-ui-manager.js"></script>
+  <script src="/js/config/config-init.js"></script>
+  <script src="/js/config/config-manager.js"></script>
   
-  <!-- Modular configuration system -->
-  <script src="/js/config-utils.js"></script>
-  <script src="/js/config-service-loader.js"></script>
-  <script src="/js/config-occurrence-handler.js"></script>
-  <script src="/js/config-data-handler.js"></script>
-  <script src="/js/config-storage.js"></script>
-  <script src="/js/config-ui-manager.js"></script>
-  <script src="/js/config-manager.js"></script>
+  <!-- Main app and tabs -->
+  <script src="/js/core/main.js"></script>
+  <script src="/js/services_ui/common/service-initialization-state.js"></script>
+  <script src="/js/services_ui/common/service-tabs.js"></script>
   
-  <script src="/js/app-events.js"></script>
-  <script src="/js/structure-search.js"></script>
-  <script src="/js/tab-manager.js"></script>
-  <script src="/js/example-stream.js"></script>
-  <script src="/js/simple-example-generator.js"></script>
-  <script src="/js/simple-scrollbar.js"></script>
-  <script src="/js/theme-selector.js"></script>
-  <script src="/js/file-info.js"></script>
-  <script src="/js/servicios-manager.js"></script>
-  <script src="/js/api-documentation.js"></script>
-  <script src="/js/api-documentation-complete.js"></script>
-  <script src="/js/api-endpoint-renderer.js"></script>
-  <script src="/js/api-test-button.js"></script>
-  <script src="/js/api-documentation-data.js"></script>
-  <script src="/js/api-documentation-init.js"></script>
-  <script src="/js/system-utils.js"></script>
+  <script src="/js/core/app-events.js"></script>
+  <script src="/js/core/structure-search.js"></script>
+  <script src="/js/core/tab-manager.js"></script>
+  <script src="/js/services_ui/common/simple-example-generator.js"></script>
+  <script src="/js/ui_utils/simple-scrollbar.js"></script>
+  <script src="/js/core/theme-selector.js"></script>
+  <script src="/js/core/file-info.js"></script>
+  <script src="/js/core/tab-activation.js"></script>
+  <script src="/js/services_ui/common/servicios-manager.js"></script>
+  <script src="/js/core/system-utils.js"></script>
+  
+  <!-- IDA and VUELTA service handlers -->
+  <script src="/js/services_ui/ida/ida-service-handlers.js"></script>
+  <script src="/js/services_ui/vuelta/vuelta-service-handlers.js"></script>
   
   <!-- Script para establecer Montserrat como fuente oficial -->
   <script>

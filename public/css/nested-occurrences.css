@@ -1,0 +1,118 @@
+/**
+ * Estilos específicos para ocurrencias anidadas
+ * 
+ * Este archivo contiene los estilos para mejorar la visualización de ocurrencias anidadas
+ * en la interfaz de usuario, especialmente para las ocurrencias #14, #18 y #21.
+ */
+
+/* Estilos generales para ocurrencias */
+.json-occurrence-key {
+  color: #a78bfa !important; /* Violeta claro */
+  font-weight: bold !important;
+}
+
+/* Estilos específicos para ocurrencia #14 */
+.json-occurrence-14-key,
+.json-key[data-occurrence="14"],
+.json-key-occurrence-14 {
+  color: #60a5fa !important; /* Azul claro */
+  font-weight: bold !important;
+  background-color: rgba(59, 130, 246, 0.1); /* Fondo azul muy sutil */
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+
+/* Elementos de ocurrencia #14 */
+.json-occurrence-14-value,
+.json-value-wrapper[data-occurrence="14"] {
+  border-left: 2px solid #60a5fa !important; /* Borde izquierdo azul */
+  padding-left: 5px !important;
+}
+
+/* Estilos específicos para ocurrencia #18 */
+.json-occurrence-18-key,
+.json-key[data-occurrence="18"],
+.json-key-occurrence-18 {
+  color: #34d399 !important; /* Verde claro */
+  font-weight: bold !important;
+  background-color: rgba(16, 185, 129, 0.1); /* Fondo verde muy sutil */
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+
+/* Elementos de ocurrencia #18 */
+.json-occurrence-18-value,
+.json-value-wrapper[data-occurrence="18"] {
+  border-left: 2px solid #34d399 !important; /* Borde izquierdo verde */
+  padding-left: 5px !important;
+}
+
+/* Estilos específicos para ocurrencia #21 */
+.json-occurrence-21-key,
+.json-key[data-occurrence="21"],
+.json-key-occurrence-21 {
+  color: #fb923c !important; /* Naranja claro */
+  font-weight: bold !important;
+  background-color: rgba(249, 115, 22, 0.1); /* Fondo naranja muy sutil */
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+
+/* Elementos de ocurrencia #21 */
+.json-occurrence-21-value,
+.json-value-wrapper[data-occurrence="21"] {
+  border-left: 2px solid #fb923c !important; /* Borde izquierdo naranja */
+  padding-left: 5px !important;
+}
+
+/* Estilo para ocurrencias vacías */
+.json-empty-occurrence-14,
+.json-empty-occurrence-18,
+.json-empty-occurrence-21,
+.json-empty[data-empty-occurrence] {
+  color: #9ca3af !important; /* Gris claro */
+  font-style: italic !important;
+}
+
+/* Ocurrencia vacía #14 */
+.json-empty-occurrence-14 .json-empty-marker {
+  color: #60a5fa !important; /* Azul claro */
+}
+
+/* Ocurrencia vacía #18 */
+.json-empty-occurrence-18 .json-empty-marker {
+  color: #34d399 !important; /* Verde claro */
+}
+
+/* Ocurrencia vacía #21 */
+.json-empty-occurrence-21 .json-empty-marker {
+  color: #fb923c !important; /* Naranja claro */
+}
+
+/* Estilo para marcadores de ocurrencia vacía */
+.json-empty-marker {
+  font-style: normal !important;
+  font-weight: bold !important;
+}
+
+/* Colores de fondos de ocurrencia */
+.json-occurrence-array.json-occurrence-14,
+.json-brackets.json-occurrence-14 {
+  background-color: rgba(59, 130, 246, 0.05); /* Fondo azul muy sutil */
+}
+
+.json-occurrence-array.json-occurrence-18,
+.json-brackets.json-occurrence-18 {
+  background-color: rgba(16, 185, 129, 0.05); /* Fondo verde muy sutil */
+}
+
+.json-occurrence-array.json-occurrence-21,
+.json-brackets.json-occurrence-21 {
+  background-color: rgba(249, 115, 22, 0.05); /* Fondo naranja muy sutil */
+}
+
+/* Ocurrencias dentro de los mensajes de error */
+.json-brackets.json-empty-nested-occurrence {
+  color: #9ca3af; /* Gris claro */
+  font-style: italic;
+}
