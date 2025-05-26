@@ -6,7 +6,7 @@
   <meta name="description" content="Procesador de Mensajes Excel para archivos SVO">
   <meta name="theme-color" content="#2563eb">
   <title>Procesador de Mensajes Excel</title>
-  
+
   <!-- Favicon -->
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📊</text></svg>">
   
@@ -28,6 +28,7 @@
   <link rel="stylesheet" href="/css/servicios-styles.css">
   <link rel="stylesheet" href="/css/api-documentation.css">
   <link rel="stylesheet" href="/css/system-utils.css">
+  <link rel="stylesheet" href="/css/field-validations.css">
   
   <!-- Toastr - para notificaciones elegantes -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
@@ -460,7 +461,7 @@
             </div>
             
             <!-- Documentación de API -->
-            <div id="documentacionService" class="service-tab-content">
+            <div id="documentacionService" class="service-tab-content d-none">
               <div class="service-panel">
                 <h3>Documentación de API</h3>
                 <div id="apiDocumentation">
@@ -474,6 +475,7 @@
       </div>
     </div>
 
+    
     <div id="notification" class="notification" style="display: none;"></div>
     
     <!-- Modal de confirmación -->
@@ -531,6 +533,9 @@
   <!-- IDA and VUELTA service handlers -->
   <script src="/js/services_ui/ida/ida-service-handlers.js"></script>
   <script src="/js/services_ui/vuelta/vuelta-service-handlers.js"></script>
+  
+  <!-- API Documentation -->
+  <script src="/js/api_documentation/api-documentation.js"></script>
   
   <!-- Script para establecer Montserrat como fuente oficial -->
   <script>

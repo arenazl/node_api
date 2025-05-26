@@ -48,9 +48,10 @@ function createHeaderMessage(headerStructure, headerData) {
     const fieldName = field.name;
     const fieldLength = field.length;
     const fieldValue = headerData[fieldName] || '';
+    const fieldValues = field.valores || '';
     
     // Formatear valor según longitud y tipo
-    const formattedValue = formatValue(fieldValue, fieldLength, field.fieldType || field.type);
+    const formattedValue = formatValue(fieldValue, fieldLength, field.fieldType || field.type, fieldName, fieldValues);
     
     // Agregar al mensaje
     message += formattedValue;
@@ -90,7 +91,7 @@ function createDataMessage(serviceStructure, data, section) {
       const fieldValue = data[fieldName] || '';
       
       // Formatear valor según longitud y tipo
-      const formattedValue = formatValue(fieldValue, fieldLength, element.fieldType);
+      const formattedValue = formatValue(fieldValue, fieldLength, element.fieldType, fieldName, element.valores || '');
       
       // Agregar al mensaje
       message += formattedValue;
@@ -168,7 +169,7 @@ function formatOccurrences(occurrenceElement, occurrenceData, maxCount) {
         const fieldValue = occurrenceItem[fieldName] || '';
         
         // Formatear valor según longitud y tipo
-        const formattedValue = formatValue(fieldValue, fieldLength, field.fieldType);
+        const formattedValue = formatValue(fieldValue, fieldLength, field.fieldType, fieldName, field.valores || '');
         
         // Agregar al mensaje
         message += formattedValue;
@@ -219,11 +220,13 @@ function findNestedOccurrenceData(occurrenceItem, nestedOccurrenceId) {
  * @param {string|number|null|undefined} value - El valor a procesar.
  * @param {number} length - La longitud final deseada.
  * @param {string} type - El tipo de campo ('numerico', 'alfanumerico', etc.).
+ * @param {string} fieldName - Nombre del campo (opcional, para formateo especial como fechas)
+ * @param {string} fieldValues - Contenido de la columna VALORES para este campo (opcional)
  * @returns {string} - El valor formateado con la longitud fija.
  */
-function formatValue(value, length, type) {
+function formatValue(value, length, type, fieldName = '', fieldValues = '') {
   // Delegar a la función centralizada en string-format-utils.js
-  return stringFormatUtils.formatValue(value, length, type);
+  return stringFormatUtils.formatValue(value, length, type, fieldName, fieldValues);
 }
 
 module.exports = {

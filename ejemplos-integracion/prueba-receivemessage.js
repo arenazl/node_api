@@ -13,8 +13,13 @@ const serverExampleGenerator = require('../utils/server-example-generator');
 // URL base de la API
 const API_URL = 'http://localhost:3000';
 
-// Servicio a probar - puedes modificar estos valores
-const SERVICIO = '3088';  // Número del servicio a probar
+// Obtener argumentos de línea de comando
+const args = process.argv.slice(2);
+// Servicio a probar - el primer argumento o '3088' por defecto
+const SERVICIO = args[0] || '3088';
+
+// Parámetros adicionales - si hay un segundo argumento como string, parsearlo
+const PARAMETROS_ADICIONALES = args[1] ? new URLSearchParams(args[1]) : new URLSearchParams();
 
 /**
  * Genera un string de VUELTA con valores aleatorios
@@ -70,26 +75,58 @@ async function generarStringVueltaAleatorio() {
 }
 
 // Función para probar el endpoint /api/services/receivemessage
-async function probarReceiveMessageEndpoint() {
+async function probarReceiveMessageEndpoint(usarSimulacion = false) {
   try {
-    console.log(`\n--- Probando /api/services/receivemessage para servicio ${SERVICIO} ---`);
+    console.log(`\n--- Probando /api/services/receivemessage para servicio ${SERVICIO} (Simulación: ${usarSimulacion}) ---`);
     
-    // Usar un string de VUELTA para el servicio 3088 con cabecera y datos (aunque estén vacíos)
-    const stringVuelta = "000643ME30880000000000007618092012114044PASCUAL1047                                             00" +
-                        "                                                                                                    " +
-                        "                                                                                                    " +
-                        "                                                                                                    ";
+    // Preparar los datos del request según modo
+    let requestData;
     
-    // Datos para el request
-    const requestData = {
-      header: {
-        serviceNumber: SERVICIO,
-        filterEmptyFields: true // Activar filtrado de campos vacíos
-      },
-      parameters: {
-        returnMsg: stringVuelta
+    if (usarSimulacion) {
+      // Modo simulación - no enviamos string, sólo el parámetro simulate=true
+      // Y cualquier otro parámetro adicional que se haya pasado en la línea de comandos
+      const parametros = {
+        simulate: true
+      };
+      
+      // Añadir los parámetros adicionales
+      for (const [key, value] of PARAMETROS_ADICIONALES.entries()) {
+        // Convertir "true"/"false" en valores booleanos
+        if (value === 'true') parametros[key] = true;
+        else if (value === 'false') parametros[key] = false;
+        else parametros[key] = value;
       }
-    };
+      
+      requestData = {
+        header: {
+          serviceNumber: SERVICIO,
+          filterEmptyFields: true
+        },
+        parameters: parametros
+      };
+      
+      console.log('\nSolicitando simulación de datos...');
+      console.log('Parámetros:', parametros);
+    } else {
+      // Modo normal - usar string estático
+      const stringVuelta = "000643ME30880000000000007618092012114044PASCUAL1047                                             00" +
+                          "                                                                                                    " +
+                          "                                                                                                    " +
+                          "                                                                                                    ";
+      
+      // Datos para el request
+      requestData = {
+        header: {
+          serviceNumber: SERVICIO,
+          filterEmptyFields: true // Activar filtrado de campos vacíos
+        },
+        parameters: {
+          returnMsg: stringVuelta
+        }
+      };
+      
+      console.log('\nEnviando string de prueba...');
+    }
     
     console.log('\nEnviando solicitud a receivemessage...');
     
@@ -102,7 +139,13 @@ async function probarReceiveMessageEndpoint() {
     
     console.log('\n--- Request original ---');
     console.log('Header:', JSON.stringify(response.data.request.header, null, 2));
-    console.log('Parameters: { returnMsg: [string de longitud ' + stringVuelta.length + '] }');
+    
+    if (usarSimulacion) {
+      console.log('Parameters: { simulate: true }');
+    } else {
+      const streamLength = requestData.parameters.returnMsg.length;
+      console.log('Parameters: { returnMsg: [string de longitud ' + streamLength + '] }');
+    }
     
     console.log('\n--- Datos JSON parseados ---');
     console.log(JSON.stringify(response.data.response, null, 2));
@@ -130,11 +173,20 @@ async function probarReceiveMessageEndpoint() {
 // Ejecutar la prueba
 async function ejecutarPrueba() {
   try {
-    // Ejecutar varias veces para ver valores aleatorios diferentes
-    for (let i = 0; i < 3; i++) {
+    // Primero probar el modo normal
+    console.log('\n\n=== MODO NORMAL (CON STRING) ===');
+    for (let i = 0; i < 2; i++) {
       console.log(`\n=== Ejecución ${i+1} ===`);
-      await probarReceiveMessageEndpoint();
-      console.log(`\n✨ Prueba de receivemessage ${i+1} completada exitosamente`);
+      await probarReceiveMessageEndpoint(false);
+      console.log(`\n✨ Prueba de receivemessage ${i+1} (normal) completada exitosamente`);
+    }
+    
+    // Luego probar el modo de simulación
+    console.log('\n\n=== MODO SIMULACIÓN (SIMULATE=TRUE) ===');
+    for (let i = 0; i < 2; i++) {
+      console.log(`\n=== Ejecución ${i+1} ===`);
+      await probarReceiveMessageEndpoint(true);
+      console.log(`\n✨ Prueba de receivemessage simulada ${i+1} completada exitosamente`);
     }
     
     console.log('\n✅ Todas las pruebas completadas exitosamente');

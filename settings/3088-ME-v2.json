@@ -1,12 +1,12 @@
 {
   "serviceNumber": "3088",
   "serviceName": "SERVICIO 3088 - Imputador Genérico para varias operaciones",
-  "canal": "ME",
+  "canal": "me",
   "version": "v2",
-  "timestamp": "2025-05-24T09:19:13.541Z",
+  "timestamp": "2025-05-26T06:36:44.895Z",
   "header": {
     "LONGITUD DEL MENSAJE": "000643",
-    "CANAL": "ME",
+    "CANAL": "me",
     "SERVICIO": "3050",
     "CÓDIGO DE RETORNO": "0000",
     "ID DEL MENSAJE": "000000076",
@@ -22,21 +22,21 @@
     "SVC3088-TIP-PEDIDO": "01",
     "occ_1": [
       {
-        "SVC3088-NRO-OPER-SERV": "11",
-        "SVC3088-BCO-ORIG": "22",
-        "SVC3088-SUC-ORIG": "33",
-        "SVC3088-BCO-DEST": "44",
+        "SVC3088-NRO-OPER-SERV": "3",
+        "SVC3088-BCO-ORIG": "",
+        "SVC3088-SUC-ORIG": "",
+        "SVC3088-BCO-DEST": "",
         "SVC3088-SUC-DEST": "",
         "SVC3088-NRO-ORDEN": "",
-        "SVC3088-FECHA-PROC": "",
-        "SVC3088-FECHA-MOVI": "",
-        "SVC3088-FECHA-VALOR": "",
+        "SVC3088-FECHA-PROC": "01/02/2025",
+        "SVC3088-FECHA-MOVI": "02/01/2520",
+        "SVC3088-FECHA-VALOR": "01/01/2022",
         "SVC3088-CALC-COMIS": "",
         "SVC3088-CONCEPTO": "",
         "SVC3088-CANT-CUENTAS": "",
         "occ_14": {
-          "SVC3088-PROD-RUBRO": "1111",
-          "SVC3088-CUENTA-NIV": "2222"
+          "SVC3088-PROD-RUBRO": "0014",
+          "SVC3088-CUENTA-NIV": "0020"
         },
         "SVC3088-CANT-IMPORTES": "",
         "occ_18": {
@@ -44,8 +44,8 @@
         },
         "SVC3088-CANT-SUCURSALES": "",
         "occ_21": {
-          "SVC3088-BCO": "00001",
-          "SVC3088-SUCU": "00005"
+          "SVC3088-BCO": "1000",
+          "SVC3088-SUCU": "2000"
         },
         "SVC3088-ID-MENS-ORIG": "",
         "SVC3088-CON-ID-OPS": "",

@@ -25,13 +25,15 @@ function procesarElementos(elements, data, estructura) {
       
       // Aplicar formato según el tipo de campo
       if (rawValue !== undefined && rawValue !== null) {
-        // Si es numérico, rellenar con ceros a la izquierda
-        if (fieldType === "numerico" || fieldType === "numeric" || fieldType === "number") {
-          fieldValue = formatValue(rawValue.toString(), fieldLength, true); // true para numérico (ceros a la izquierda)
-        } else {
-          // Si es alfanumérico, rellenar con espacios a la derecha
-          fieldValue = formatValue(rawValue.toString(), fieldLength, false); // false para alfanumérico (espacios a la derecha)
-        }
+        // Usar la función formatValue de string-format-utils que ahora maneja fechas
+        const isNumeric = fieldType === "numerico" || fieldType === "numeric" || fieldType === "number";
+        fieldValue = formatValue(
+          rawValue.toString(), 
+          fieldLength, 
+          isNumeric ? "numerico" : "alfanumerico", 
+          fieldName,
+          element.valores || ''
+        );
       }
       
       estructura.push({ nombre: fieldName, valor: fieldValue, longitud: fieldLength, tipo: fieldType });
@@ -60,13 +62,15 @@ function procesarElementos(elements, data, estructura) {
               
               // Aplicar formato según el tipo de campo
               if (rawValue !== undefined && rawValue !== null) {
-                // Si es numérico, rellenar con ceros a la izquierda
-                if (fieldType === "numerico" || fieldType === "numeric" || fieldType === "number") {
-                  fieldValue = formatValue(rawValue.toString(), fieldLength, true); // true para numérico (ceros a la izquierda)
-                } else {
-                  // Si es alfanumérico, rellenar con espacios a la derecha
-                  fieldValue = formatValue(rawValue.toString(), fieldLength, false); // false para alfanumérico (espacios a la derecha)
-                }
+                // Usar la función formatValue de string-format-utils que ahora maneja fechas
+                const isNumeric = fieldType === "numerico" || fieldType === "numeric" || fieldType === "number";
+                fieldValue = formatValue(
+                  rawValue.toString(), 
+                  fieldLength, 
+                  isNumeric ? "numerico" : "alfanumerico", 
+                  fieldName,
+                  field.valores || ''
+                );
               }
               
               estructura.push({ nombre: `${occId}[${i}].${fieldName}`, valor: fieldValue, longitud: fieldLength, tipo: fieldType });
@@ -95,13 +99,15 @@ function procesarElementos(elements, data, estructura) {
                       
                       // Aplicar formato según el tipo de campo
                       if (rawValue !== undefined && rawValue !== null) {
-                        // Si es numérico, rellenar con ceros a la izquierda
-                        if (nestedFieldType === "numerico" || nestedFieldType === "numeric" || nestedFieldType === "number") {
-                          nestedFieldValue = formatValue(rawValue.toString(), nestedFieldLength, true); // true para numérico (ceros a la izquierda)
-                        } else {
-                          // Si es alfanumérico, rellenar con espacios a la derecha
-                          nestedFieldValue = formatValue(rawValue.toString(), nestedFieldLength, false); // false para alfanumérico (espacios a la derecha)
-                        }
+                        // Usar la función formatValue de string-format-utils que ahora maneja fechas
+                        const isNumeric = nestedFieldType === "numerico" || nestedFieldType === "numeric" || nestedFieldType === "number";
+                        nestedFieldValue = formatValue(
+                          rawValue.toString(), 
+                          nestedFieldLength, 
+                          isNumeric ? "numerico" : "alfanumerico", 
+                          nestedFieldName,
+                          nestedField.valores || ''
+                        );
                       }
                       
                       estructura.push({ nombre: `${occId}[${i}].${nestedOccId}[${j}].${nestedFieldName}`, valor: nestedFieldValue, longitud: nestedFieldLength, tipo: nestedFieldType });
@@ -139,13 +145,15 @@ function generarEstructuraDetallada(headerStructure, serviceStructure, requestDa
       
       // Aplicar formato según el tipo de campo
       if (rawValue !== undefined && rawValue !== null) {
-        // Si es numérico, rellenar con ceros a la izquierda
-        if (fieldType === "numerico" || fieldType === "numeric" || fieldType === "number") {
-          fieldValue = formatValue(rawValue.toString(), fieldLength, true); // true para numérico (ceros a la izquierda)
-        } else {
-          // Si es alfanumérico, rellenar con espacios a la derecha
-          fieldValue = formatValue(rawValue.toString(), fieldLength, false); // false para alfanumérico (espacios a la derecha)
-        }
+        // Usar la función formatValue de string-format-utils que ahora maneja fechas
+        const isNumeric = fieldType === "numerico" || fieldType === "numeric" || fieldType === "number";
+        fieldValue = formatValue(
+          rawValue.toString(), 
+          fieldLength, 
+          isNumeric ? "numerico" : "alfanumerico", 
+          fieldName,
+          field.valores || ''
+        );
       }
       
       estructura.push({ nombre: fieldName, valor: fieldValue, longitud: fieldLength, tipo: fieldType });

@@ -1,0 +1,73 @@
+/**
+ * Estilos para validación de campos según tipo de datos
+ */
+
+/* Clase base para todos los inputs de configuración */
+.config-field-input {
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: var(--radius, 0.25rem);
+    padding: 0.5rem;
+    width: 100%;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    font-size: 0.9rem;
+}
+
+/* Estilos para campos numéricos */
+.numerico-input {
+    border-left: 3px solid #3498db !important; /* Azul */
+    background-color: #f8fafc;
+}
+
+.numerico-input:focus {
+    border-color: #3498db;
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+    background-color: #f0f7ff;
+}
+
+/* Estilos para campos de fecha */
+.fecha-input {
+    border-left: 3px solid #e74c3c !important; /* Rojo */
+    background-color: #fff5f5;
+    font-family: monospace; /* Mejor para formatos de fecha */
+}
+
+.fecha-input:focus {
+    border-color: #e74c3c;
+    box-shadow: 0 0 0 2px rgba(231, 76, 60, 0.2);
+    background-color: #ffebeb;
+}
+
+.fecha-input::placeholder {
+    color: #e74c3c;
+    opacity: 0.8;
+    font-weight: 500; /* Semi-bold */
+    letter-spacing: 0.5px; /* Espaciado para mejor legibilidad */
+}
+
+/* Estilos para campos alfanuméricos */
+.alfanumerico-input {
+    border-left: 3px solid #2ecc71 !important; /* Verde */
+    background-color: #f7fdf9;
+}
+
+.alfanumerico-input:focus {
+    border-color: #2ecc71;
+    box-shadow: 0 0 0 2px rgba(46, 204, 113, 0.2);
+    background-color: #edfaf1;
+}
+
+/* Tooltips para indicar el tipo de campo */
+.numerico-input:hover::before,
+.fecha-input:hover::before,
+.alfanumerico-input:hover::before {
+    content: attr(data-field-type);
+    position: absolute;
+    background-color: #333;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 0.7rem;
+    margin-top: -25px;
+    opacity: 0.8;
+    z-index: 100;
+}

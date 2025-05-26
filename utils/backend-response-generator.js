@@ -9,6 +9,7 @@ const messageCreator = require('../api/message-creator');
 // Utilizamos las funciones de generación de valores aleatorios de string-format-utils
 const generateRandomValue = stringFormatUtils.generateRandomFieldValue;
 const generateMeaningfulValue = stringFormatUtils.generateMeaningfulFieldValue;
+const generateDateString = stringFormatUtils.generateDateString;
 /**
  * Genera un objeto JavaScript con valores aleatorios para una sección de estructura.
  * Esta versión es completamente genérica sin valores hardcodeados para campos específicos.
@@ -47,7 +48,33 @@ function generateRandomDataForStructure(structureSection, currentIndex = null, s
       if (simulateMode) {
         // En modo simulación, siempre generar valores y usar términos significativos para alfanuméricos
         const lowercaseType = fieldType.toLowerCase();
-        if (lowercaseType === "numerico") {
+        // Obtener el valor de la columna VALORES si está disponible en la estructura del campo
+        const fieldValues = element.values || '';
+        
+        // Verificar si es un campo de fecha basado en el nombre o los valores
+        const isDateField = 
+          lowercaseType === 'fecha' || 
+          fieldName.toLowerCase().includes('fecha') ||
+          (fieldValues && (
+            fieldValues.includes('DD/MM') || 
+            fieldValues.includes('MM/DD') || 
+            fieldValues.includes('AAAA') ||
+            fieldValues.includes('DD-MM')
+          ));
+        
+        if (isDateField) {
+                // Usar exactamente el formato especificado en la columna VALORES
+                // Usar exactamente el formato definido en la estructura
+                // Quitar cualquier texto explicativo después de espacios o paréntesis
+                const cleanValues = fieldValues.split(/[\s\(]/)[0].trim();
+                
+                // Si hay un formato específico definido en la columna VALORES, usarlo
+                const dateFormat = cleanValues || 'DD/MM/AAAA';
+                
+                // Generar fecha formateada según el formato especificado en la estructura
+                data[fieldName] = generateDateString(dateFormat);
+        } 
+        else if (lowercaseType === "numerico") {
           data[fieldName] = generateRandomValue(fieldLength, fieldType);
         } else {
           // Para campos alfanuméricos, usar valores con sentido
@@ -97,7 +124,32 @@ function generateRandomDataForStructure(structureSection, currentIndex = null, s
             if (simulateMode) {
               // En modo simulación siempre generar valores
               const lowercaseType = fieldType.toLowerCase();
-              if (lowercaseType === "numerico") {
+              // Obtener el valor de la columna VALORES si está disponible
+              const fieldValues = field.values || '';
+              
+              // Verificar si es un campo de fecha
+              const isDateField = 
+                lowercaseType === 'fecha' || 
+                fieldName.toLowerCase().includes('fecha') ||
+                (fieldValues && (
+                  fieldValues.includes('DD/MM') || 
+                  fieldValues.includes('MM/DD') || 
+                  fieldValues.includes('AAAA') ||
+                  fieldValues.includes('DD-MM')
+                ));
+              
+              if (isDateField) {
+                // Usar exactamente el formato definido en la estructura
+                // Quitar cualquier texto explicativo después de espacios o paréntesis
+                const cleanValues = fieldValues.split(/[\s\(]/)[0].trim();
+                
+                // Si hay un formato específico definido en la columna VALORES, usarlo
+                const dateFormat = cleanValues || 'DD/MM/AAAA';
+                
+                // Generar fecha formateada según el formato especificado en la estructura
+                occurrenceData[fieldName] = generateDateString(dateFormat);
+              }
+              else if (lowercaseType === "numerico") {
                 occurrenceData[fieldName] = generateRandomValue(fieldLength, fieldType);
               } else {
                 // Para campos alfanuméricos, usar valores con sentido

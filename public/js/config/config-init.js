@@ -218,6 +218,14 @@ initUIManager: function() {
                         try {
                             ConfigDataHandler.autoFillFields(serviceNumber, structure.header_structure, canalInput);
                             console.log('Campos auto-completados al seleccionar servicio');
+                            
+                            // Aplicar validaciones a los campos después de completarlos
+                            setTimeout(() => {
+                                if (typeof ConfigUtils !== 'undefined' && ConfigUtils.applyValidationsToExistingFields) {
+                                    ConfigUtils.applyValidationsToExistingFields();
+                                    console.log('Validaciones aplicadas a campos existentes');
+                                }
+                            }, 300);
                         } catch (err) {
                             console.error('Error al auto-completar campos:', err);
                             ConfigUtils.showNotification('Estructura cargada, pero hubo un error al auto-completar campos. Puede usar "Auto Llenar Campos" manualmente.', 'warning');

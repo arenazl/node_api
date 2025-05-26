@@ -43,7 +43,7 @@ router.get('/', async (req, res) => {
 
 // Importar el generador de ejemplos para servidor (OLD - no longer needed as new-generate-endpoint and generate-legacy use backendResponseGenerator)
 // const serverExampleGenerator = require('../utils/server-example-generator'); 
-// Importar nuevo manejador del endpoint /generate
+// Importar nuevo manejador del endpoint /a
 const handleGenerateRequest = require('./new-generate-endpoint');
 
 /**
@@ -533,17 +533,40 @@ router.post('/receivemessage', async (req, res) => {
         console.log("[SERVICES/receivemessage] Generando datos simulados para el servicio", serviceNumber);
 
         try {
-          // Generar datos simulados usando el nuevo generador con modo simulación = true
-          responseData = backendResponseGenerator.generateRandomDataForStructure(
-            serviceStructure.response,
-            null,
-            true // simulateMode = true -> usa valores significativos y al menos 5 ocurrencias
-          );
+          // Si el usuario solicitó un string como respuesta (simulate=true)
+          if (parameters.returnString === true) {
+            // Generar un mensaje completo de vuelta simulado
+            const simulatedString = backendResponseGenerator.generateVueltaMessage(
+              serviceNumber, 
+              { headerStructure, serviceStructure }, 
+              true // simulateMode = true para asegurar al menos 5 ocurrencias con valores
+            );
 
-          // Los datos ya vienen "limpios" del generador, pero aplicamos jsonCleaner por consistencia
-          cleanedData = responseData;
+            // Retornar un objeto con el string generado
+            return res.json({
+              request: { 
+                header, 
+                parameters: { 
+                  simulate: true,
+                  returnString: true 
+                }
+              },
+              response: simulatedString,
+              stringLength: simulatedString.length
+            });
+          } else {
+            // Generar datos simulados usando el nuevo generador con modo simulación = true
+            responseData = backendResponseGenerator.generateRandomDataForStructure(
+              serviceStructure.response,
+              null,
+              true // simulateMode = true -> usa valores significativos y al menos 5 ocurrencias
+            );
 
-          console.log("[SERVICES/receivemessage] Datos simulados generados con éxito");
+            // Los datos ya vienen "limpios" del generador, pero aplicamos jsonCleaner por consistencia
+            cleanedData = responseData;
+
+            console.log("[SERVICES/receivemessage] Datos simulados generados con éxito");
+          }
         } catch (simError) {
           console.error("[SERVICES/receivemessage] Error al generar datos simulados:", simError);
           return res.status(500).json({

@@ -544,10 +544,18 @@ const ConfigUIManager = {
         // IMPORTANTE: Completar campos de REQUEST (Ocurrencias)
         this.fillRequestData(config.request);
         
-        // Notificar que se han cargado los datos
-        if (typeof ConfigUtils !== 'undefined' && ConfigUtils.showNotification) {
-            ConfigUtils.showNotification('Configuración cargada correctamente', 'success', true);
-        }
+        // Aplicar validaciones a los campos después de cargar los datos
+        setTimeout(() => {
+            if (typeof ConfigUtils !== 'undefined' && ConfigUtils.applyValidationsToExistingFields) {
+                ConfigUtils.applyValidationsToExistingFields();
+                console.log('Validaciones aplicadas a campos después de cargar configuración');
+            }
+            
+            // Notificar que se han cargado los datos
+            if (typeof ConfigUtils !== 'undefined' && ConfigUtils.showNotification) {
+                ConfigUtils.showNotification('Configuración cargada correctamente', 'success', true);
+            }
+        }, 300);
     },
     
     /**
