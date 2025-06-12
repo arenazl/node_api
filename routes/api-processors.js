@@ -2,7 +2,7 @@
  * API Processors - Funciones compartidas para procesar requests entre endpoints
  */
 
-const messageAnalyzer = require('../api/message-analyzer');
+const messageAnalyzer = require('../utils/message-analyzer');
 const { fixResponseOccurrences } = require('../utils/fix-nested-occurrences');
 
 /**

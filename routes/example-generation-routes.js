@@ -5,8 +5,8 @@
 const express = require('express');
 const router = express.Router();
 
-const messageCreator = require('../api/message-creator'); // For IDA part of generate-legacy
-const messageAnalyzer = require('../api/message-analyzer');
+const messageCreator = require('../utils/message-creator'); // For IDA part of generate-legacy
+const messageAnalyzer = require('../utils/message-analyzer');
 const backendResponseGenerator = require('../utils/backend-response-generator');
 const jsonCleaner = require('../utils/json-cleaner');
 const { findServiceByNumber } = require('../utils/service-lookup');
@@ -35,7 +35,7 @@ const { findServiceByNumber } = require('../utils/service-lookup');
       }
 
       // Config loading (simplified, consider moving to a helper if used elsewhere often)
-      const configDir = require('path').join(__dirname, '..', 'settings');
+      const configDir = require('path').join(__dirname, '..', 'JsonStorage', 'settings');
       let configData = null;
       try {
         const configFiles = require('fs-extra').readdirSync(configDir)
@@ -54,15 +54,15 @@ const { findServiceByNumber } = require('../utils/service-lookup');
       }
 
       const idaMessage = messageCreator.createMessage(headerStructure, serviceStructure, requestData, "request");
-      const vueltaString = backendResponseGenerator.generateVueltaMessage(serviceNumber, { headerStructure, serviceStructure });
-      const parsedVueltaFull = messageAnalyzer.parseMessage(vueltaString, headerStructure, serviceStructure);
-      const cleanedDataVuelta = jsonCleaner.cleanVueltaJson(parsedVueltaFull.data, 'aggressive');
+      
+      // Usar la nueva función coherente que genera string y JSON con los mismos datos
+      const coherentResponse = backendResponseGenerator.generateCoherentResponse(serviceNumber, { headerStructure, serviceStructure }, true);
 
       res.json({
         serviceName: serviceStructure.serviceName || `Servicio ${serviceNumber}`,
         stringIda: idaMessage,
-        stringVuelta: vueltaString,
-        dataVuelta: cleanedDataVuelta
+        stringVuelta: coherentResponse.stringVuelta,
+        dataVuelta: coherentResponse.jsonVuelta
       });
     } catch (error) {
       console.error(`[EXAMPLES/generate-legacy] Error: ${error.message}`, error.stack);

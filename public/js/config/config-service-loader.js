@@ -185,14 +185,7 @@ const ConfigServiceLoader = {
         
         headerFields.forEach(field => {
             // Skip non-data fields (special markers, comments, placeholder fields)
-            if (!field.name || field.name === '*' || field.name === 'REQUERIMIENTO' || field.type === 'Longitud del CAMPO') {
-                return;
-            }
-            
-            // Skip CANAL field since we want to use the input value from the form
-            if (field.name.toUpperCase() === 'CANAL') {
-                position += parseInt(field.length || '0');
-                console.log(`Campo CANAL ignorado: usando valor del input del formulario en su lugar`);
+            if (!field.name || field.name === '*' || !field.length) {
                 return;
             }
             

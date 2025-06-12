@@ -9,11 +9,12 @@ const XLSX = require('xlsx');
 const router = express.Router();
 
 // Importar módulos de la API
+
 const excelParser = require('../utils/excel-parser');
 
 // Directorios para almacenar archivos
-const uploadsDir = path.join(__dirname, '..', 'uploads');
-const structuresDir = path.join(__dirname, '..', 'structures');
+const uploadsDir = path.join(__dirname, '..', 'JsonStorage', 'uploads');
+const structuresDir = path.join(__dirname, '..', 'JsonStorage', 'structures');
 
 /**
  * @route POST /excel/check-service-exists
@@ -22,20 +23,20 @@ const structuresDir = path.join(__dirname, '..', 'structures');
 router.post('/check-service-exists', async (req, res) => {
   try {
     const { serviceNumber } = req.body;
-    
+
     if (!serviceNumber) {
-      return res.status(400).json({ 
-        error: "Se requiere el número de servicio" 
+      return res.status(400).json({
+        error: "Se requiere el número de servicio"
       });
     }
-    
+
     // Obtener la lista de servicios existentes
     const serviceRoutes = require('./services');
     const services = await serviceRoutes.getAvailableServices();
-    
+
     // Verificar si el servicio ya existe
     const existingServices = services.filter(s => s.service_number === serviceNumber);
-    
+
     // Si existe, devolver los datos existentes
     if (existingServices.length > 0) {
       return res.json({
@@ -44,14 +45,14 @@ router.post('/check-service-exists', async (req, res) => {
         message: `Ya existen ${existingServices.length} estructura(s) para el servicio ${serviceNumber}`
       });
     }
-    
+
     return res.json({
       exists: false
     });
-    
+
   } catch (error) {
-    res.status(500).json({ 
-      error: `Error al verificar servicio: ${error.message}` 
+    res.status(500).json({
+      error: `Error al verificar servicio: ${error.message}`
     });
   }
 });
@@ -64,60 +65,66 @@ router.post('/upload', async (req, res) => {
   try {
     // Verificar si se proporcionó un archivo
     if (!req.files || !req.files.file) {
-      return res.status(400).json({ 
-        error: "No se proporcionó ningún archivo" 
+      return res.status(400).json({
+        error: "No se proporcionó ningún archivo"
       });
     }
-    
+
     const excelFile = req.files.file;
-    
+
     // Verificar que sea un archivo Excel
     if (!excelFile.name.match(/\.(xlsx|xls)$/i)) {
-      return res.status(400).json({ 
-        error: "Solo se permiten archivos Excel (.xlsx, .xls)" 
+      return res.status(400).json({
+        error: "Solo se permiten archivos Excel (.xlsx, .xls)"
       });
     }
-    
+
     // Crear un directorio temporal para procesar el archivo antes de confirmar la subida
     const tempDir = path.join(__dirname, '..', 'tmp');
     if (!fs.existsSync(tempDir)) {
       fs.mkdirSync(tempDir, { recursive: true });
     }
-    
+
     // Guardar archivo en directorio temporal primero
     const tempFilePath = path.join(tempDir, excelFile.name);
     await excelFile.mv(tempFilePath);
-    
+
     try {
       // Extraer estructura del archivo temporal para verificar duplicados
       console.log("Extrayendo estructura del archivo para verificar duplicados...");
       const tempHeaderStructure = excelParser.parseHeaderStructure(tempFilePath);
       const tempServiceStructure = excelParser.parseServiceStructure(tempFilePath);
-      
+
       // Verificar si ya existe una estructura idéntica
       if (tempServiceStructure && tempServiceStructure.serviceNumber) {
         // Buscar estructuras existentes para este servicio
         const structureFiles = fs.readdirSync(structuresDir)
           .filter(file => file.endsWith('_structure.json') && file.includes(`_${tempServiceStructure.serviceNumber}_`));
-        
+
         // Ordenar por fecha (los más recientes primero)
         structureFiles.sort((a, b) => b.localeCompare(a));
-        
+
         // Verificar cada estructura existente
         for (const structureFile of structureFiles) {
           const structurePath = path.join(structuresDir, structureFile);
           const existingStructure = fs.readJsonSync(structurePath);
-          
+
           // Comparar estructuras para detectar duplicados
           if (existingStructure && existingStructure.service_structure) {
             // Función para normalizar y comparar estructuras
             const areStructuresEqual = (struct1, struct2) => {
+              // MODIFICADO: Desactivar la verificación de duplicados para permitir subir versiones idénticas
+              // Siempre retornar false para permitir la subida incluso si las estructuras son idénticas
+              console.log("Verificación de duplicados desactivada - permitiendo subida de estructura");
+              return false;
+
+              /* Código original comentado:
               // Comparar cantidad de elementos en request y response
               if (struct1.request?.elements?.length !== struct2.request?.elements?.length ||
                   struct1.response?.elements?.length !== struct2.response?.elements?.length) {
                 return false;
               }
-              
+
               // Simplificar objetos para comparación
               const simplifyStructure = (struct) => {
                 // Eliminar propiedades que no afectan la funcionalidad
@@ -136,27 +143,28 @@ router.post('/upload', async (req, res) => {
                   }
                   return obj;
                 };
-                
+
                 return {
                   request: simplify(struct.request),
                   response: simplify(struct.response)
                 };
               };
-              
+
               // Comparar estructuras simplificadas
               const simple1 = simplifyStructure(struct1);
               const simple2 = simplifyStructure(struct2);
-              
+
               return JSON.stringify(simple1) === JSON.stringify(simple2);
+              */
             };
-            
+
             // Verificar si la estructura ya existe
             if (areStructuresEqual(tempServiceStructure, existingStructure.service_structure)) {
               console.log("Se detectó una estructura idéntica ya existente");
-              
+
               // Eliminar archivo temporal
               fs.unlinkSync(tempFilePath);
-              
+
               return res.status(409).json({
                 error: "La versión que está intentando subir es idéntica a una ya existente",
                 duplicateFile: structureFile.replace('_structure.json', ''),
@@ -166,25 +174,25 @@ router.post('/upload', async (req, res) => {
           }
         }
       }
-      
+
       // Si llegamos aquí, no se encontró duplicado, continuar con la subida
-      
+
       // Generar nombre de archivo único con timestamp
       const timestamp = new Date().toISOString().replace(/[-:.]/g, '').substring(0, 14);
       const filename = `${timestamp}_${excelFile.name}`;
       const filePath = path.join(uploadsDir, filename);
-      
+
       // Crear directorio si no existe
       if (!fs.existsSync(uploadsDir)) {
         fs.mkdirSync(uploadsDir, { recursive: true });
       }
-      
+
       // Mover archivo de la carpeta temporal a uploads
       fs.renameSync(tempFilePath, filePath);
-      
+
       // Procesar archivo Excel y guardar las estructuras
       const { headerStructure, serviceStructure, warnings, structureFile } = await processExcelFile(filePath);
-      
+
       // Crear un mensaje de evento que incluya el número de servicio para notificar a la UI
       // Esta es la parte crucial que asegura que los componentes se actualicen automáticamente
       const eventPayload = {
@@ -193,7 +201,20 @@ router.post('/upload', async (req, res) => {
         service_number: serviceStructure.serviceNumber || null,
         timestamp: new Date().toISOString()
       };
-      
+
+      // IMPORTANTE: Forzar actualización del caché ANTES de emitir eventos
+      // Esto asegura que cuando el frontend solicite la lista de servicios, el backend ya tenga el caché actualizado
+      console.log('[EXCEL] Limpiando caché de servicios antes de emitir eventos...');
+      if (global.serviceCache) {
+        global.serviceCache.services = null;
+        global.serviceCache.lastUpdate = null;
+        // También limpiar el caché de estructuras para este servicio específico
+        if (serviceStructure.serviceNumber && global.serviceCache.structures) {
+          delete global.serviceCache.structures[serviceStructure.serviceNumber];
+        }
+      }
+      console.log('[EXCEL] Caché limpiado exitosamente');
+
       // Publicar al frontend los eventos de FILE_UPLOADED y SERVICES_REFRESHED
       // Este es el mecanismo principal de actualización automática
       if (global.io) {
@@ -216,7 +237,7 @@ router.post('/upload', async (req, res) => {
           console.warn('[EXCEL] No se pudo guardar evento:', eventError);
         }
       }
-      
+
       // Devolver respuesta
       res.json({
         filename: path.basename(filePath),
@@ -235,13 +256,13 @@ router.post('/upload', async (req, res) => {
       } catch (cleanupError) {
         console.error("Error al limpiar archivo temporal:", cleanupError);
       }
-      
+
       throw processingError;
     }
-    
+
   } catch (error) {
-    res.status(500).json({ 
-      error: `Error al procesar el archivo Excel: ${error.message}` 
+    res.status(500).json({
+      error: `Error al procesar el archivo Excel: ${error.message}`
     });
   }
 });
@@ -254,11 +275,11 @@ router.get('/files', async (req, res) => {
   try {
     // Obtener archivos y luego actualizar la lista con los nombres más recientes
     let files = await getExcelFiles();
-    
+
     // Obtener lista actual de servicios para completar con los nombres más recientes
     const serviceRoutes = require('./services');
     const services = await serviceRoutes.getAvailableServices();
-    
+
     // Actualizar nombres de servicios con los datos más recientes
     files = files.map(file => {
       if (file.service_number) {
@@ -270,11 +291,11 @@ router.get('/files', async (req, res) => {
       }
       return file;
     });
-    
+
     res.json({ files });
   } catch (error) {
-    res.status(500).json({ 
-      error: `Error al obtener la lista de archivos: ${error.message}` 
+    res.status(500).json({
+      error: `Error al obtener la lista de archivos: ${error.message}`
     });
   }
 });
@@ -286,19 +307,19 @@ router.get('/files', async (req, res) => {
 router.get('/structure', async (req, res) => {
   try {
     const { structure_file } = req.query;
-    
+
     if (!structure_file) {
-      return res.status(400).json({ 
-        error: "Se requiere el parámetro structure_file" 
+      return res.status(400).json({
+        error: "Se requiere el parámetro structure_file"
       });
     }
-    
+
     const structure = await getStructure(structure_file);
     res.json(structure);
-    
+
   } catch (error) {
-    res.status(error.statusCode || 500).json({ 
-      error: error.message 
+    res.status(error.statusCode || 500).json({
+      error: error.message
     });
   }
 });
@@ -310,30 +331,30 @@ router.get('/structure', async (req, res) => {
 router.get('/download/:filename', (req, res) => {
   try {
     const { filename } = req.params;
-    
+
     // Validar el nombre del archivo para evitar path traversal
     if (!filename || filename.includes('..') || !filename.match(/\.(xlsx|xls)$/i)) {
-      return res.status(400).json({ 
-        error: "Nombre de archivo inválido o no permitido" 
+      return res.status(400).json({
+        error: "Nombre de archivo inválido o no permitido"
       });
     }
-    
+
     const filePath = path.join(uploadsDir, filename);
-    
+
     // Verificar si el archivo existe
     if (!fs.existsSync(filePath)) {
-      return res.status(404).json({ 
-        error: "Archivo no encontrado" 
+      return res.status(404).json({
+        error: "Archivo no encontrado"
       });
     }
-    
+
     // Enviar el archivo para descarga
     res.download(filePath);
-    
+
   } catch (error) {
     console.error(`Error al descargar archivo:`, error);
-    res.status(500).json({ 
-      error: `Error al descargar el archivo: ${error.message}` 
+    res.status(500).json({
+      error: `Error al descargar el archivo: ${error.message}`
     });
   }
 });
@@ -346,25 +367,25 @@ router.get('/structures', async (req, res) => {
   try {
     // Inicializar un arreglo vacío para las estructuras
     const structures = [];
-    
+
     // Verificar si el directorio de estructuras existe
     if (!fs.existsSync(structuresDir)) {
       // Devolver un arreglo vacío en lugar de un error
       return res.json({ structures });
     }
-    
+
     // Leer todos los archivos de estructura si existen
     const structureFiles = fs.readdirSync(structuresDir)
       .filter(file => file.endsWith('_structure.json') && !file.includes('placeholder_'));
-    
+
     // Si no hay estructuras, devolver arreglo vacío en lugar de error
     if (structureFiles.length === 0) {
       return res.json({ structures });
     }
-    
+
     // Ordenar por fecha (los nombres tienen formato: 20250425T163957_3088_structure.json)
     structureFiles.sort((a, b) => b.localeCompare(a)); // Orden descendente
-    
+
     res.json({ structures: structureFiles });
   } catch (error) {
     console.error(`Error al obtener estructuras:`, error);
@@ -380,34 +401,34 @@ router.get('/structures', async (req, res) => {
 router.get('/header-sample/:serviceNumber', async (req, res) => {
   try {
     const { serviceNumber } = req.params;
-    
+
     if (!serviceNumber) {
-      return res.status(400).json({ 
-        error: "Se requiere el número de servicio" 
+      return res.status(400).json({
+        error: "Se requiere el número de servicio"
       });
     }
-    
+
     // Ruta del archivo de header sample
-    const headersDir = path.join(__dirname, '..', 'headers');
+    const headersDir = path.join(__dirname, '..', 'JsonStorage', 'headers');
     const headerSampleFile = path.join(headersDir, `${serviceNumber}_header_sample.json`);
-    
+
     // Verificar si el archivo existe
     if (!fs.existsSync(headerSampleFile)) {
       return res.status(404).json({
         error: `No se encontró header sample para el servicio ${serviceNumber}`
       });
     }
-    
+
     // Cargar el header sample
     const headerSample = await fs.readJson(headerSampleFile);
-    
+
     // Devolver el resultado
     res.json(headerSample);
-    
+
   } catch (error) {
     console.error(`Error al obtener header sample:`, error);
-    res.status(500).json({ 
-      error: `Error al obtener header sample: ${error.message}` 
+    res.status(500).json({
+      error: `Error al obtener header sample: ${error.message}`
     });
   }
 });
@@ -419,49 +440,49 @@ router.get('/header-sample/:serviceNumber', async (req, res) => {
 router.get('/structure-by-service', async (req, res) => {
   try {
     const { service_number } = req.query;
-    
+
     if (!service_number) {
-      return res.status(400).json({ 
-        error: "Se requiere el parámetro service_number" 
+      return res.status(400).json({
+        error: "Se requiere el parámetro service_number"
       });
     }
-    
+
     // Buscar todos los archivos de estructura en la carpeta structures
     const structureFiles = fs.readdirSync(structuresDir)
       .filter(file => file.endsWith('_structure.json') && file.includes(`_${service_number}_`));
-    
+
     if (structureFiles.length === 0) {
       return res.status(404).json({
         error: `No se encontraron archivos de estructura para el servicio ${service_number}`
       });
     }
-    
+
     // Ordenar por fecha (los nombres tienen formato: 20250425T163957_3088_structure.json)
     structureFiles.sort((a, b) => b.localeCompare(a)); // Orden descendente
-    
+
     // Usar el más reciente
     const latestStructureFile = structureFiles[0];
     console.log(`Estructura más reciente encontrada para servicio ${service_number}: ${latestStructureFile}`);
-    
+
     // Cargar la estructura
     const structure = await getStructure(latestStructureFile);
-    
+
     // Verificar y loggear la estructura para debugging
     console.log(`Estructura cargada: ${JSON.stringify({
       hasHeader: !!structure.header_structure,
       hasHeaderFields: structure.header_structure ? structure.header_structure.fields.length : 0,
       hasServiceStructure: !!structure.service_structure,
       hasRequest: structure.service_structure ? !!structure.service_structure.request : false,
-      hasElements: structure.service_structure && structure.service_structure.request ? 
+      hasElements: structure.service_structure && structure.service_structure.request ?
         (structure.service_structure.request.elements ? structure.service_structure.request.elements.length : 0) : 0
     })}`);
-    
+
     res.json(structure);
-    
+
   } catch (error) {
     console.error(`Error al buscar estructura por servicio:`, error);
-    res.status(error.statusCode || 500).json({ 
-      error: error.message 
+    res.status(error.statusCode || 500).json({
+      error: error.message
     });
   }
 });
@@ -476,7 +497,7 @@ router.get('/structure-by-service', async (req, res) => {
 function saveStructures(headerStructure, serviceStructure, excelFilePath) {
   const timestamp = new Date().toISOString().replace(/[-:]/g, '').split('.')[0];
   const serviceNumber = serviceStructure.serviceNumber || 'unknown';
-  
+
   // Obtener el nombre del archivo Excel original para usarlo como nombre del servicio
   const excelFileName = path.basename(excelFilePath || '', path.extname(excelFilePath || ''));
   // Extraer el nombre sin timestamp si tiene un formato estándar
@@ -484,66 +505,66 @@ function saveStructures(headerStructure, serviceStructure, excelFilePath) {
   if (excelFileName && excelFileName.match(/^\d{8}T\d{4,6}_/)) {
     originalFileName = excelFileName.replace(/^\d{8}T\d{4,6}_/, '');
   }
-  
+
   // Generar nombre de archivo con timestamp
   const structureFileName = `${timestamp}_${serviceNumber}_structure.json`;
-  
+
   // Ruta completa
   const structureFilePath = path.join(structuresDir, structureFileName);
-  
+
   // Crear directorio si no existe
   if (!fs.existsSync(structuresDir)) {
     fs.mkdirSync(structuresDir, { recursive: true });
   }
-  
+
   // IMPORTANTE: Procesamiento en DOS ETAPAS
   // 1. Primero aplicamos el fixer de ocurrencias para corregir índices y relaciones parentId
   // 2. Luego aplicamos el sanitizador de ocurrencias para preservar la estructura exacta
   console.log("[ESTRUCTURA] Aplicando procesamiento de ocurrencias en dos etapas");
-  
+
   try {
     // ETAPA 1: Corrección de índices y relaciones parentId
     console.log("[ESTRUCTURA] ETAPA 1: Aplicando fix directo para índices y relaciones parentId");
     const occurrenceFixer = require('../utils/occurrence-fixer');
-    
+
     // Aplicar la corrección directamente a toda la estructura
     const structureFixed = occurrenceFixer.fixOccurrenceIndices(serviceStructure);
-    
+
     // Reemplazar la estructura con la versión corregida
     serviceStructure = structureFixed;
-    
+
     console.log("[ESTRUCTURA] Índices y relaciones parentId corregidas exitosamente");
-    
+
     // ETAPA 2: Sanitización de ocurrencias para preservar la estructura exacta
     console.log("[ESTRUCTURA] ETAPA 2: Aplicando sanitizador de ocurrencias");
     const occurrenceSanitizer = require('../utils/occurrence-sanitizer');
-    
+
     // Aplicar sanitización a las secciones request y response por separado
     if (serviceStructure.request) {
       serviceStructure.request = occurrenceSanitizer.sanitizeOccurrences(serviceStructure.request);
       console.log("[ESTRUCTURA] Request sanitizado correctamente");
     }
-    
+
     if (serviceStructure.response) {
       serviceStructure.response = occurrenceSanitizer.sanitizeOccurrences(serviceStructure.response);
       console.log("[ESTRUCTURA] Response sanitizado correctamente");
     }
-    
+
     console.log("[ESTRUCTURA] Procesamiento de ocurrencias completado exitosamente");
   } catch (error) {
     console.warn(`[ADVERTENCIA] Error en el procesamiento de ocurrencias: ${error.message}`);
     console.warn("Se continuará con el procesamiento normal");
   }
-  
+
   // Crear estructura combinada sin duplicar propiedades
   const combinedStructure = {
     header_structure: headerStructure,
     service_structure: serviceStructure
   };
-  
+
   // Guardar el archivo con formato indentado para mejor legibilidad
   fs.writeFileSync(structureFilePath, JSON.stringify(combinedStructure, null, 2));
-  
+
   return {
     structure_file: structureFileName
   };
@@ -555,19 +576,19 @@ function saveStructures(headerStructure, serviceStructure, excelFilePath) {
  */
 async function getExcelFiles() {
   const files = [];
-  
+
   // Verificar si el directorio de uploads existe
   if (!fs.existsSync(uploadsDir)) {
     return files;
   }
-  
+
   // Obtener todos los archivos Excel directamente del directorio uploads
   const excelFiles = fs.readdirSync(uploadsDir)
     .filter(file => file.endsWith('.xls') || file.endsWith('.xlsx'));
-    
+
   // Mapa para mantener un registro de los servicios ya procesados (para evitar duplicados)
   const processedServices = new Set();
-  
+
   // Procesar cada archivo
   for (const excelFile of excelFiles) {
     try {
@@ -576,7 +597,7 @@ async function getExcelFiles() {
       let uploadDate = new Date().toISOString().replace('T', ' ').substring(0, 19);
       let serviceName = excelFile;
       let serviceNumber = null;
-      
+
       // Extraer la fecha del timestamp
       if (timestampMatch && timestampMatch[1]) {
         const timestamp = timestampMatch[1];
@@ -589,37 +610,37 @@ async function getExcelFiles() {
             const hour = timestamp.substring(8, 10);
             const minute = timestamp.substring(10, 12);
             const second = timestamp.substring(12, 14) || '00';
-            
+
             const dt = new Date(`${year}-${month}-${day}T${hour}:${minute}:${second}`);
             uploadDate = dt.toISOString().replace('T', ' ').substring(0, 19);
           }
         } catch (error) {
           // Usar fecha actual si hay error al parsear
         }
-        
+
         // Extraer el nombre real del servicio
         if (timestampMatch[2]) {
           serviceName = timestampMatch[2];
         }
       }
-      
+
       // Extraer número de servicio del nombre
       const serviceMatch = serviceName.match(/SVO(\d+)/i);
       if (serviceMatch && serviceMatch[1]) {
         serviceNumber = serviceMatch[1];
       }
-      
+
       // Crear nombre de archivo de estructura correspondiente
       let structureFile = null;
       if (timestampMatch && timestampMatch[1] && serviceNumber) {
         structureFile = `${timestampMatch[1]}_${serviceNumber}_structure.json`;
-        
+
         // Verificar si existe el archivo de estructura
         if (!fs.existsSync(path.join(structuresDir, structureFile))) {
           structureFile = null;
         }
       }
-      
+
       // Agregar archivo a la lista
       files.push({
         filename: excelFile,
@@ -632,10 +653,10 @@ async function getExcelFiles() {
       console.error(`Error al procesar archivo ${excelFile}:`, error);
     }
   }
-  
+
   // Ordenar archivos por fecha de subida (más recientes primero)
   files.sort((a, b) => b.upload_date.localeCompare(a.upload_date));
-  
+
   return files;
 }
 
@@ -647,13 +668,13 @@ async function getExcelFiles() {
 async function getStructure(structureFile) {
   // Verificar si el archivo existe
   const structurePath = path.join(structuresDir, structureFile);
-  
+
   if (!fs.existsSync(structurePath)) {
     const error = new Error(`Archivo de estructura no encontrado: ${structureFile}`);
     error.statusCode = 404;
     throw error;
   }
-  
+
   // Cargar estructura
   try {
     const structure = await fs.readJson(structurePath);
@@ -675,10 +696,10 @@ async function processExcelFile(filePath) {
     // Extraer estructuras usando el parser universal
     const headerStructure = excelParser.parseHeaderStructure(filePath);
     const serviceStructure = excelParser.parseServiceStructure(filePath);
-    
+
     // Guardar la estructura combinada
     const structureInfo = saveStructures(headerStructure, serviceStructure, filePath);
-    
+
     // Inicializar objetos con valores por defecto para evitar errores
     const warnings = {
       missingHeaderTab: false,
@@ -686,26 +707,26 @@ async function processExcelFile(filePath) {
       headerSampleError: null,
       parserErrors: []
     };
-    
+
     // Extraer y guardar el header sample si hay un número de servicio válido
     // Pero no fallar si no es posible obtener el header sample
     let headerSampleInfo = {
       success: true,
       headerSample: { value: "", missingTab: false }
     };
-    
+
     if (serviceStructure && serviceStructure.serviceNumber) {
       try {
         // Crear directorio de headers si no existe
-        const headersDir = path.join(__dirname, '..', 'headers');
+        const headersDir = path.join(__dirname, '..', 'JsonStorage', 'headers');
         if (!fs.existsSync(headersDir)) {
           fs.mkdirSync(headersDir, { recursive: true });
         }
-        
+
         // Extraer y guardar el header sample
-        headerSampleInfo = excelParser.saveHeaderSample(filePath, serviceStructure.serviceNumber, headersDir);
+        headerSampleInfo = excelParser.saveHeaderSample(filePath, serviceStructure.serviceNumber, headersDir); // Comentado porque la función no existe
         console.log(`Header sample extraído y guardado: ${JSON.stringify(headerSampleInfo)}`);
-        
+
         // Verificar si falta la tercera pestaña (no es un error fatal)
         if (headerSampleInfo && headerSampleInfo.headerSample) {
           if (headerSampleInfo.headerSample.missingTab) {
@@ -713,7 +734,7 @@ async function processExcelFile(filePath) {
             warnings.missingHeaderTab = true;
             warnings.headerTabAvailable = headerSampleInfo.headerSample.availableTabs;
           }
-          
+
           if (headerSampleInfo.headerSample.error) {
             warnings.headerSampleError = headerSampleInfo.headerSample.error;
           }
@@ -729,22 +750,22 @@ async function processExcelFile(filePath) {
       console.warn(`No se pudo extraer header sample: No se encontró número de servicio válido. Continuando el proceso...`);
       warnings.noServiceNumber = true;
     }
-    
+
     // Verificar si hay problemas con el headerStructure o serviceStructure, pero tratarlos como warnings
     if (!headerStructure || !headerStructure.fields || headerStructure.fields.length === 0) {
       warnings.emptyHeaderStructure = true;
       console.warn("Estructura de cabecera vacía o incompleta, pero continuando el proceso");
     }
-    
-    if (!serviceStructure || 
+
+    if (!serviceStructure ||
         (!serviceStructure.request || !serviceStructure.request.elements || !serviceStructure.request.elements.length) &&
         (!serviceStructure.response || !serviceStructure.response.elements || !serviceStructure.response.elements.length)) {
       warnings.emptyServiceStructure = true;
       console.warn("Estructura de servicio vacía o incompleta, pero continuando el proceso");
     }
-    
-    return { 
-      headerStructure, 
+
+    return {
+      headerStructure,
       serviceStructure,
       structureFile: structureInfo.structure_file,
       headerSampleInfo,

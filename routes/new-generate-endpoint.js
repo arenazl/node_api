@@ -6,10 +6,10 @@
 
 const path = require('path');
 const fs = require('fs-extra'); // Keep for config loading
-const messageCreator = require('../api/message-creator');
+const messageCreator = require('../utils/message-creator');
 // const serverExampleGenerator = require('../utils/server-example-generator'); // Replaced
 const backendResponseGenerator = require('../utils/backend-response-generator'); // New
-const messageAnalyzer = require('../api/message-analyzer'); // For direct parsing
+const messageAnalyzer = require('../utils/message-analyzer'); // For direct parsing
 const jsonCleaner = require('../utils/json-cleaner'); // New
 
 // Configuración para la generación de ejemplos
@@ -46,7 +46,7 @@ async function handleGenerateRequest(req, res) { // findServiceByNumber is no lo
     console.log(`Estructura encontrada para servicio ${serviceNumber}`);
     
     // 2. Buscar configuración por canal
-    const configDir = path.join(__dirname, '..', 'settings');
+    const configDir = path.join(__dirname, '..', 'JsonStorage', 'settings');
     
     // Buscar configuración por serviceNumber y canal
     let configFound = false;

@@ -1,0 +1,11 @@
+{
+  "value": "000125SD1213000000000100120052011090909P0425831047                                             00     ",
+  "serviceNumber": "1213",
+  "timestamp": "2025-06-12T06:35:14.314Z",
+  "sourceFile": "20250612T06351_SVO1213 - Consulta de Convenio.xls",
+  "foundSheetName": "Trama Ejemplo",
+  "foundRowContaining000": "000125SD1213000000000100120052011090909P0425831047                                             00     010000000000031",
+  "missingTab": false,
+  "availableTabs": 3,
+  "error": null
+}

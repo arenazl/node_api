@@ -1,0 +1,249 @@
+/**
+ * Estilos para la pestaña Estructura
+ */
+
+/* Contenedor principal */
+.estructura-container {
+  padding: 1rem;
+  max-width: 100%;
+}
+
+/* Selector de servicio */
+.select-service-group {
+  margin-bottom: 1.5rem;
+}
+
+/* Pestañas de estructura */
+.estructura-tabs {
+  margin-top: 1.5rem;
+}
+
+.estructura-tabs-nav {
+  display: flex;
+  border-bottom: 1px solid #e5e7eb;
+  margin-bottom: 1rem;
+}
+
+.estructura-tab-btn {
+  padding: 0.75rem 1.25rem;
+  background-color: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  font-weight: 500;
+  color: #6b7280;
+  transition: all 0.2s ease;
+}
+
+.estructura-tab-btn:hover {
+  color: #4b5563;
+  background-color: #f9fafb;
+}
+
+.estructura-tab-btn.active {
+  color: #2563eb;
+  border-bottom-color: #2563eb;
+  background-color: #f0f7ff;
+}
+
+/* Contenido de las pestañas */
+.estructura-tab-content {
+  position: relative;
+}
+
+.estructura-tab-pane {
+  display: none;
+}
+
+.estructura-tab-pane.active {
+  display: block;
+}
+
+/* Tablas de estructura */
+.estructura-tab-pane .table-container {
+  max-height: 600px;
+  overflow-y: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+}
+
+.estructura-tab-pane table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.estructura-tab-pane table th {
+  background-color: #f3f4f6;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-weight: 600;
+  color: #374151;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.estructura-tab-pane table td {
+  padding: 0.75rem 1rem;
+  border-top: 1px solid #e5e7eb;
+  color: #4b5563;
+}
+
+.estructura-tab-pane table tr:nth-child(even) {
+  background-color: #f9fafb;
+}
+
+.estructura-tab-pane table tr:hover {
+  background-color: #f0f7ff;
+}
+
+/* Estilos para títulos de sección */
+.section-title-row {
+  background-color: #2563eb !important;
+}
+
+.section-title-cell {
+  font-weight: 700;
+  color: white;
+  padding: 0.75rem 1rem;
+  text-align: center;
+  font-size: 1.1rem;
+}
+
+/* Estilos para ocurrencias */
+.occurrence-row {
+  background-color: #f0f7ff !important;
+}
+
+.occurrence-cell {
+  font-weight: 600;
+  color: #2563eb;
+  padding-left: 1rem;
+}
+
+.occurrence-field-row {
+  background-color: #f9fafb !important;
+}
+
+.occurrence-field-cell {
+  padding-left: 2rem;
+  position: relative;
+}
+
+.occurrence-field-cell::before {
+  content: "↳";
+  position: absolute;
+  left: 1rem;
+  color: #6b7280;
+}
+
+/* Contenedor JSON */
+.estructura-tab-pane .json-container {
+  max-height: 600px;
+  overflow-y: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+  background-color: #f9fafb;
+  padding: 1rem;
+}
+
+.estructura-tab-pane pre {
+  margin: 0;
+  white-space: pre-wrap;
+  font-family: 'Courier New', monospace;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+/* Mensajes vacíos */
+.empty-message td {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: #6b7280;
+  font-style: italic;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .estructura-tabs-nav {
+    flex-wrap: wrap;
+  }
+
+  .estructura-tab-btn {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+  }
+
+  .estructura-tab-pane table th,
+  .estructura-tab-pane table td {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+  }
+}
+
+/* Tema oscuro */
+.dark-theme .estructura-tabs-nav {
+  border-bottom-color: #4b5563;
+}
+
+.dark-theme .estructura-tab-btn {
+  color: #9ca3af;
+}
+
+.dark-theme .estructura-tab-btn:hover {
+  color: #d1d5db;
+  background-color: #374151;
+}
+
+.dark-theme .estructura-tab-btn.active {
+  color: #60a5fa;
+  border-bottom-color: #60a5fa;
+  background-color: #1e3a8a;
+}
+
+.dark-theme .estructura-tab-pane .table-container,
+.dark-theme .estructura-tab-pane .json-container {
+  border-color: #4b5563;
+}
+
+.dark-theme .estructura-tab-pane table th {
+  background-color: #374151;
+  color: #e5e7eb;
+}
+
+.dark-theme .estructura-tab-pane table td {
+  border-top-color: #4b5563;
+  color: #d1d5db;
+}
+
+.dark-theme .estructura-tab-pane table tr:nth-child(even) {
+  background-color: #1f2937;
+}
+
+.dark-theme .estructura-tab-pane table tr:hover {
+  background-color: #2d3748;
+}
+
+.dark-theme .occurrence-row {
+  background-color: #1e3a8a !important;
+}
+
+.dark-theme .occurrence-cell {
+  color: #60a5fa;
+}
+
+.dark-theme .occurrence-field-row {
+  background-color: #1f2937 !important;
+}
+
+.dark-theme .occurrence-field-cell::before {
+  color: #9ca3af;
+}
+
+.dark-theme .estructura-tab-pane .json-container {
+  background-color: #1f2937;
+}
+
+.dark-theme .empty-message td {
+  color: #9ca3af;
+}

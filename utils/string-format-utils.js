@@ -14,8 +14,22 @@
  * @returns {string} Formatted value.
  */
 function formatValue(value, length, fieldType, fieldName = '', fieldValues = '') {
+  // DEBUG: Log para campos numéricos (comentado para producción)
+  // if (fieldType === "numerico" || fieldType === "numeric" || fieldType === "numérico") {
+  //   console.log(`🐛 [DEBUG formatValue] Campo: ${fieldName}`);
+  //   console.log(`🐛 [DEBUG formatValue] Valor original: "${value}" (tipo: ${typeof value})`);
+  //   console.log(`🐛 [DEBUG formatValue] Longitud esperada: ${length}`);
+  //   console.log(`🐛 [DEBUG formatValue] Tipo de campo: "${fieldType}"`);
+  //   console.log(`🐛 [DEBUG formatValue] Valores del campo: "${fieldValues}"`);
+  // }
+
   // Ensure we have a string to work with, empty string if no value provided
   const stringValue = value !== undefined && value !== null ? value.toString() : "";
+  
+  // DEBUG: Log del string convertido para campos numéricos (comentado para producción)
+  // if (fieldType === "numerico" || fieldType === "numeric" || fieldType === "numérico") {
+  //   console.log(`🐛 [DEBUG formatValue] String convertido: "${stringValue}"`);
+  // }
 
   // Check if this is a date field (either by name or by value format)
   const isDateField = 
@@ -99,12 +113,21 @@ function formatValue(value, length, fieldType, fieldName = '', fieldValues = '')
   
   // If the field is numeric, pad with zeros to the left
   // Otherwise (alphanumeric), pad with spaces to the right
-  if (fieldType === "numerico") {
-    return stringValue.padStart(length, '0');
+  let result;
+  if (fieldType === "numerico" || fieldType === "numérico" || fieldType === "numeric") {
+    result = stringValue.padStart(length, '0');
   } else {
     // For alphanumeric fields, pad with spaces to the right
-    return stringValue.padEnd(length, ' ');
+    result = stringValue.padEnd(length, ' ');
   }
+  
+  // DEBUG: Log del resultado final para campos numéricos (comentado para producción)
+  // if (fieldType === "numerico" || fieldType === "numeric" || fieldType === "numérico") {
+  //   console.log(`🐛 [DEBUG formatValue] Resultado final: "${result}" (longitud: ${result.length})`);
+  //   console.log(`🐛 [DEBUG formatValue] ----------------------------------------`);
+  // }
+  
+  return result;
 }
 
 /**

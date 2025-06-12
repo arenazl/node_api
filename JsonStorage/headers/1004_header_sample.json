@@ -1,0 +1,11 @@
+{
+  "value": "000113EM1004000000000000121052009155959P0769501047",
+  "serviceNumber": "1004",
+  "timestamp": "2025-06-12T06:36:03.836Z",
+  "sourceFile": "20250612T06360_SVO1004-Consulta Cliente por NIP (5).xlsx",
+  "foundSheetName": "Ejemplos",
+  "foundRowContaining000": "000113EM1004000000000000121052009155959P0769501047",
+  "missingTab": false,
+  "availableTabs": 3,
+  "error": null
+}

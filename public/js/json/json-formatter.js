@@ -1,5 +1,22 @@
-function formatJson(element) {
-  if (!element || !element.textContent) return;
+function formatJson(element, forceFormat = false) { // Añadir parámetro forceFormat
+  if (!element) return;
+
+  // Si ya está formateado y no se fuerza, no hacer nada.
+  if (element.dataset.jsonFormatted === 'true' && !forceFormat) {
+    // console.log('[JSON_FORMATTER] Elemento ya formateado, omitiendo:', element.id || 'sin ID');
+    return;
+  }
+  // Si se fuerza el formato, limpiar la marca para permitir reformateo.
+  if (forceFormat) {
+    delete element.dataset.jsonFormatted;
+  }
+
+  if (!element.textContent) { // Mover esta comprobación aquí después de la de dataset.jsonFormatted
+    // Si no hay contenido, no hay nada que formatear, pero marcar como "formateado" para evitar bucles si se añade contenido vacío.
+    // Opcionalmente, se podría limpiar el innerHTML aquí si se espera que siempre haya contenido.
+    // element.dataset.jsonFormatted = 'true'; // Considerar si esto es deseable para contenido vacío.
+    return;
+  }
   
   try {
     // Validar si el contenido parece JSON antes de intentar parsear
@@ -43,10 +60,48 @@ function formatJson(element) {
       }
       return;
     }
+
+    // Verificación adicional para JSON vacío o malformado que podría pasar los filtros anteriores
+    if (content.trim() === "" || 
+        (content.startsWith('{') && !content.endsWith('}')) || 
+        (content.startsWith('[') && !content.endsWith(']')) ||
+        (content === "{") || (content === "[")) { // Específicamente para '{' o '[' solos
+        console.warn('Contenido JSON detectado como vacío, incompleto o inválido antes del parseo:', content.substring(0, 70) + '...');
+        element.innerHTML = `<div class="json-error">
+          <span class="json-error-icon">⚠️</span>
+          <span class="json-error-message">Contenido JSON vacío o inválido</span>
+          <pre class="json-error-content" style="white-space: pre-wrap;">${element.textContent}</pre>
+        </div>`;
+        return;
+    }
+
+    // Verificación adicional para JSON vacío o malformado que podría pasar los filtros anteriores
+    if (content.trim() === "" || 
+        (content.startsWith('{') && !content.endsWith('}')) || 
+        (content.startsWith('[') && !content.endsWith(']')) ||
+        (content === "{") || (content === "[")) { // Específicamente para '{' o '[' solos
+        console.warn('[JSON_FORMATTER] Contenido JSON detectado como vacío, incompleto o inválido antes del parseo:', content.substring(0, 70) + '...');
+        element.innerHTML = `<div class="json-error">
+          <span class="json-error-icon">⚠️</span>
+          <span class="json-error-message">Contenido JSON vacío o inválido</span>
+          <pre class="json-error-content" style="white-space: pre-wrap;">${element.textContent}</pre>
+        </div>`;
+        delete element.dataset.jsonFormatted; // No se pudo formatear
+        return;
+    }
     
-    const jsonData = JSON.parse(content);
+    let contentToParse = content;
+    // Eliminar BOM si está presente al inicio de la cadena
+    if (contentToParse.charCodeAt(0) === 0xFEFF) {
+        console.warn('[JSON_FORMATTER] BOM detectado y eliminado del inicio del JSON.');
+        contentToParse = contentToParse.substring(1);
+    }
+
+    console.log('[JSON_FORMATTER] Intentando parsear el siguiente contenido:', JSON.stringify(contentToParse)); 
+    const jsonData = JSON.parse(contentToParse);
     const formattedHtml = formatJsonWithColors(jsonData);
     element.innerHTML = formattedHtml;
+    element.dataset.jsonFormatted = 'true'; // Marcar como formateado
     
     // Asegurarse de que los botones de colapso funcionen
     const collapseButtons = element.querySelectorAll('.json-collapse-btn');
@@ -63,8 +118,9 @@ function formatJson(element) {
     element.innerHTML = `<div class="json-error">
       <span class="json-error-icon">⚠️</span>
       <span class="json-error-message">Error al parsear JSON: ${e.message}</span>
-      <pre class="json-error-content">${element.textContent}</pre>
+      <pre class="json-error-content" style="white-space: pre-wrap;">${element.textContent}</pre>
     </div>`;
+    delete element.dataset.jsonFormatted; // Falló el formateo
   }
 }
 
@@ -146,7 +202,8 @@ function formatJsonElement(elementOrId) {
     return;
   }
   
-  formatJson(element);
+  // Pasar true para forzar el reformateo si es necesario desde una llamada explícita
+  formatJson(element, true); 
 }
 
 // Exponer las funciones para uso global

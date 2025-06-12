@@ -1,0 +1,34 @@
+{
+  "serviceNumber": "1213",
+  "serviceName": "SERVICIO 1213-Consulta de Convenios",
+  "canal": "me",
+  "version": "v2",
+  "timestamp": "2025-06-12T06:35:41.077Z",
+  "header": {
+    "LONGITUD DEL MENSAJE": "000125",
+    "CANAL": "me",
+    "SERVICIO": "1213",
+    "CÓDIGO DE RETORNO": "0000",
+    "ID DEL MENSAJE": "000001001",
+    "FECHA": "20052011",
+    "HORA": "090909",
+    "USUARIO": "P042583",
+    "Ubicación": "1047",
+    "TEXTO DEL CÓDIGO DE RETORNO": "",
+    "ESTADO ENVIADO": "00",
+    "CAMPO COMPLEMENTARIO": ""
+  },
+  "request": {
+    "SVC1213-TIPO-PEDIDO": "1",
+    "SVC1213-N-ITN-ACUE": "211221",
+    "SVC1213-TI-ACU-COL": "3",
+    "occ_3": [
+      {
+        "SVC1213-CO-SIT-ACU": "3"
+      }
+    ],
+    "SVC1213-N-ITN-ACUE-INIC": "11",
+    "SVC1213-TI-ACU-COL-INIC": "",
+    "SVC1213-CO-SIT-ACU-INIC": "MA"
+  }
+}

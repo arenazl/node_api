@@ -9,11 +9,12 @@ const glob = require('glob');
 const router = express.Router();
 
 // Importar módulos de la API
-const messageCreator = require('../api/message-creator');
-const messageAnalyzer = require('../api/message-analyzer');
+const messageCreator = require('../utils/message-creator');
+const messageAnalyzer = require('../utils/message-analyzer');
+const { deepMerge } = require('../utils/deep-merge');
 
 // Directorio de estructuras
-const structuresDir = path.join(__dirname, '..', 'structures');
+const structuresDir = path.join(__dirname, '..', 'JsonStorage', 'structures');
 
 // Importar el fixer de índices para ocurrencias (ahora used by jsonCleaner)
 // const occurrenceFixer = require('../utils/occurrence-fixer'); // No longer directly needed here
@@ -29,9 +30,8 @@ router.get('/', async (req, res) => {
   try {
     // Forzar recarga de la caché siempre que se solicite la lista de servicios
     // Esto es crucial para asegurar que los nuevos servicios aparezcan inmediatamente
-    console.log("[SERVICIOS] Forzando recarga de caché para obtener lista actualizada...");
-    const services = await getAvailableServices(true); // forceRefresh = true
-    console.log("[SERVICIOS] Se encontraron", services.length, "servicios disponibles");
+    const forceRefresh = req.query.refresh === 'true';
+    const services = await getAvailableServices(forceRefresh);
     res.json({ services });
   } catch (error) {
     console.error("[SERVICIOS] Error al obtener servicios:", error);
@@ -177,6 +177,7 @@ router.get('/refresh', async (req, res) => {
   try {
     // Limpiar caché
     if (global.serviceCache) {
+      console.log('[API] /api/services/refresh: Limpiando caché de servicios y estructuras.'); // Log añadido
       global.serviceCache.services = null;
       global.serviceCache.lastUpdate = null;
       global.serviceCache.structures = {};
@@ -214,7 +215,7 @@ router.get('/files', async (req, res) => {
     }
     
     // Obtener la lista de archivos Excel
-    const uploadsDir = path.join(__dirname, '..', 'uploads');
+    const uploadsDir = path.join(__dirname, '..', 'JsonStorage', 'uploads');
     const files = [];
     
     // Verificar que el directorio de uploads existe
@@ -320,14 +321,107 @@ router.get('/versions', async (req, res) => {
     // Filtrar las versiones del servicio solicitado
     const serviceVersions = allServices.filter(s => s.service_number === serviceNumber);
     
+    // Obtener archivos de configuración relacionados
+    const settingsDir = path.join(__dirname, '..', 'JsonStorage', 'settings');
+    let settingsFiles = [];
+    
+    try {
+      if (fs.existsSync(settingsDir)) {
+        settingsFiles = fs.readdirSync(settingsDir)
+          .filter(file => file.endsWith('.json') && file.includes(serviceNumber))
+          .map(file => {
+            const filePath = path.join(settingsDir, file);
+            const stats = fs.statSync(filePath);
+            return {
+              filename: file,
+              settings_file: file,
+              timestamp: stats.mtime.toISOString(),
+              upload_date: stats.mtime.toISOString(),
+              size: stats.size
+            };
+          });
+      }
+    } catch (error) {
+      console.warn(`Error al leer archivos de configuración: ${error.message}`);
+    }
+    
+    // Generar timestamps válidos para cada versión de Excel
+    const versionsWithValidTimestamps = serviceVersions.map(service => {
+      let validTimestamp = null;
+      
+      // Intentar extraer timestamp del nombre del archivo Excel
+      if (service.excel_file) {
+        const timestampMatch = service.excel_file.match(/^(\d{8}T\d{6})_/);
+        if (timestampMatch && timestampMatch[1]) {
+          const timestamp = timestampMatch[1];
+          try {
+            // Formatear: AAAAMMDDTHHMMSS -> AAAA-MM-DDTHH:MM:SS
+            const year = timestamp.substring(0, 4);
+            const month = timestamp.substring(4, 6);
+            const day = timestamp.substring(6, 8);
+            const hour = timestamp.substring(9, 11);
+            const minute = timestamp.substring(11, 13);
+            const second = timestamp.substring(13, 15) || '00';
+            
+            const dateStr = `${year}-${month}-${day}T${hour}:${minute}:${second}`;
+            const parsedDate = new Date(dateStr);
+            
+            if (!isNaN(parsedDate.getTime())) {
+              validTimestamp = parsedDate.toISOString();
+            }
+          } catch (error) {
+            console.warn(`Error parsing timestamp from file ${service.excel_file}:`, error);
+          }
+        }
+      }
+      
+      // Si no se pudo extraer del archivo, usar timestamp existente si es válido
+      if (!validTimestamp && service.timestamp) {
+        const existingDate = new Date(service.timestamp);
+        if (!isNaN(existingDate.getTime())) {
+          validTimestamp = service.timestamp;
+        }
+      }
+      
+      // Como último recurso, usar fecha actual
+      if (!validTimestamp) {
+        validTimestamp = new Date().toISOString();
+      }
+      
+      // Buscar archivo de configuración correspondiente
+      const relatedSettingsFile = settingsFiles.find(sf => 
+        sf.filename.includes(serviceNumber)
+      );
+      
+      return {
+        ...service,
+        timestamp: validTimestamp,
+        settings_file: relatedSettingsFile ? relatedSettingsFile.filename : null
+      };
+    });
+    
+    // En lugar de combinar, usar solo las versiones de Excel pero enriquecidas con archivos de configuración
+    const allVersions = versionsWithValidTimestamps.length > 0 
+      ? versionsWithValidTimestamps 
+      : settingsFiles.map(sf => ({
+          filename: sf.filename,
+          excel_file: null,
+          settings_file: sf.filename,
+          timestamp: sf.timestamp,
+          upload_date: sf.upload_date,
+          size: sf.size,
+          service_number: serviceNumber,
+          service_name: `Configuración ${serviceNumber}`
+        }));
+    
     // Ordenar por timestamp (más reciente primero)
-    serviceVersions.sort((a, b) => {
-      return new Date(b.timestamp || 0) - new Date(a.timestamp || 0);
+    allVersions.sort((a, b) => {
+      return new Date(b.timestamp) - new Date(a.timestamp);
     });
     
     res.json({
       serviceNumber,
-      versions: serviceVersions
+      versions: allVersions
     });
     
   } catch (error) {
@@ -415,49 +509,59 @@ async function processServiceRequest(serviceNumber, stream) {
     status: "success"
   };
 }
-
-/**
- * Función para garantizar que se mantengan los índices y las relaciones parentId exactas
- */
-// function removeEmptyOccurrences(responseData) { ... } // This function is now replaced by jsonCleaner.cleanVueltaJson
+// ion removeEmptyOccurrences(responseData) { ... } // This function is now replaced by jsonCleaner.cleanVueltaJson - Comentando la línea problemática
 
 /**
  * @route POST /api/services/sendmessage
  * @description Genera un string de IDA a partir de parámetros personalizados
  */
 router.post('/sendmessage', async (req, res) => {
+  console.log('[API] /api/services/sendmessage - Servicio:', req.body.header?.serviceNumber, 'Canal:', req.body.header?.canal);
   try {
     const { header, parameters } = req.body;
     if (!header || !header.serviceNumber || !header.canal) {
+      console.error('[API] /api/services/sendmessage: Faltan header.serviceNumber o header.canal.');
       return res.status(400).json({ error: "header.serviceNumber and header.canal are required" });
     }
     const { serviceNumber, canal } = header;
-    console.log(`[SERVICES/sendmessage] Processing service: ${serviceNumber}, canal: ${canal}`);
 
     const { headerStructure, serviceStructure } = await findServiceByNumber(serviceNumber, false);
     if (!headerStructure || !serviceStructure) {
+      console.error(`[API] /api/services/sendmessage: Estructura no encontrada para servicio ${serviceNumber}.`);
       return res.status(404).json({ error: `[SERVICES/sendmessage] Structure not found for service ${serviceNumber}` });
     }
 
-    const configDir = path.join(__dirname, '..', 'settings');
+    const configDir = path.join(__dirname, '..', 'JsonStorage', 'settings');
       let configData = null;
       try {
-        const configFiles = fs.readdirSync(configDir)
+        // Primero buscar por canal específico
+        let configFiles = fs.readdirSync(configDir)
           .filter(file => file.endsWith('.json') && (file.startsWith(`${serviceNumber}-${canal}`) || file.startsWith(`${serviceNumber}_${canal}`) || file.includes(`${serviceNumber}-${canal}`) || file.includes(`${serviceNumber}_${canal}`)));
+        
+        // Si no encuentra por canal específico, buscar cualquier archivo del servicio
+        if (configFiles.length === 0) {
+          configFiles = fs.readdirSync(configDir)
+            .filter(file => file.endsWith('.json') && file.includes(serviceNumber));
+          // console.log(`[SERVICES/sendmessage] No se encontró config para ${serviceNumber}-${canal}, usando cualquier config del servicio ${serviceNumber}`);
+        }
+        
         if (configFiles.length > 0) {
           configData = await fs.readJson(path.join(configDir, configFiles[0]));
+          // console.log(`[SERVICES/sendmessage] Config cargado: ${configFiles[0]}`);
         }
       } catch (e) { console.error(`[SERVICES/sendmessage] Error reading config: ${e.message}`); }
 
-      // Crear datos de solicitud con configuración base o valores por defecto
+      // Crear datos de solicitud usando SIEMPRE el config si existe, valores por defecto como fallback
       let requestData = {
         header: configData && configData.header ? { ...configData.header } : { CANAL: canal, SERVICIO: serviceNumber, USUARIO: "SISTEMA" },
         data: configData && configData.request ? { ...configData.request } : {}
       };
+
+      // console.log(`[SERVICES/sendmessage] Header final a usar:`, requestData.header);
       
-      // Aplicar parámetros recibidos a los datos de solicitud
+      // Aplicar parámetros recibidos a los datos de solicitud usando deep merge
       if (parameters && typeof parameters === 'object') {
-        Object.assign(requestData.data, parameters);
+        requestData.data = deepMerge(requestData.data, parameters);
       }
 
       const message = messageCreator.createMessage(headerStructure, serviceStructure, requestData, "request");
@@ -469,24 +573,27 @@ router.post('/sendmessage', async (req, res) => {
       delete headerCopy.canal;
 
       // Construir la respuesta JSON sin los campos duplicados
-      res.json({
-        request: { 
+      const responsePayload = {
+        request: {
           header: {
             serviceNumber: header.serviceNumber,
             canal: header.canal,
             ...headerCopy
-          }, 
-          parameters 
+          },
+          parameters
         },
         response: message,
         estructura,
         estructuraCompleta: { requestStructure: serviceStructure.request }
-      });
+      };
+      console.log('[API] /api/services/sendmessage completado para servicio:', serviceNumber, 'Respuesta generada.'); // Log añadido
+      res.json(responsePayload);
     } catch (error) {
-      console.error(`[SERVICES/sendmessage] Error: ${error.message}`, error.stack);
+      console.error(`[API] /api/services/sendmessage Error: ${error.message}`, error.stack);
       res.status(error.statusCode || 500).json({ error: error.message || 'Error processing sendmessage' });
     }
   });
+// Este bloque ya fue modificado arriba, se elimina esta sección SEARCH/REPLACE redundante.
 
 // Importar el generador de respuestas de backend para simulación
 const backendResponseGenerator = require('../utils/backend-response-generator');
@@ -586,7 +693,7 @@ router.post('/receivemessage', async (req, res) => {
           console.log("[SERVICES/receivemessage] Headers parseados:", JSON.stringify(parsedMessage.header, null, 2));
           console.log("[SERVICES/receivemessage] Response antes de limpiar:", JSON.stringify(responseData, null, 2));
           
-          // Limpiar los datos
+          // Limpiar los datos - siempre usar limpieza normal (eliminar campos vacíos)
           try {
             cleanedData = jsonCleaner.cleanVueltaJson(responseData, filterMode);
             console.log("[SERVICES/receivemessage] Response limpia:", JSON.stringify(cleanedData, null, 2));

@@ -136,3 +136,37 @@
 .text-center {
   text-align: center !important;
 }
+
+/* Estilos para las sub-pestañas de entrada de IDA (JSON a Enviar / Parámetros Detallados) */
+.ida-input-tabs {
+  display: flex;
+  gap: 10px; /* Espacio entre botones */
+  margin-top: 15px; /* Espacio sobre las pestañas */
+  margin-bottom: 15px; /* Espacio antes del contenido de la pestaña */
+  border-bottom: 1px solid var(--border-color-light, #e5e7eb); /* Línea divisoria sutil, con fallback */
+  padding-bottom: 8px;
+}
+
+.ida-input-tab-btn {
+  padding: 8px 16px;
+  cursor: pointer;
+  border: none;
+  background-color: transparent;
+  color: var(--text-color-secondary, #6b7280); /* Color de texto para pestaña inactiva, con fallback */
+  font-size: 0.9rem;
+  font-weight: 500;
+  border-bottom: 3px solid transparent; /* Borde inferior transparente por defecto, más grueso */
+  transition: color 0.2s ease, border-bottom-color 0.2s ease;
+  border-radius: 4px 4px 0 0; /* Ligeras esquinas redondeadas arriba */
+  line-height: 1.5; /* Mejorar alineación vertical del texto */
+}
+
+.ida-input-tab-btn:hover {
+  color: var(--primary-color, #3b82f6); /* Color de texto al hacer hover, con fallback */
+}
+
+.ida-input-tab-btn.active {
+  color: var(--primary-color, #3b82f6); /* Color de texto para pestaña activa, con fallback */
+  border-bottom-color: var(--primary-color, #3b82f6); /* Color del borde inferior para pestaña activa, con fallback */
+  font-weight: 600;
+}

@@ -5,7 +5,7 @@
 const express = require('express');
 const router = express.Router();
 
-const messageAnalyzer = require('../api/message-analyzer');
+const messageAnalyzer = require('../utils/message-analyzer');
 const jsonCleaner = require('../utils/json-cleaner');
 const { findServiceByNumber } = require('../utils/service-lookup');
 

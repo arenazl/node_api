@@ -104,10 +104,6 @@ function loadServicesList(forceRefresh = false) {
         });
 }
 
-/**
- * Update the services table with the provided services
- * @param {Array} services - Array of service objects
- */
 function updateServicesTable(services) {
     const table = document.getElementById('servicesTable');
     if (!table || !table.tBodies[0]) return;
@@ -230,37 +226,44 @@ function showVersionsModal(serviceNumber, serviceName) {
 }
 
 /**
- * Fetch all versions of a specific service using the centralized API client
+ * Fetch all versions of a specific service using the /api/services/versions endpoint
  * @param {string} serviceNumber - The service number
  */
-function fetchServiceVersions(serviceNumber) {
-    // Get the Excel files for this service using the API client
-    ServiceApiClient.getServiceFiles(serviceNumber)
-        .then(files => {
-            // Update the versions table
-            updateVersionsTable(files);
-        })
-        .catch(error => {
-            console.error('Error al cargar versiones:', error);
-            
-            // Update table with error
-            const versionsTable = document.getElementById('versionsTable');
-            if (versionsTable && versionsTable.tBodies[0]) {
-                const tbody = versionsTable.tBodies[0];
-                tbody.innerHTML = '';
-                
-                // Add error row
-                const errorRow = tbody.insertRow();
-                const errorCell = errorRow.insertCell(0);
-                errorCell.colSpan = 3;
-                errorCell.className = 'text-center error-message';
-                errorCell.textContent = `Error al cargar versiones: ${error.message}`;
-            }
-            
-            if (typeof ConfigUtils !== 'undefined') {
-                ConfigUtils.showNotification(`Error al cargar versiones: ${error.message}`, 'error');
-            }
-        });
+async function fetchServiceVersions(serviceNumber) {
+    try {
+        console.log(`[servicios-manager] Cargando versiones para servicio ${serviceNumber}`);
+        
+        const response = await fetch(`/api/services/versions?serviceNumber=${serviceNumber}`);
+        
+        if (!response.ok) {
+            throw new Error(`Error al cargar versiones: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log(`[servicios-manager] Versiones recibidas para servicio ${serviceNumber}:`, data);
+        
+        // Update the versions table with the loaded versions
+        updateVersionsTable(data.versions || []);
+        
+    } catch (error) {
+        console.error('[servicios-manager] Error al cargar versiones:', error);
+        
+        if (typeof ConfigUtils !== 'undefined') {
+            ConfigUtils.showNotification(`Error al cargar versiones: ${error.message}`, 'error');
+        }
+        
+        // Update table with error
+        const versionsTable = document.getElementById('versionsTable');
+        if (versionsTable && versionsTable.tBodies[0]) {
+            const tbody = versionsTable.tBodies[0];
+            tbody.innerHTML = '';
+            const errorRow = tbody.insertRow();
+            const errorCell = errorRow.insertCell(0);
+            errorCell.colSpan = 3;
+            errorCell.className = 'text-center error-message';
+            errorCell.textContent = `Error al cargar versiones: ${error.message}`;
+        }
+    }
 }
 
 /**
@@ -274,6 +277,8 @@ function updateVersionsTable(files) {
     const tbody = versionsTable.tBodies[0];
     tbody.innerHTML = '';
     
+    console.log('[updateVersionsTable] Archivos recibidos:', files);
+    
     if (!files || files.length === 0) {
         const row = tbody.insertRow();
         const cell = row.insertCell(0);
@@ -283,21 +288,89 @@ function updateVersionsTable(files) {
         return;
     }
     
-    // Sort files by date (most recent first)
-    files.sort((a, b) => new Date(b.upload_date) - new Date(a.upload_date));
+    // Sort files by date (most recent first) - usar timestamp, upload_date o created_date
+    files.sort((a, b) => {
+        const dateA = new Date(a.timestamp || a.upload_date || a.created_date || 0);
+        const dateB = new Date(b.timestamp || b.upload_date || b.created_date || 0);
+        return dateB - dateA;
+    });
     
     files.forEach(file => {
         const row = tbody.insertRow();
         
         // Date cell
         const cellDate = row.insertCell(0);
-        const uploadDate = new Date(file.upload_date);
-        cellDate.textContent = uploadDate.toLocaleString();
         
-        // Filename cell
+        // Formateo de fecha corregido para evitar "Invalid Date"
+        let displayDate = 'Fecha no disponible';
+        
+        // Intentar con timestamp primero, luego upload_date, luego created_date
+        const dateValue = file.timestamp || file.upload_date || file.created_date;
+        
+        if (dateValue) {
+            try {
+                const parsedDate = new Date(dateValue);
+                console.log(`[updateVersionsTable] Parsing date ${dateValue}:`, parsedDate);
+                
+                if (parsedDate instanceof Date && !isNaN(parsedDate.getTime())) {
+                    displayDate = parsedDate.toLocaleString('es-ES', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit'
+                    });
+                } else {
+                    console.warn('Invalid date value:', dateValue);
+                    displayDate = dateValue; // Mostrar valor crudo si no se puede parsear
+                }
+            } catch (error) {
+                console.error('Error parsing date:', error);
+                displayDate = dateValue || 'Fecha no disponible';
+            }
+        }
+        
+        cellDate.textContent = displayDate;
+        
+        // Filename cell - mostrar nombre del archivo de configuración (settings) que es clave para ver el canal
         const cellFilename = row.insertCell(1);
-        cellFilename.textContent = file.service_name || file.filename;
-        cellFilename.title = file.filename;
+        
+        let displayName = file.filename || file.excel_file || file.service_name;
+        let titleText = '';
+        
+        // Prioridad 1: Si es un archivo de configuración (settings), mostrarlo directamente
+        if (file.settings_file && file.settings_file.endsWith('.json')) {
+            displayName = file.settings_file;
+            titleText = `Archivo de configuración: ${file.settings_file}`;
+            if (file.excel_file) {
+                titleText += ` | Excel: ${file.excel_file}`;
+            }
+        }
+        // Prioridad 2: Si tiene archivo de configuración relacionado (desde backend)
+        else if (file.filename && file.filename.endsWith('.json')) {
+            displayName = file.filename;
+            titleText = `Archivo de configuración: ${file.filename}`;
+        }
+        // Prioridad 3: Si es un archivo Excel, mostrar el archivo de configuración esperado
+        else if (file.excel_file && file.excel_file.includes('.xls')) {
+            const serviceMatch = file.excel_file.match(/SVO(\d+)/i);
+            if (serviceMatch && serviceMatch[1]) {
+                const serviceNum = serviceMatch[1];
+                displayName = `${serviceNum}-[canal]-v[version].json`;
+                titleText = `Excel: ${file.excel_file} | Config esperado: ${displayName}`;
+            } else {
+                displayName = file.excel_file;
+                titleText = `Archivo Excel: ${file.excel_file}`;
+            }
+        }
+        // Fallback: usar filename original
+        else {
+            titleText = `Archivo: ${displayName}`;
+        }
+        
+        cellFilename.textContent = displayName;
+        cellFilename.title = titleText;
         
         // Action cell
         const cellAction = row.insertCell(2);

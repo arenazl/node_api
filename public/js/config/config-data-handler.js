@@ -69,6 +69,13 @@ const ConfigDataHandler = {
             headerInputs.forEach(input => {
                 this.autoFillInput(input, canalInput?.value);
             });
+            
+            // After filling with defaults, ensure SERVICIO field uses current service number
+            const servicioInput = document.querySelector('#headerConfigTable .config-field-input[data-field-name="SERVICIO"]');
+            if (servicioInput && ConfigServiceLoader.currentServiceNumber) {
+                servicioInput.value = ConfigServiceLoader.currentServiceNumber;
+                console.log(`SERVICIO field set to current service number: ${ConfigServiceLoader.currentServiceNumber}`);
+            }
         } else {
             // Extract values from the sample using the structure
             console.log("Parsing sample to extract values");
@@ -92,6 +99,13 @@ const ConfigDataHandler = {
                 }
             });
             
+            // After filling from header sample, apply special logic for SERVICIO field
+            const servicioInput = document.querySelector('#headerConfigTable .config-field-input[data-field-name="SERVICIO"]');
+            if (servicioInput && ConfigServiceLoader.currentServiceNumber) {
+                servicioInput.value = ConfigServiceLoader.currentServiceNumber;
+                console.log(`SERVICIO field overridden with current service number: ${ConfigServiceLoader.currentServiceNumber}`);
+            }
+            
             ConfigUtils.showNotification(`Campos de cabecera llenados automáticamente. ${fieldsPopulated} campos desde muestra.`, 'success');
         }
     },
@@ -103,7 +117,6 @@ const ConfigDataHandler = {
      */
     autoFillInput: function(input, canalValue = '') {
         const fieldName = input.dataset.fieldName || '';
-        const fieldType = input.type;
         const maxLength = input.maxLength || 10;
         
         // Don't auto-fill select elements that already have a value
@@ -120,6 +133,9 @@ const ConfigDataHandler = {
             return;
         }
         
+        // Use centralized field type detection
+        const fieldType = ConfigUtils.normalizeFieldType(input);
+        
         // Generate value based on field name and type
         let value = '';
         
@@ -131,8 +147,17 @@ const ConfigDataHandler = {
             return;
         }
         
-        // Handle date fields
-        if (fieldName.toUpperCase().includes('FECHA')) {
+        // Use the selected service number for the SERVICIO field, overriding header sample
+        if (fieldName.toUpperCase() === 'SERVICIO') {
+            const currentServiceNumber = ConfigServiceLoader.currentServiceNumber;
+            if (currentServiceNumber) {
+                input.value = currentServiceNumber;
+                return;
+            }
+        }
+        
+        // Handle different field types using centralized logic
+        if (fieldType === 'fecha') {
             const today = new Date();
             const year = today.getFullYear();
             const month = String(today.getMonth() + 1).padStart(2, '0');
@@ -154,8 +179,8 @@ const ConfigDataHandler = {
             const seconds = String(now.getSeconds()).padStart(2, '0');
             value = `${hours}${minutes}${seconds}`;
         }
-        // Handle numeric fields
-        else if (input.pattern === '[0-9]*' || fieldType === 'number') {
+        // Handle numeric fields using centralized detection
+        else if (fieldType === 'numerico') {
             // Generate a numeric value of appropriate length
             const numLength = Math.min(maxLength, 9); // Avoid huge numbers
             value = Math.floor(Math.pow(10, numLength - 1) + Math.random() * 9 * Math.pow(10, numLength - 1)).toString();
@@ -198,8 +223,8 @@ const ConfigDataHandler = {
         
         // Create configuration object
         const configuration = {
-            serviceNumber: serviceNumber,
-            serviceName: serviceName,
+            serviceNumber: ConfigServiceLoader.currentServiceNumber,
+            serviceName: ConfigServiceLoader.currentServiceName,
             canal: canal,
             version: versionStr,
             timestamp: new Date().toISOString(),
@@ -284,6 +309,13 @@ const ConfigDataHandler = {
         // Function to get field value from the DOM
         const getFieldValueFromDOM = (fieldName) => {
             const input = requestTbody.querySelector(`.config-field-input[data-field-name="${fieldName}"]`);
+            
+            // FIX: Si es un campo de tipo lista (select) y es numérico, devolver solo el valor numérico
+            if (input && input.tagName === 'SELECT' && input.dataset.isOptionsList === 'true') {
+                // Si el campo es una lista de opciones, solo devolver el valor numérico
+                return input.value || "";
+            }
+            
             return input ? (input.value || "") : "";
         };
         
@@ -334,120 +366,102 @@ const ConfigDataHandler = {
                 foundInput = requestTbody.querySelector(`tr[data-instance-id="${instanceId}"] .config-field-input[data-field-name="${fieldName}"]`);
             }
             
+            // FIX: Si es un campo de tipo lista (select) y es numérico, devolver solo el valor numérico
+            if (foundInput && foundInput.tagName === 'SELECT' && foundInput.dataset.isOptionsList === 'true') {
+                // Si el campo es una lista de opciones, solo devolver el valor numérico
+                return foundInput.value || "";
+            }
+            
             return foundInput ? (foundInput.value || "") : "";
         };
         
         // Function to recursively process nested occurrences
+        // Function to recursively process nested occurrences
         const processNestedOccurrence = (occurrenceField, parentInstanceId) => {
             const nestedOccName = occurrenceField.id || occurrenceField.name;
-            
+
             console.log(`Processing nested occurrence: ${nestedOccName}, parent instance: ${parentInstanceId}`);
-            
+
             // Get all rows in the table body as an array for easier traversal
             const allRows = Array.from(requestTbody.querySelectorAll('tr'));
-            
-            // Find the row that corresponds to the nested occurrence under the parent instance
-            let nestedInstanceRow = null;
-            let startSearchIndex = 0;
-            
-            // First, find the parent instance row
-            const parentRow = allRows.find((row, index) => {
-                if (row.dataset.instanceId === parentInstanceId) {
-                    startSearchIndex = index;
-                    return true;
-                }
-                return false;
-            });
-            
-            if (!parentRow) {
+
+            // Array to hold all instances of this nested occurrence
+            const nestedInstancesData = [];
+
+            // Find the parent instance row to determine the search start index and level
+            const parentRowIndex = allRows.findIndex(row => row.dataset.instanceId === parentInstanceId);
+            if (parentRowIndex === -1) {
                 console.warn(`Parent instance ${parentInstanceId} not found`);
-                return {};
+                return []; // Return empty array if parent not found
             }
-            
-            console.log(`Parent instance found at index ${startSearchIndex}, looking for nested occurrence ${nestedOccName}`);
-            
-            // Now search for the nested occurrence instance row after the parent row
-            for (let i = startSearchIndex; i < allRows.length; i++) {
-                const row = allRows[i];
-                if (row.classList.contains('occurrence-instance-row') && 
-                    row.dataset.parentDefId === nestedOccName) {
-                    nestedInstanceRow = row;
-                    console.log(`Found nested instance row at index ${i}`);
-                    break;
-                }
-            }
-            
-            if (!nestedInstanceRow) {
-                console.warn(`No nested occurrence instance found for ${nestedOccName}`);
-                return {};
-            }
-            
-            // Get the nested instance ID
-            const nestedInstanceId = nestedInstanceRow.dataset.instanceId;
-            
-            // Create object to hold the nested occurrence data
-            const nestedData = {};
-            
-            // Get the index of the nested instance row
-            const nestedInstanceIndex = allRows.indexOf(nestedInstanceRow);
-            let currentIndex = nestedInstanceIndex + 1; // Start with the row after the instance row
-            
-            console.log(`Starting to process fields from row index ${currentIndex}`);
-            
-            // Process all rows until we find an end marker
+            const parentLevel = parseInt(allRows[parentRowIndex].dataset.level, 10);
+
+            // Iterate through rows starting after the parent instance row
+            let currentIndex = parentRowIndex + 1;
             while (currentIndex < allRows.length) {
                 const currentRow = allRows[currentIndex];
-                
-                // Debug what we're looking at
-                console.log(`Checking row ${currentIndex}: ${currentRow.className}`);
-                
-                // If we hit another occurrence instance or an end marker, stop
-                if (currentRow.classList.contains('occurrence-instance-row') || 
-                    currentRow.classList.contains('occurrence-instance-end-marker')) {
-                    console.log('Reached end of this nested occurrence section');
+
+                // Stop if we hit another instance at the same level as the parent or an end marker for the parent's level
+                const currentRowLevel = parseInt(currentRow.dataset.level, 10);
+                 if (currentRow.classList.contains('occurrence-instance-row') && currentRowLevel <= parentLevel) {
                     break;
                 }
-                
-                // If this is a field row, extract its value
-                if (currentRow.classList.contains('field-row')) {
-                    // Find field name from the first cell
-                    const fieldNameCell = currentRow.querySelector('td:first-child');
-                    if (fieldNameCell) {
-                        const fieldName = fieldNameCell.textContent.trim();
-                        const input = currentRow.querySelector('.config-field-input');
-                        
-                        if (fieldName && input) {
-                            nestedData[fieldName] = input.value || '';
-                            console.log(`Collected nested field: ${fieldName} = "${nestedData[fieldName]}"`);
-                        }
+                 if (currentRow.classList.contains('occurrence-instance-end-marker') && parseInt(currentRow.dataset.level, 10) === parentLevel) {
+                     break;
+                 }
+
+
+                // If this row is an instance of the nested occurrence we're looking for
+                if (currentRow.classList.contains('occurrence-instance-row') && currentRow.dataset.parentDefId === nestedOccName) {
+                    const nestedInstanceId = currentRow.dataset.instanceId;
+                    console.log(`Processing nested instance (ID: ${nestedInstanceId}) of occurrence ${nestedOccName}`);
+
+                    // Create data object for this instance
+                    const instanceData = {};
+
+                    // Process fields in this nested instance
+                    if (occurrenceField.fields && Array.isArray(occurrenceField.fields)) {
+                        occurrenceField.fields.forEach(field => {
+                            if (field.type !== 'occurrence' && field.name) {
+                                const fieldValue = getInstanceFieldValue(nestedInstanceId, field.name);
+                                instanceData[field.name] = fieldValue;
+                                console.log(`Nested instance field ${field.name} = "${fieldValue}"`);
+                            } else if (field.type === 'occurrence') {
+                                // Handle deeper nested occurrence within this instance
+                                const subNestedOccName = field.id || field.name;
+                                // Recursively process deeper nested occurrences and assign the resulting array
+                                instanceData[subNestedOccName] = processNestedOccurrence(field, nestedInstanceId);
+                                console.log(`Processed deeper nested occurrence ${subNestedOccName}`);
+                            }
+                        });
                     }
+
+                    // Add instance data to the nested instances array
+                    nestedInstancesData.push(instanceData);
+
+                    // Skip rows belonging to this nested instance to avoid reprocessing
+                    // Find the end marker for this nested instance or the next instance at the same level
+                    let nextRowIndex = currentIndex + 1;
+                    while(nextRowIndex < allRows.length) {
+                         const nextRow = allRows[nextRowIndex];
+                         if ((nextRow.classList.contains('occurrence-instance-end-marker') && nextRow.dataset.instanceId === nestedInstanceId) ||
+                             (nextRow.classList.contains('occurrence-instance-row') && parseInt(nextRow.dataset.level, 10) <= parseInt(currentRow.dataset.level, 10))) {
+                             currentIndex = nextRowIndex; // Move current index to the end of the processed instance
+                             break;
+                         }
+                         nextRowIndex++;
+                    }
+                     if (nextRowIndex === allRows.length) {
+                         currentIndex = allRows.length; // Reached end of file
+                     }
+
+
                 }
-                
-                // Check if this is the last field (any class that starts with last-field-in-instance)
-                const hasLastFieldClass = Array.from(currentRow.classList).some(cls => 
-                    cls.startsWith('last-field-in-instance-')
-                );
-                
-                if (hasLastFieldClass) {
-                    console.log('Found row with last-field class, stopping collection');
-                    break;
-                }
-                
+
                 currentIndex++;
             }
-            
-            // Now process any deeper nested occurrences
-            if (occurrenceField.fields && Array.isArray(occurrenceField.fields)) {
-                occurrenceField.fields.forEach(field => {
-                    if (field.type === 'occurrence') {
-                        const subNestedOccName = field.id || field.name;
-                        nestedData[subNestedOccName] = processNestedOccurrence(field, nestedInstanceId);
-                        console.log(`Processed deeper nested occurrence ${subNestedOccName}`);
-                    }
-                });
-            }
-            
-            return nestedData;
+
+            return nestedInstancesData;
         };
         
         // Build a structured JSON object by directly scanning DOM for all occurrences and fields
@@ -471,70 +485,52 @@ const ConfigDataHandler = {
                     console.log(`Top-level field ${element.name} = "${fieldValue}"`);
                 }
                 // Handle occurrences
-                else if (element.type === 'occurrence') {
-                    const occName = element.id || element.name;
-                    console.log(`Processing occurrence ${occName}`);
-                    
-                    // Initialize occurrence array
-                    result[occName] = [];
-                    
-                    // Find all instances of this occurrence
-                    const occInstanceRows = requestTbody.querySelectorAll(`tr.occurrence-instance-row[data-parent-def-id="${occName}"]`);
-                    console.log(`Found ${occInstanceRows.length} instances of occurrence ${occName}`);
-                    
-                    // Process each instance of the occurrence
-                    occInstanceRows.forEach((instanceRow, index) => {
-                        const instanceId = instanceRow.dataset.instanceId;
-                        console.log(`Processing instance ${index + 1} (ID: ${instanceId}) of occurrence ${occName}`);
-                        
-                        // Create data object for this instance
-                        const instanceData = {};
-                        
-                        // Process fields in this instance
-                        if (element.fields && Array.isArray(element.fields)) {
-                            for (const field of element.fields) {
-                                if (field.type !== 'occurrence' && field.name) {
-                                    const fieldValue = getInstanceFieldValue(instanceId, field.name);
-                                    instanceData[field.name] = fieldValue;
-                                    console.log(`Instance field ${field.name} = "${fieldValue}"`);
-                                }
-                                else if (field.type === 'occurrence') {
-                                    // Handle nested occurrence within this instance
-                                    const nestedOccName = field.id || field.name;
-                                    instanceData[nestedOccName] = processNestedOccurrence(field, instanceId);
-                                    console.log(`Processed nested occurrence ${nestedOccName}`);
-                                }
-                            }
-                        }
-                        
-                        // Add this instance to the occurrence array
-                        result[occName].push(instanceData);
-                    });
-                    
-                    // If no instances found, add a default instance object
-                    if (occInstanceRows.length === 0) {
-                        console.log(`No instances found for occurrence ${occName}, adding default instance`);
-                        const defaultInstance = {};
-                        
-                        // Add default fields
-                        if (element.fields && Array.isArray(element.fields)) {
-                            for (const field of element.fields) {
-                                if (field.type !== 'occurrence' && field.name) {
-                                    defaultInstance[field.name] = "";
-                                }
-                                else if (field.type === 'occurrence') {
-                                    const nestedOccName = field.id || field.name;
-                                    defaultInstance[nestedOccName] = {};
-                                }
-                            }
-                        }
-                        
-                        result[occName].push(defaultInstance);
-                    }
-                }
-            }
-            
-            return result;
+// Handle occurrences
+else if (element.type === 'occurrence') {
+    const occName = element.id || element.name;
+    console.log(`Processing occurrence ${occName}`);
+    
+    // Initialize occurrence array
+    result[occName] = [];
+    
+    // Find all instances of this occurrence
+    const occInstanceRows = requestTbody.querySelectorAll(`tr.occurrence-instance-row[data-parent-def-id="${occName}"]`);
+    console.log(`Found ${occInstanceRows.length} instances of occurrence ${occName}`);
+    
+    // Process each instance of the occurrence
+    occInstanceRows.forEach((instanceRow, index) => {
+        const instanceId = instanceRow.dataset.instanceId;
+        console.log(`Processing instance ${index + 1} (ID: ${instanceId}) of occurrence ${occName}`);
+        
+        // Create data object for this instance
+        const instanceData = {};
+        
+        // Process fields in this instance
+if (element.fields && Array.isArray(element.fields)) {
+    for (const field of element.fields) {
+        if (field.type !== 'occurrence' && field.name) {
+            const fieldValue = getInstanceFieldValue(instanceId, field.name);
+            instanceData[field.name] = fieldValue;
+            console.log(`Instance field ${field.name} = "${fieldValue}"`);
+        }
+        else if (field.type === 'occurrence') {
+            // Handle nested occurrence within this instance
+            const subNestedOccName = field.id || field.name;
+            instanceData[subNestedOccName] = processNestedOccurrence(field, instanceId);
+            console.log(`Processed deeper nested occurrence ${subNestedOccName}`);
+        }
+    }
+}
+
+// Add instance data to the occurrence array
+result[occName].push(instanceData);
+});
+}
+}
+
+return result;
+
+// Make ConfigDataHandler globally accessible
         };
         
         // Build and return the request data object
@@ -543,3 +539,6 @@ const ConfigDataHandler = {
         return result;
     }
 };
+
+
+window.ConfigDataHandler = ConfigDataHandler;

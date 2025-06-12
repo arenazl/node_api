@@ -1,0 +1,619 @@
+{
+  "header_structure": {
+    "totalLength": 102,
+    "fields": [
+      {
+        "name": "REQUERIMIENTO",
+        "length": null,
+        "type": "",
+        "required": "",
+        "values": "",
+        "description": ""
+      },
+      {
+        "name": "*",
+        "length": null,
+        "type": "Longitud del CAMPO",
+        "required": "Tipo de Datos",
+        "values": "obligatorio   /opcional",
+        "description": "VALORES"
+      },
+      {
+        "name": "LONGITUD DEL MENSAJE",
+        "length": 6,
+        "type": "numerico",
+        "required": "OBLIGATORIO",
+        "values": "VALOR",
+        "description": "VALOR"
+      },
+      {
+        "name": "CANAL",
+        "length": 2,
+        "type": "alfanumerico",
+        "required": "OBLIGATORIO",
+        "values": "VALOR",
+        "description": "VALOR"
+      },
+      {
+        "name": "SERVICIO",
+        "length": 4,
+        "type": "numerico",
+        "required": "OBLIGATORIO",
+        "values": "VALOR",
+        "description": "VALOR"
+      },
+      {
+        "name": "CÓDIGO DE RETORNO",
+        "length": 4,
+        "type": "numerico",
+        "required": "OBLIGATORIO",
+        "values": "CEROS",
+        "description": "0000  Transaccion exitosa                                                                      8991  ERROR Validacion Header mensaje    \n8992  CANAL/SERVICIO NO HABILITADO       \n8993  SERVICIO NO HABILITADO POR CANAL                       \n8001  ERROR PARRAFO DE VALIDACION GENERAL               \n5000 + CODIGO RETORNO <> 0 MODULO (EDO5001)"
+      },
+      {
+        "name": "ID DEL MENSAJE",
+        "length": 9,
+        "type": "numerico",
+        "required": "OBLIGATORIO",
+        "values": "VALOR",
+        "description": "VALOR"
+      },
+      {
+        "name": "FECHA",
+        "length": 8,
+        "type": "numerico",
+        "required": "OBLIGATORIO",
+        "values": "VALOR",
+        "description": "VALOR"
+      },
+      {
+        "name": "HORA",
+        "length": 6,
+        "type": "numerico",
+        "required": "OBLIGATORIO",
+        "values": "VALOR",
+        "description": "VALOR"
+      },
+      {
+        "name": "USUARIO",
+        "length": 7,
+        "type": "alfanumerico",
+        "required": "OBLIGATORIO",
+        "values": "VALOR",
+        "description": "VALOR"
+      },
+      {
+        "name": "Ubicación",
+        "length": 4,
+        "type": "numerico",
+        "required": "OBLIGATORIO",
+        "values": "VALOR",
+        "description": "VALOR"
+      },
+      {
+        "name": "TEXTO DEL CÓDIGO DE RETORNO",
+        "length": 45,
+        "type": "alfanumerico",
+        "required": "OBLIGATORIO",
+        "values": "ESPACIOS",
+        "description": "CÓDIGO DE RETORNO <> 0 texto del mensaje          ESTADO ENVIADO <> 0 texto del mensaje"
+      },
+      {
+        "name": "ESTADO ENVIADO",
+        "length": 2,
+        "type": "numerico",
+        "required": "OBLIGATORIO",
+        "values": "CEROS",
+        "description": "VALOR"
+      },
+      {
+        "name": "CAMPO COMPLEMENTARIO",
+        "length": 5,
+        "type": "alfanumerico",
+        "required": "OBLIGATORIO",
+        "values": "ESPACIOS",
+        "description": "ESPACIOS"
+      }
+    ]
+  },
+  "service_structure": {
+    "serviceNumber": "1010",
+    "serviceName": "SERVICIO 1010 - Consulta Datos de Contrato por NIC",
+    "request": {
+      "totalLength": 35,
+      "elements": [
+        {
+          "type": "field",
+          "index": 0,
+          "name": "SVC1010-NIC",
+          "length": 9,
+          "fieldType": "numerico",
+          "required": "OBLIGATORIO",
+          "values": "VALOR",
+          "description": "NUMERO INTERNO DE CONTRATO"
+        },
+        {
+          "type": "field",
+          "index": 1,
+          "name": "SVC1010-TIP-PEDIDO",
+          "length": 2,
+          "fieldType": "numérico",
+          "required": "OBLIGATORIO",
+          "values": "1=Consulta Datos de Contrato por NIC",
+          "description": "1=POR NIC     \n2=POR SUC/PROD/CUENTA"
+        },
+        {
+          "type": "field",
+          "index": 2,
+          "name": "SVC1010-BANCO",
+          "length": 5,
+          "fieldType": "numérico",
+          "required": "opc s/pedido",
+          "values": "VALOR",
+          "description": "BANCO"
+        },
+        {
+          "type": "field",
+          "index": 3,
+          "name": "SVC1010-SUCURSAL",
+          "length": 5,
+          "fieldType": "numérico",
+          "required": "opc s/pedido",
+          "values": "VALOR",
+          "description": "SUCURSAL"
+        },
+        {
+          "type": "field",
+          "index": 4,
+          "name": "SVC1010-COD-PRODUC",
+          "length": 3,
+          "fieldType": "numérico",
+          "required": "opc s/pedido",
+          "values": "VALOR",
+          "description": "CODIGO DE PRODUCTO"
+        },
+        {
+          "type": "field",
+          "index": 5,
+          "name": "SVC1010-NRO-CUENTA",
+          "length": 11,
+          "fieldType": "numérico",
+          "required": "opc s/pedido",
+          "values": "VALOR",
+          "description": "NRO de la CUENTA"
+        }
+      ],
+      "fieldCount": 6,
+      "occurrenceCount": 0,
+      "totalFieldCount": 6
+    },
+    "response": {
+      "totalLength": 345,
+      "elements": [
+        {
+          "type": "field",
+          "index": 0,
+          "name": "SVC1010-ESTADO",
+          "length": 2,
+          "fieldType": "numerico",
+          "required": "OBLIGATORIO",
+          "values": "00    CONSULTA CONTRATO SATISFACTORIA   \n02    NO EXISTE CONVENIO PARA ESTE CONTRATO             \n99    ERROR EN SVC0000-CODRET.",
+          "description": "Estado de los registros informados.                                               El valor de este campo, se informa tambien en el campo \"ESTADO ENVIADO\" y el texto correspondiente a este código, en el campo \"TEXTO DEL CÓDIGO DE RETORNO\" de la \"Cabecera Servicios\"."
+        },
+        {
+          "type": "field",
+          "index": 1,
+          "name": "SVC1010-COD-BCO-GR",
+          "length": 5,
+          "fieldType": "numérico",
+          "required": "OPCIONAL",
+          "values": "0=Todas las direcciones electronicas                                            #=valores posibles del campo V3002DE0-T-DIR-ELEC",
+          "description": "CODIGO DEL BANCO"
+        },
+        {
+          "type": "field",
+          "index": 2,
+          "name": "SVC1010-C-OF-CONTR",
+          "length": 5,
+          "fieldType": "numérico",
+          "required": "OPCIONAL",
+          "values": "",
+          "description": "COD. OFICINA TITULAR CONTRATO"
+        },
+        {
+          "type": "field",
+          "index": 3,
+          "name": "SVC1010-C-PRODUCTO",
+          "length": 3,
+          "fieldType": "numérico",
+          "required": "OPCIONAL",
+          "values": "valor",
+          "description": "CODIGO DE PRODUCTO"
+        },
+        {
+          "type": "field",
+          "index": 4,
+          "name": "SVC1010-N-IND-CONT",
+          "length": 7,
+          "fieldType": "numérico",
+          "required": "OPCIONAL",
+          "values": "valor",
+          "description": "NUMERO EXTERNO DE CONTRATO"
+        },
+        {
+          "type": "field",
+          "index": 5,
+          "name": "SVC1010-COD-OF-GRU",
+          "length": 5,
+          "fieldType": "numérico",
+          "required": "OPCIONAL",
+          "values": "valor",
+          "description": "CODIGO DE OFICINA"
+        },
+        {
+          "type": "field",
+          "index": 6,
+          "name": "SVC1010-N-P1-IDACT",
+          "length": 5,
+          "fieldType": "numérico",
+          "required": "OPCIONAL",
+          "values": "valor",
+          "description": "COD CLASIFICACION/COD PRODUCTO"
+        },
+        {
+          "type": "field",
+          "index": 7,
+          "name": "SVC1010-N-P2-IDACT",
+          "length": 15,
+          "fieldType": "numérico",
+          "required": "OPCIONAL",
+          "values": "valor",
+          "description": "IDENTIFICACION OPERATIVA CONTR"
+        },
+        {
+          "type": "field",
+          "index": 8,
+          "name": "SVC1010-C-ALF-IMON",
+          "length": 3,
+          "fieldType": "alfanumerico",
+          "required": "OPCIONAL",
+          "values": "valor",
+          "description": "CODIGO ALFABETICO DE MONEDA"
+        },
+        {
+          "type": "field",
+          "index": 9,
+          "name": "SVC1010-C-ENV-CORR",
+          "length": 3,
+          "fieldType": "numérico",
+          "required": "OPCIONAL",
+          "values": "valor",
+          "description": "CODIGO ENVIO CORRESPONDENCIA"
+        },
+        {
+          "type": "field",
+          "index": 10,
+          "name": "SVC1010-C-EMI-CORR",
+          "length": 3,
+          "fieldType": "numérico",
+          "required": "OPCIONAL",
+          "values": "valor",
+          "description": "CODIGO EMISION CORRESPONDENCIA"
+        },
+        {
+          "type": "field",
+          "index": 11,
+          "name": "SVC1010-F-EF-APERC",
+          "length": 10,
+          "fieldType": "alfanumerico",
+          "required": "OPCIONAL",
+          "values": "valor",
+          "description": "FECHA APERTURA CONTRATO"
+        },
+        {
+          "type": "field",
+          "index": 12,
+          "name": "SVC1010-F-ULT-RENO",
+          "length": 10,
+          "fieldType": "alfanumerico",
+          "required": "OPCIONAL",
+          "values": "valor",
+          "description": "FECHA ULTIMA RENOVACION"
+        },
+        {
+          "type": "field",
+          "index": 13,
+          "name": "SVC1010-F-VTO-CONT",
+          "length": 10,
+          "fieldType": "alfanumerico",
+          "required": "OPCIONAL",
+          "values": "valor",
+          "description": "FECHA DE VENCIMIENTO"
+        },
+        {
+          "type": "field",
+          "index": 14,
+          "name": "SVC1010-C-SIT-CONT",
+          "length": 3,
+          "fieldType": "numérico",
+          "required": "OPCIONAL",
+          "values": "valor",
+          "description": "SITUACION DEL CONTRATO"
+        },
+        {
+          "type": "field",
+          "index": 15,
+          "name": "SVC1010-C-DIS-CONT",
+          "length": 3,
+          "fieldType": "numérico",
+          "required": "OPCIONAL",
+          "values": "valor",
+          "description": "CODIGO DIVERSOS (ANTIGUO PRP)"
+        },
+        {
+          "type": "field",
+          "index": 16,
+          "name": "SVC1010-C-DES-CONT",
+          "length": 6,
+          "fieldType": "alfanumerico",
+          "required": "OPCIONAL",
+          "values": "valor",
+          "description": "DESTINO DE LA OPERACION (CNAE)"
+        },
+        {
+          "type": "field",
+          "index": 17,
+          "name": "SVC1010-T-ID-ACTCO",
+          "length": 3,
+          "fieldType": "numérico",
+          "required": "OPCIONAL",
+          "values": "valor",
+          "description": "IDENTIFICACION DE LAS MAESTRAS"
+        },
+        {
+          "type": "field",
+          "index": 18,
+          "name": "SVC1010-F-ALTA",
+          "length": 10,
+          "fieldType": "alfanumerico",
+          "required": "OPCIONAL",
+          "values": "valor",
+          "description": "FECHA DE ALTA"
+        },
+        {
+          "type": "field",
+          "index": 19,
+          "name": "SVC1010-F-ACTZ",
+          "length": 10,
+          "fieldType": "alfanumerico",
+          "required": "OPCIONAL",
+          "values": "valor",
+          "description": "ULTIMA FECHA DE ACTUALIZACION"
+        },
+        {
+          "type": "field",
+          "index": 20,
+          "name": "SVC1010-DET-COINCU",
+          "length": 1,
+          "fieldType": "alfanumerico",
+          "required": "OPCIONAL",
+          "values": "valor",
+          "description": "DETECTOR DE INCUMPLIMIENTOS"
+        },
+        {
+          "type": "field",
+          "index": 21,
+          "name": "SVC1010-DET-COFALL",
+          "length": 1,
+          "fieldType": "alfanumerico",
+          "required": "OPCIONAL",
+          "values": "valor",
+          "description": "DETECTOR DE RIESGOS FALLIDOS"
+        },
+        {
+          "type": "field",
+          "index": 22,
+          "name": "SVC1010-DET-COMORA",
+          "length": 1,
+          "fieldType": "alfanumerico",
+          "required": "OPCIONAL",
+          "values": "valor",
+          "description": "DETECTOR DE ACTIVOS EN MORA"
+        },
+        {
+          "type": "field",
+          "index": 23,
+          "name": "SVC1010-DET-COAVIS",
+          "length": 1,
+          "fieldType": "alfanumerico",
+          "required": "OPCIONAL",
+          "values": "valor",
+          "description": "DETECTOR DE AVISOS DE CONTRATO"
+        },
+        {
+          "type": "field",
+          "index": 24,
+          "name": "SVC1010-DET-COBLOQ",
+          "length": 1,
+          "fieldType": "alfanumerico",
+          "required": "OPCIONAL",
+          "values": "valor",
+          "description": "DETECTOR DE BLOQUEOS INTERNOS"
+        },
+        {
+          "type": "field",
+          "index": 25,
+          "name": "SVC1010-TITUL-CONT-TEXT",
+          "length": 50,
+          "fieldType": "alfanumerico",
+          "required": "OPCIONAL",
+          "values": "valor",
+          "description": "TITULO QUE FIGURA EN CONTRATO"
+        },
+        {
+          "type": "field",
+          "index": 26,
+          "name": "SVC1010-ID-ACT-CONT",
+          "length": 20,
+          "fieldType": "alfanumerico",
+          "required": "OPCIONAL",
+          "values": "valor",
+          "description": ""
+        },
+        {
+          "type": "field",
+          "index": 27,
+          "name": "SVC1010-C-DEST-CFI",
+          "length": 3,
+          "fieldType": "numérico",
+          "required": "OPCIONAL",
+          "values": "valor",
+          "description": "DEST FINANCIACION (T4088DF)"
+        },
+        {
+          "type": "field",
+          "index": 28,
+          "name": "SVC1010-C-MOD-PROD",
+          "length": 3,
+          "fieldType": "numérico",
+          "required": "OPCIONAL",
+          "values": "valor",
+          "description": "CODIGO MODALIDAD DE PRODUCTO"
+        },
+        {
+          "type": "field",
+          "index": 29,
+          "name": "SVC1010-C-IDIO-CON",
+          "length": 3,
+          "fieldType": "numérico",
+          "required": "OPCIONAL",
+          "values": "valor",
+          "description": "CLAVE IDIOMA CORRESPONDENCIA"
+        },
+        {
+          "type": "field",
+          "index": 30,
+          "name": "SVC1010-C-ORIG-CON",
+          "length": 3,
+          "fieldType": "numérico",
+          "required": "OPCIONAL",
+          "values": "valor",
+          "description": "CODIGO ORIGEN DEL CONTRATO"
+        },
+        {
+          "type": "field",
+          "index": 31,
+          "name": "SVC1010-N-ITN-DIRE",
+          "length": 9,
+          "fieldType": "numérico",
+          "required": "OPCIONAL",
+          "values": "valor",
+          "description": "DOMICILIO DE CORRESPONDENCIA"
+        },
+        {
+          "type": "field",
+          "index": 32,
+          "name": "SVC1010-F-SIT-CONT",
+          "length": 10,
+          "fieldType": "alfanumerico",
+          "required": "OPCIONAL",
+          "values": "valor",
+          "description": "FECHA SITUACION CONTRATO"
+        },
+        {
+          "type": "field",
+          "index": 33,
+          "name": "SVC1010-SECTORPECO",
+          "length": 3,
+          "fieldType": "numérico",
+          "required": "OPCIONAL",
+          "values": "110 Sector Público NO Financiero Nacional                    \n111 Sector Público NO Financiero Provincial                  \n112 Sector Público NO Financiero Municipal                   \n120 Sector Público Financiero Nacional                       \n121 Sector Público Financiero Provincial                     \n122 Sector Público Financiero Municipal                      \n130 Sector Privado NO Financiero                             \n140 Sector Privado Financiero                                \n191 Sector Privado NO Financiero - Personas Físicas          \n591 Residentes en el Exterior - Personas Físicas             \n801 Residentes en el Exterior - Personas Jurídica            \n900 Residentes en el Exterior (uso exclusivo de Contabilidad)",
+          "description": "SECTOR PERTENECIA CONTRATO"
+        },
+        {
+          "type": "field",
+          "index": 34,
+          "name": "SVC1010-CONT-RESIDENTE",
+          "length": 1,
+          "fieldType": "alfanumerico",
+          "required": "OPCIONAL",
+          "values": "valor",
+          "description": ""
+        },
+        {
+          "type": "field",
+          "index": 35,
+          "name": "SVC1010-CLAVE-RESIDE",
+          "length": 1,
+          "fieldType": "alfanumerico",
+          "required": "OPCIONAL",
+          "values": "valor",
+          "description": ""
+        },
+        {
+          "type": "field",
+          "index": 36,
+          "name": "SVC1010-FILLER",
+          "length": 9,
+          "fieldType": "alfanumerico",
+          "required": "OPCIONAL",
+          "values": "valor",
+          "description": ""
+        },
+        {
+          "type": "field",
+          "index": 37,
+          "name": "SVC1010-T-TITULOCO",
+          "length": 3,
+          "fieldType": "numérico",
+          "required": "OPCIONAL",
+          "values": "valor",
+          "description": "TIPO TITULO CONTRATO"
+        },
+        {
+          "type": "field",
+          "index": 38,
+          "name": "SVC1010-N-ITN-PEGE",
+          "length": 9,
+          "fieldType": "numérico",
+          "required": "OPCIONAL",
+          "values": "valor",
+          "description": "NUMERO INTERNO PERS. CONTRATO"
+        },
+        {
+          "type": "field",
+          "index": 39,
+          "name": "SVC1010-NOMDS-PERS",
+          "length": 80,
+          "fieldType": "alfanumerico",
+          "required": "OPCIONAL",
+          "values": "valor",
+          "description": "Título del contrato o Nombre del primer titular"
+        },
+        {
+          "type": "field",
+          "index": 40,
+          "name": "SVC1010-C-TI-ACFIS",
+          "length": 3,
+          "fieldType": "numérico",
+          "required": "OPCIONAL",
+          "values": "valor",
+          "description": "TIPO ACTUACION FISCAL"
+        },
+        {
+          "type": "field",
+          "index": 41,
+          "name": "SVC1010-NIC",
+          "length": 9,
+          "fieldType": "numérico",
+          "required": "OPCIONAL",
+          "values": "valor",
+          "description": "NUMERO INTERNO DE CONTRATO"
+        }
+      ],
+      "fieldCount": 42,
+      "occurrenceCount": 0,
+      "totalFieldCount": 42
+    }
+  }
+}

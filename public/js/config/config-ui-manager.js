@@ -79,7 +79,7 @@ const ConfigUIManager = {
     clearConfigTables: function() {
         // Header table
         const headerTbody = this.headerConfigTable.querySelector('tbody');
-        headerTbody.innerHTML = '<tr class="empty-message"><td colspan="4" class="text-center">Seleccione un servicio para cargar los campos de la cabecera</td></tr>';
+        headerTbody.innerHTML = '<tr class="empty-message"><td colspan="5" class="text-center">Seleccione un servicio para cargar los campos de la cabecera</td></tr>';
 
         // Request table
         const requestTbody = this.requestConfigTable.querySelector('tbody');
@@ -93,7 +93,7 @@ const ConfigUIManager = {
     populateHeaderConfigTable: function(headerStructure) {
         if (!headerStructure || !headerStructure.fields) {
             console.warn("Invalid header structure or missing fields.");
-            this.headerConfigTable.querySelector('tbody').innerHTML = '<tr class="empty-message"><td colspan="4" class="text-center">Estructura de cabecera inválida.</td></tr>';
+            this.headerConfigTable.querySelector('tbody').innerHTML = '<tr class="empty-message"><td colspan="5" class="text-center">Estructura de cabecera inválida.</td></tr>';
             return;
         }
 
@@ -133,7 +133,7 @@ const ConfigUIManager = {
         });
         
         if (tbody.children.length === 0) {
-            tbody.innerHTML = '<tr class="empty-message"><td colspan="4" class="text-center">No hay campos configurables en la cabecera.</td></tr>';
+            tbody.innerHTML = '<tr class="empty-message"><td colspan="5" class="text-center">No hay campos configurables en la cabecera.</td></tr>';
         }
     },
     

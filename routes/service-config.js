@@ -9,7 +9,7 @@ const configFormatUpdater = require('../utils/config-format-updater');
 const router = express.Router();
 
 // Directorio para almacenar configuraciones
-const configDir = path.join(__dirname, '..', 'settings');
+const configDir = path.join(__dirname, '..', 'JsonStorage', 'settings');
 
 /**
  * @route POST /service-config/save
@@ -17,7 +17,9 @@ const configDir = path.join(__dirname, '..', 'settings');
  */
 router.post('/save', async (req, res) => {
   try {
+    console.log('[ServiceConfig] POST /save - Received request body:', req.body);
     const { serviceNumber, serviceName, canal, version, header, request } = req.body;
+    console.log('[ServiceConfig] POST /save - Extracted variables:', { serviceNumber, serviceName, canal, version });
     
     // Validar datos requeridos
     if (!serviceNumber) {
@@ -36,12 +38,14 @@ router.post('/save', async (req, res) => {
     // Sanitizar valores para el nombre de archivo
     const safeCanal = canal.replace(/[^a-zA-Z0-9]/g, '');
     const safeVersion = (version || 'v1').replace(/[^a-zA-Z0-9]/g, '');
+    console.log('[ServiceConfig] POST /save - Sanitized values:', { safeCanal, safeVersion });
     
     // Crear nombre de archivo: serviceNumber-canal-version.json
     const filename = `${serviceNumber}-${safeCanal}-${safeVersion}.json`;
     const filePath = path.join(configDir, filename);
     
     // Crear objeto de configuración
+
     const config = {
       serviceNumber,
       serviceName: serviceName || `Servicio ${serviceNumber}`,
@@ -51,10 +55,10 @@ router.post('/save', async (req, res) => {
       header: header || {},
       request: request || {}
     };
-    
+    console.log('[ServiceConfig] POST /save - Configuration object to save:', JSON.stringify(config, null, 2));
+
     // Guardar configuración en archivo JSON
     await fs.writeJson(filePath, config, { spaces: 2 });
-    
     // Emitir evento de configuración guardada a través de Socket.IO
     if (global.io) {
       console.log(`[WebSocket] Emitiendo evento config:saved para servicio ${serviceNumber}`);
@@ -96,17 +100,20 @@ router.get('/list', async (req, res) => {
     
     // IMPORTANTE: Forzar actualización de la caché de servicios cuando se solicita específicamente
     // o cuando se carga la configuración por primera vez
+    /* // Se comenta esta sección para evitar la doble recarga de la caché de servicios.
+       // La actualización de la caché de servicios debe manejarse explícitamente
+       // a través del endpoint /api/services?refresh=true o /api/services/refresh.
     if (forceRefresh) {
       try {
-        console.log("[CONFIG] Forzando recarga de caché de servicios para actualizar la lista...");
-        const serviceRouter = require('./services');
-        await serviceRouter.getAvailableServices(true);
-        console.log("[CONFIG] Caché de servicios actualizada exitosamente");
+        console.log("[CONFIG] Forzando recarga de caché de servicios para actualizar la lista (AHORA COMENTADO)...");
+        // const serviceRouter = require('./services');
+        // await serviceRouter.getAvailableServices(true);
+        // console.log("[CONFIG] Caché de servicios actualizada exitosamente (AHORA COMENTADO)");
       } catch (cacheError) {
-        console.error("[CONFIG] Error al recargar caché de servicios:", cacheError);
-        // Continuamos a pesar del error para no bloquear la funcionalidad principal
+        console.error("[CONFIG] Error al recargar caché de servicios (AHORA COMENTADO):", cacheError);
       }
     }
+    */
     
     // Verificar si el directorio existe
     if (!fs.existsSync(configDir)) {

@@ -3,85 +3,116 @@
  * Funciones compartidas para la interfaz de usuario
  */
 
-// DEBUGGING: Log de carga del archivo
-console.log('🔧 [ConfigUtils] Archivo cargado - ' + new Date().toISOString());
+// ConfigUtils module loaded
 
-// DEBUGGING: Función de prueba que se ejecuta inmediatamente
-(function testConfigUtils() {
-    console.log('🧪 [ConfigUtils] Ejecutando test de carga...');
+// Sistema de deduplicación de notificaciones
+const NotificationDeduplicator = {
+    recentNotifications: new Map(),
     
-    // Test básico
-    const testField = {
-        name: 'test-field',
-        type: 'alfanumerico',
-        values: 'test value'
-    };
+    // Limpiar notificaciones antiguas cada 10 segundos
+    cleanupInterval: setInterval(() => {
+        const now = Date.now();
+        const expireTime = 5000; // 5 segundos para considerar una notificación como antigua
+        
+        for (const [key, timestamp] of NotificationDeduplicator.recentNotifications.entries()) {
+            if (now - timestamp > expireTime) {
+                NotificationDeduplicator.recentNotifications.delete(key);
+            }
+        }
+    }, 10000),
     
-    console.log('🧪 [ConfigUtils] Test field:', testField);
-    
-    // Esto debería disparar el debugger inmediatamente si está configurado
-    debugger; // ⭐ BREAKPOINT FORZADO AQUÍ
-    
-    console.log('🧪 [ConfigUtils] Test completado');
-})();
+    isDuplicate: function(message, type) {
+        const key = `${type}:${message}`;
+        const now = Date.now();
+        const lastShown = this.recentNotifications.get(key);
+        
+        // Si la misma notificación se mostró hace menos de 3 segundos, es duplicada
+        if (lastShown && (now - lastShown) < 3000) {
+            return true;
+        }
+        
+        // Registrar esta notificación
+        this.recentNotifications.set(key, now);
+        return false;
+    }
+};
 
 // Objeto global para utilidades de configuración
 const ConfigUtils = {
     /**
      * Normaliza el tipo de campo para usarlo en validaciones
-     * @param {Object} field - Definición del campo
-     * @returns {string} - Tipo normalizado: 'numerico', 'alfanumerico', 'fecha'
+     * @param {Object|HTMLElement} field - Definición del campo o elemento DOM
+     * @returns {string} - Tipo normalizado: 'numerico', 'alfanumerico', 'fecha', 'lista'
      */
     normalizeFieldType: function(field) {
-        // DEBUGGING: Añadir logs y breakpoint
-        console.log('🔍 [normalizeFieldType] INICIO - Field:', field);
-        debugger; // ⭐ BREAKPOINT EN NORMALIZE FIELD TYPE
-        
+        // Si es un elemento DOM, extraer información del DOM
+        if (field instanceof HTMLElement) {
+            const fieldName = field.dataset.fieldName || '';
+            const rowElement = field.closest('tr');
+            let fieldValues = '';
+            let fieldType = '';
+
+            if (rowElement) {
+                const valuesCell = rowElement.querySelector('td:nth-child(6)');
+                const typeCell = rowElement.querySelector('td:nth-child(2)');
+
+                if (valuesCell) fieldValues = valuesCell.textContent.trim();
+                if (typeCell) fieldType = typeCell.textContent.trim().toLowerCase();
+            }
+
+            // Crear objeto field para usar la lógica existente
+            field = {
+                name: fieldName,
+                values: fieldValues,
+                type: fieldType,
+                pattern: field.pattern,
+                inputMode: field.inputMode
+            };
+        }
+
+        // También detectar desde propiedades del input DOM
+        if (field.pattern === '[0-9]*' || field.inputMode === 'numeric') {
+            return 'numerico';
+        }
         // Verificar si tiene lista de valores definidos (opciones)
+        if (field.values && Array.isArray(field.values)) {
+            return 'lista';
+        }
+
+        // Verificar si tiene valores en formato string que parecen una lista
         if (field.values && typeof field.values === 'string') {
             const valueStr = field.values.trim();
-            
-            // Detectar si es una lista genuina de opciones:
-            // - Debe contener múltiples líneas o elementos separados por comas
-            // - Debe tener formato de código + descripción (1-Opción, 2-Opción)
             const hasMultipleLines = valueStr.includes('\n');
             const hasMultipleOptions = valueStr.split(',').length > 1;
-            const hasCodeFormat = valueStr.split(/\n/).filter(line => /^\d+[-=]/.test(line.trim())).length > 0;
-            
-            if ((hasMultipleLines || hasMultipleOptions) && hasCodeFormat) {
-                console.log(`🎯 Campo detectado como lista de opciones: ${field.name}`);
+            const hasCodeFormat = valueStr.split(/\n/).filter(line => /^\d+[-=]/.test(line.trim())).length > 0 ||
+                                 valueStr.match(/\d+[-=]/) !== null;
+
+            if (hasMultipleLines || hasMultipleOptions || hasCodeFormat) {
                 return 'lista';
             }
-            
-            // Los valores que no son listas genuinas se tratarán como descripciones/placeholders
         }
-        
+
         // Verificar por formato de fecha en campo values o en el nombre
         if (field.values && typeof field.values === 'string') {
             const valueStr = field.values.trim();
-            if (valueStr.includes('DD/MM') || 
-                valueStr.includes('DD-MM') || 
-                valueStr.includes('MM/DD') || 
-                valueStr.includes('AAAA') || 
+            if (valueStr.includes('DD/MM') ||
+                valueStr.includes('DD-MM') ||
+                valueStr.includes('MM/DD') ||
+                valueStr.includes('AAAA') ||
                 valueStr.includes('MM/AAAA')) {
-                console.log(`📅 Campo detectado como fecha por su formato: ${field.name}, formato: ${valueStr}`);
                 return 'fecha';
             }
         }
-        
-        // Verificar primero por nombre del campo para detectar campos de fecha
-        // aunque estén definidos como alfanumérico en la estructura
+
+        // Verificar por nombre del campo para detectar campos de fecha
         if (field.name) {
             const name = field.name.toLowerCase();
-            // Si contiene palabras clave de fecha, siempre tratarlo como fecha
-            // independientemente de cómo esté definido en la estructura
-            if (name.includes('fecha') || name.includes('date') || name.includes('fec-') || 
+            if (name.includes('fecha') || name.includes('date') || name.includes('fec-') ||
                 name.includes('-fec') || name.includes('-fecha') || name.includes('fecha-')) {
-                console.log(`📅 Campo detectado como fecha por su nombre: ${field.name}`);
                 return 'fecha';
             }
         }
-        
+
         // Priorizar el tipo explícito si está definido
         if (field.fieldType) {
             const type = field.fieldType.toLowerCase();
@@ -95,11 +126,11 @@ const ConfigUtils = {
                 return 'fecha';
             }
         }
-        
+
         // Verificar por tipo (type)
         if (field.type) {
             const type = field.type.toLowerCase();
-            if (type.includes('num') || type.includes('int') || type === 'n') {
+            if (type === 'numerico' || type === 'numérico' || type === 'numeric' || type.includes('int') || type === 'n') {
                 return 'numerico';
             }
             if (type.includes('alfa') || type.includes('alpha') || type === 'a' || type === 'an') {
@@ -109,30 +140,26 @@ const ConfigUtils = {
                 return 'fecha';
             }
         }
-        
+
         // Por defecto considerar alfanumérico
-        console.log(`⚪ Campo por defecto como alfanumerico: ${field.name}`);
         return 'alfanumerico';
     },
-    
+
     /**
      * Extrae el formato de fecha desde un string de formato
      * @param {string} formatStr - String con formato de fecha (ej: "DD/MM/AAAA")
      * @returns {Object} - Objeto con propiedades del formato
      */
     extractDateFormat: function(formatStr) {
-        console.log('📅 [extractDateFormat] INICIO - formatStr:', formatStr);
-        debugger; // ⭐ BREAKPOINT EN EXTRACT DATE FORMAT
-        
         if (!formatStr || typeof formatStr !== 'string') {
             return { format: 'AAAAMMDD', separator: '', pattern: 'YMD', internalFormat: 'AAAAMMDD', displayFormat: 'AAAAMMDD' };
         }
-        
+
         const format = formatStr.trim();
         let separator = '';
         let pattern = '';
         let internalFormat = '';
-        
+
         // Detectar separador
         if (format.includes('/')) {
             separator = '/';
@@ -141,85 +168,94 @@ const ConfigUtils = {
         } else if (format.includes('.')) {
             separator = '.';
         }
-        
+
         // Determinar patrón y formato interno basado en el formato de entrada
         if (format.startsWith('DD') || format.startsWith('D')) {
             pattern = 'DMY';
-            // Para DD/MM/AAAA el formato interno debería ser DDMMAAAA
-            internalFormat = separator ? format.replace(/[^A-Za-z]/g, '') : 'DDMMAAAA';
+            internalFormat = 'DDMMAAAA';
         } else if (format.startsWith('MM') || format.startsWith('M')) {
             pattern = 'MDY';
-            // Para MM/DD/AAAA el formato interno debería ser MMDDAAAA
-            internalFormat = separator ? format.replace(/[^A-Za-z]/g, '') : 'MMDDAAAA';
+            internalFormat = 'MMDDAAAA';
         } else if (format.startsWith('AAAA') || format.startsWith('AA')) {
             pattern = 'YMD';
-            // Para AAAA-MM-DD el formato interno debería ser AAAAMMDD
-            internalFormat = separator ? format.replace(/[^A-Za-z]/g, '') : 'AAAAMMDD';
+            internalFormat = 'AAAAMMDD';
         } else {
-            // Si no se puede determinar, usar el formato tal como viene o AAAAMMDD por defecto
-            pattern = 'YMD';
-            internalFormat = format.replace(/[^A-Za-z]/g, '') || 'AAAAMMDD';
+            pattern = 'DMY';
+            internalFormat = 'DDMMAAAA';
         }
-        
-        const result = {
+
+        return {
             format: format,
             separator: separator,
             pattern: pattern,
             internalFormat: internalFormat,
             displayFormat: format
         };
-        
-        console.log('📅 [extractDateFormat] RESULTADO:', result);
-        return result;
     },
-    
+
     /**
-     * Parsea las opciones desde un string de valores
-     * @param {string} valuesStr - String con opciones (ej: "1-Opción 1\n2-Opción 2")
+     * Parsea las opciones desde un string de valores o array
+     * @param {string|Array} values - String con opciones (ej: "1-Opción 1\n2-Opción 2") o array de valores
      * @returns {Array} - Array de objetos {value, label}
      */
-    parseOptionsList: function(valuesStr) {
-        console.log('🎯 [parseOptionsList] INICIO - valuesStr:', valuesStr);
-        debugger; // ⭐ BREAKPOINT EN PARSE OPTIONS LIST
-        
+    parseOptionsList: function(values) {
+        // Si es un array, procesarlo directamente
+        if (Array.isArray(values)) {
+            const options = [];
+
+            for (const value of values) {
+                const strValue = String(value).trim();
+                const codeMatch = strValue.match(/^([0-9a-zA-Z]+)[-=\s]+(.+)$/);
+
+                if (codeMatch) {
+                    options.push({
+                        value: codeMatch[1].trim(),
+                        label: strValue
+                    });
+                } else {
+                    options.push({
+                        value: strValue,
+                        label: strValue
+                    });
+                }
+            }
+
+            return options;
+        }
+
+        // Procesar como string
+        const valuesStr = values;
         if (!valuesStr || typeof valuesStr !== 'string') {
             return [];
         }
-        
+
         const options = [];
-        
-        // Dividir por líneas primero
         const lines = valuesStr.split(/\n|\r\n/).filter(line => line.trim() !== '');
-        
+
         for (const line of lines) {
             const trimmedLine = line.trim();
-            
-            // Detectar formato: código seguido de separador y descripción
-            const codeMatch = trimmedLine.match(/^([0-9a-zA-Z]+)[-=\s]+(.+)$/);
-            
+            const codeMatch = trimmedLine.match(/^([0-9a-zA-Z]+)[-=\s.]+(.+)$/);
+
             if (codeMatch) {
                 options.push({
                     value: codeMatch[1].trim(),
                     label: trimmedLine
                 });
             } else {
-                // Si no se puede parsear, usar la línea completa
                 options.push({
                     value: trimmedLine,
                     label: trimmedLine
                 });
             }
         }
-        
+
         // Si no encontró líneas, intentar separar por comas o punto y coma
         if (options.length === 0 && valuesStr.includes(',')) {
             const items = valuesStr.split(',');
             for (const item of items) {
                 const trimmedItem = item.trim();
-                
-                // Detectar formato: código seguido de separador y descripción
-                const codeMatch = trimmedItem.match(/^([0-9a-zA-Z]+)[-=\s]+(.+)$/);
-                
+                const codeMatch = trimmedItem.match(/^([0-9a-zA-Z]+)[-=\s.]+(.+)$/);
+
                 if (codeMatch) {
                     options.push({
                         value: codeMatch[1].trim(),
@@ -233,8 +269,7 @@ const ConfigUtils = {
                 }
             }
         }
-        
-        console.log('🎯 [parseOptionsList] RESULTADO:', options);
+
         return options;
     },
 
@@ -244,56 +279,44 @@ const ConfigUtils = {
      * @returns {HTMLElement} - Elemento de entrada (input, select, etc)
      */
     createFieldInput: function(field) {
-        console.log('🏗️ [createFieldInput] INICIO - Field:', field);
-         
-        // Crear un tipo de entrada adecuado basado en el tipo de campo
         let input;
-        
-        // Añadir clase común para todos los inputs de configuración
         const className = 'config-field-input';
-        
-        // Detectar el tipo de campo (normalizar)
         const fieldType = this.normalizeFieldType(field);
-        console.log('🏗️ [createFieldInput] Tipo detectado:', fieldType);
-        
+
         // Si es un campo de tipo lista (con opciones)
         if (fieldType === 'lista') {
-            console.log('🎯 [createFieldInput] Creando SELECT para lista de opciones');
             input = document.createElement('select');
-            
+
             // Añadir opción vacía
             const emptyOption = document.createElement('option');
             emptyOption.value = '';
             emptyOption.textContent = '-- Seleccione --';
             input.appendChild(emptyOption);
-            
+
             // Obtener las opciones desde el campo values
             const options = this.parseOptionsList(field.values);
-            
+
             // Añadir opciones al select
             options.forEach(option => {
                 const optionElement = document.createElement('option');
                 optionElement.value = option.value;
                 optionElement.textContent = option.label;
-                // Guardar el valor completo como atributo de datos
                 optionElement.dataset.fullValue = option.label;
                 input.appendChild(optionElement);
             });
-            
-            // Guardar información adicional para procesar en submit
+
             input.dataset.isOptionsList = 'true';
         }
         // Compatibilidad con el formato antiguo de valores predefinidos
         else if (field.values && Array.isArray(field.values) && field.values.length > 0) {
-            console.log('🎯 [createFieldInput] Creando SELECT para valores array');
             input = document.createElement('select');
-            
+
             // Añadir opción vacía
             const emptyOption = document.createElement('option');
             emptyOption.value = '';
             emptyOption.textContent = '-- Seleccione --';
             input.appendChild(emptyOption);
-            
+
             // Añadir opciones basadas en los valores
             field.values.forEach(value => {
                 const option = document.createElement('option');
@@ -301,67 +324,53 @@ const ConfigUtils = {
                 option.textContent = value;
                 input.appendChild(option);
             });
-        } 
+        }
         // Campos numéricos
         else if (fieldType === 'numerico') {
-            console.log('🔢 [createFieldInput] Creando INPUT numérico');
             input = document.createElement('input');
             input.type = 'text';
             input.pattern = '[0-9]*';
-            input.inputMode = 'numeric'; // Muestra teclado numérico en móviles
-            
+            input.inputMode = 'numeric';
+
             // Añadir validación en tiempo real
             input.addEventListener('input', function(e) {
-                console.log('🔢 Validación numérica en tiempo real:', this.value);
-                // Reemplazar caracteres no numéricos
                 this.value = this.value.replace(/[^0-9]/g, '');
             });
-            
-            // Limitar longitud si está definida
+
             if (field.length) {
                 input.maxLength = field.length;
             }
-        } 
+        }
         // Campos de fecha
         else if (fieldType === 'fecha') {
-            console.log('📅 [createFieldInput] Creando INPUT de fecha');
             input = document.createElement('input');
             input.type = 'text';
             input.classList.add('fecha-input');
-            
+
             // Extraer formato de fecha desde el campo values
             const dateFormat = this.extractDateFormat(field.values);
-            
+
             // Guardar información del formato como atributos de datos
             input.dataset.dateFormat = dateFormat.format || 'AAAAMMDD';
             input.dataset.dateSeparator = dateFormat.separator || '';
             input.dataset.datePattern = dateFormat.pattern || 'YMD';
-            
+
             // Usar la descripción completa del values como placeholder si existe
             if (field.values && typeof field.values === 'string' && field.values.trim()) {
-                input.placeholder = field.values.trim(); // Descripción completa del formato
+                input.placeholder = field.values.trim();
             } else {
                 input.placeholder = dateFormat.format || 'AAAAMMDD';
             }
-            
+
             // Aplicar máscara de fecha basada en el formato
             input.addEventListener('input', function(e) {
-                console.log('📅 Validación de fecha en tiempo real:', this.value);
-                
-                // Obtener datos del formato
                 const format = this.dataset.dateFormat || 'AAAAMMDD';
                 const separator = this.dataset.dateSeparator || '';
                 const pattern = this.dataset.datePattern || 'YMD';
-                
-                // Almacenar valor original antes de aplicar formato
                 const rawValue = this.value.replace(/[^0-9]/g, '');
-                
-                // Aplicar formato con separadores según el patrón
                 let formattedValue = '';
-                
-                // Aplicar formato según el patrón detectado
+
                 if (pattern === 'YMD') {
-                    // Formato AAAA-MM-DD
                     if (rawValue.length > 0) {
                         formattedValue = rawValue.substring(0, Math.min(4, rawValue.length));
                     }
@@ -372,7 +381,6 @@ const ConfigUtils = {
                         formattedValue += separator + rawValue.substring(6, Math.min(8, rawValue.length));
                     }
                 } else if (pattern === 'MDY') {
-                    // Formato MM/DD/AAAA
                     if (rawValue.length > 0) {
                         formattedValue = rawValue.substring(0, Math.min(2, rawValue.length));
                     }
@@ -383,7 +391,6 @@ const ConfigUtils = {
                         formattedValue += separator + rawValue.substring(4, Math.min(8, rawValue.length));
                     }
                 } else {
-                    // Por defecto usar DMY (DD/MM/AAAA)
                     if (rawValue.length > 0) {
                         formattedValue = rawValue.substring(0, Math.min(2, rawValue.length));
                     }
@@ -394,85 +401,69 @@ const ConfigUtils = {
                         formattedValue += separator + rawValue.substring(4, Math.min(8, rawValue.length));
                     }
                 }
-                
-                // Actualizar el valor con el formato aplicado
+
                 this.value = formattedValue;
             });
-            
-            // Limitar longitud según el formato
+
             if (field.length) {
                 input.maxLength = field.length;
             } else {
-                // Calcular longitud máxima basada en formato
-                const baseLength = 8; // AAAAMMDD son 8 caracteres
+                const baseLength = 8;
                 const dateFormat = this.extractDateFormat(field.values);
-                const separators = dateFormat.separator ? 2 : 0; // DD/MM/AAAA tiene 2 separadores
+                const separators = dateFormat.separator ? 2 : 0;
                 input.maxLength = baseLength + separators;
             }
         }
         // Campos alfanuméricos
         else if (fieldType === 'alfanumerico') {
-            console.log('🔤 [createFieldInput] Creando INPUT alfanumérico');
             input = document.createElement('input');
             input.type = 'text';
-            
-            // Limitar longitud si está definida
+
             if (field.length) {
                 input.maxLength = field.length;
             }
-            
-            // Por defecto los alfanuméricos permiten letras y números
-            // pero podemos añadir validación si es necesario
+
             input.pattern = '[A-Za-z0-9 ]*';
-            
-            // Validar en tiempo real solo para longitudes cortas (para evitar lag)
+
+            // Validar en tiempo real solo para longitudes cortas
             if (field.length && field.length <= 20) {
                 input.addEventListener('input', function(e) {
-                    console.log('🔤 Convertir a mayúsculas:', this.value);
-                    // Convertir a mayúsculas automáticamente
                     this.value = this.value.toUpperCase();
                 });
             }
         }
         // Campos por defecto (texto)
         else {
-            console.log('📝 [createFieldInput] Creando INPUT por defecto');
             input = document.createElement('input');
             input.type = 'text';
-            
-            // Limitar longitud si está definida
+
             if (field.length) {
                 input.maxLength = field.length;
             }
         }
-        
+
         // Añadir clase común y clase específica por tipo
         input.className = className + ' ' + fieldType + '-input';
-        
-        // Añadir placeholder si existe - priorizar diferentes fuentes de placeholder
-        // 1. Si hay descripción en field.description, usarla
-        // 2. Si es campo alfanumérico y tiene valores en una sola línea, usar eso como placeholder
+
+        // Añadir placeholder si existe
         if (field.description) {
             input.placeholder = field.description;
-        } else if (field.values && typeof field.values === 'string' && !input.placeholder && 
+        } else if (field.values && typeof field.values === 'string' && !input.placeholder &&
                   fieldType === 'alfanumerico') {
-            // Para campos que tienen un valor en la columna pero no son ni lista ni fecha
-            // usar ese valor como placeholder descriptivo
             const valueTrimmed = field.values.trim();
             if (valueTrimmed && !valueTrimmed.includes('\n')) {
                 input.placeholder = valueTrimmed;
             }
         }
-        
+
         // Marcar si es requerido
         if (field.required) {
             input.required = true;
         }
-        
+
         // Guardar el tipo de campo como atributo de datos
         input.dataset.fieldType = fieldType;
-        
-        console.log('🏗️ [createFieldInput] INPUT CREADO:', input);
+
         return input;
     },
 
@@ -481,97 +472,68 @@ const ConfigUtils = {
      * @param {string} containerSelector - Selector del contenedor donde buscar campos
      */
     applyValidationsToExistingFields: function() {
-        console.log('🔧 [applyValidationsToExistingFields] INICIO');
-        debugger; // ⭐ BREAKPOINT EN APPLY VALIDATIONS
-        
-        const self = this; // Referencia a ConfigUtils para usar dentro de callbacks
-        
-        // Buscar todos los inputs en los contenedores de configuración
+        const self = this;
         const inputs = document.querySelectorAll('#headerConfigTable .config-field-input, #requestConfigTable .config-field-input');
-        console.log('🔧 [applyValidationsToExistingFields] Inputs encontrados:', inputs.length);
-        
+
         inputs.forEach((input, index) => {
-            console.log(`🔧 [applyValidationsToExistingFields] Procesando input ${index + 1}/${inputs.length}:`, input);
-            
-            // Obtener nombre del campo desde atributo data
             const fieldName = input.dataset.fieldName;
             if (!fieldName) {
-                console.log('❌ Sin fieldName, omitiendo');
                 return;
             }
-            
-            // Obtener información adicional del campo desde la estructura
+
             const rowElement = input.closest('tr');
             if (!rowElement) {
-                console.log('❌ Sin rowElement, omitiendo');
                 return;
             }
-            
-            // Obtener información de valores y tipo desde la fila
-            const valuesCell = rowElement.querySelector('td:nth-child(6)'); // La celda de valores suele ser la 6ta
-            const typeCell = rowElement.querySelector('td:nth-child(2)'); // La celda de tipo suele ser la 2da
-            
+
+            const valuesCell = rowElement.querySelector('td:nth-child(6)');
+            const typeCell = rowElement.querySelector('td:nth-child(2)');
+
             let fieldValues = '';
-            let fieldType = 'alfanumerico'; // Tipo por defecto
-            
-            // Extraer valores si existen
+            let fieldType = 'alfanumerico';
+
             if (valuesCell) {
                 fieldValues = valuesCell.textContent.trim();
             }
-            
-            // Extraer tipo si existe
+
             if (typeCell) {
                 const typeCellText = typeCell.textContent.trim().toLowerCase();
-                
-                if (typeCellText.includes('num')) {
+                if (typeCellText === 'numerico' || typeCellText === 'numérico' || typeCellText === 'numeric') {
                     fieldType = 'numerico';
-                } else if (typeCellText.includes('alfa')) {
+                } else if (typeCellText.includes('alfa') || typeCellText === 'alfanumerico' || typeCellText === 'alfanumérico') {
                     fieldType = 'alfanumerico';
                 }
             }
-            
-            // Crear objeto de campo para usar con nuestras funciones
+
             const fieldObject = {
                 name: fieldName,
                 values: fieldValues,
                 type: fieldType
             };
-            
-            // Usar nuestra función normalizeFieldType para determinar el tipo real
+
             const normalizedType = self.normalizeFieldType(fieldObject);
             fieldType = normalizedType;
-            
-            console.log(`🎯 Campo ${fieldName}: tipo detectado ${fieldType}, valores: ${fieldValues ? 'sí' : 'no'}`);
-            
+
             // Procesar según el tipo normalizado
-            // Verificar si es un campo de lista (con opciones)
             if (fieldType === 'lista' && fieldValues) {
-                console.log(`🎯 Aplicando validación de LISTA DE OPCIONES al campo existente: ${fieldName}`);
-                
-                // Extraer opciones
                 const options = self.parseOptionsList(fieldValues);
-                
-                // Reemplazar input por select
+
                 if (options.length > 0 && input.tagName !== 'SELECT') {
-                    // Crear select
                     const select = document.createElement('select');
                     select.className = input.className;
                     select.id = input.id;
                     select.name = input.name;
                     select.required = input.required;
-                    
-                    // Copiar data attributes
+
                     for (const key in input.dataset) {
                         select.dataset[key] = input.dataset[key];
                     }
-                    
-                    // Añadir opción vacía
+
                     const emptyOption = document.createElement('option');
                     emptyOption.value = '';
                     emptyOption.textContent = '-- Seleccione --';
                     select.appendChild(emptyOption);
-                    
-                    // Añadir opciones
+
                     options.forEach(option => {
                         const optionElement = document.createElement('option');
                         optionElement.value = option.value;
@@ -579,44 +541,48 @@ const ConfigUtils = {
                         optionElement.dataset.fullValue = option.label;
                         select.appendChild(optionElement);
                     });
-                    
-                    // Reemplazar input por select
+
                     input.replaceWith(select);
-                    
-                    // Marcar como lista de opciones
                     select.dataset.fieldType = 'lista';
                     select.dataset.isOptionsList = 'true';
                 }
-                
-                return; // Continuar con el siguiente input
+
+                return;
             }
-            
-            // Para campos alfanuméricos, convertir a mayúsculas
-            if (fieldType === 'alfanumerico') {
-                // Añadir clase visual
-                input.classList.add('alfanumerico-input');
+
+            // Para campos numéricos, aplicar validación de solo números
+            if (fieldType === 'numerico') {
+                input.classList.add('numerico-input');
+                input.pattern = '[0-9]*';
+                input.inputMode = 'numeric';
+
+                // Clonar el input para agregar el event listener
+                const newInput = input.cloneNode(true);
+                newInput.addEventListener('input', function(e) {
+                    this.value = this.value.replace(/[^0-9]/g, '');
+                });
+                newInput.dataset.fieldType = fieldType;
                 
-                // Solo convertir a mayúsculas si la longitud es manejable
+                input.replaceWith(newInput);
+                console.log(`Campo numérico ${fieldName} configurado con validación`);
+            }
+            // Para campos alfanuméricos, convertir a mayúsculas
+            else if (fieldType === 'alfanumerico') {
+                input.classList.add('alfanumerico-input');
+
                 if (input.maxLength <= 20 || !input.maxLength) {
-                    // Eliminar listeners existentes
-                    input.replaceWith(input.cloneNode(true));
-                    const newInput = document.querySelector(`[data-field-name="${fieldName}"]`);
-                    
-                    // Aplicar validación alfanumérica
+                    const newInput = input.cloneNode(true);
                     newInput.addEventListener('input', function(e) {
-                        console.log('🔤 Convertir a mayúsculas:', this.value);
                         this.value = this.value.toUpperCase();
                     });
-                    
-                    // Guardar el tipo detectado
                     newInput.dataset.fieldType = fieldType;
+                    
+                    input.replaceWith(newInput);
                 }
             }
         });
-        
-        console.log('[ConfigUtils] Validaciones aplicadas correctamente');
     },
-    
+
     /**
      * Muestra una notificación al usuario
      * @param {string} message - Mensaje a mostrar
@@ -625,10 +591,16 @@ const ConfigUtils = {
      */
     showNotification: function(message, type = 'info', useSwal = false) {
         console.log(`[Notification ${type}]: ${message}`);
-        
+
+        // Verificar si es una notificación duplicada
+        if (NotificationDeduplicator.isDuplicate(message, type)) {
+            console.log(`[Notification ${type}] DUPLICADA, omitiendo: ${message}`);
+            return;
+        }
+
         // Automatically use SweetAlert for warnings and errors if available
         const shouldUseSwal = (useSwal || type === 'warning' || type === 'error') && typeof Swal !== 'undefined';
-        
+
         // Si SweetAlert está disponible y debe usarse
         if (shouldUseSwal) {
             // Para mensajes con HTML, usar Swal directamente
@@ -642,104 +614,163 @@ const ConfigUtils = {
                 });
                 return;
             }
-            
+
             // Para mensajes simples, usar toast
             const Toast = Swal.mixin({
                 toast: true,
                 position: 'top-end',
                 showConfirmButton: false,
-                timer: type === 'error' ? 5000 : 3000,
-                timerProgressBar: true
+                timer: type === 'error' ? 5000 : 3000, // Default timer for non-error toasts
+                timerProgressBar: true,
+                didOpen: (toast) => {
+                    toast.addEventListener('mouseenter', Swal.stopTimer);
+                    toast.addEventListener('mouseleave', Swal.resumeTimer);
+                }
             });
-            
+
             Toast.fire({
                 icon: this.mapNotificationType(type),
                 title: message
             });
-            
             return;
         }
-        
-        // Método tradicional con elemento notification
-        const notification = document.getElementById('notification');
-        if (!notification) return;
-        
-        // Limpiar clases anteriores
-        notification.className = 'notification';
-        
-        // Agregar clase según el tipo
-        notification.classList.add(type);
-        
-        // Establecer mensaje (sanitizando HTML si es necesario)
-        if (message.includes('<') && !useSwal) {
-            // Si contiene HTML pero no usamos Swal, eliminar etiquetas
-            notification.textContent = message.replace(/<[^>]*>/g, '');
+
+        // Si SweetAlert no está disponible o no debe usarse, usar Toastr
+        if (typeof toastr !== 'undefined') {
+            toastr.options = {
+                "closeButton": true,
+                "progressBar": true,
+                "positionClass": "toast-top-right",
+                "timeOut": type === 'error' ? "5000" : "3000", // Duración en milisegundos
+                "extendedTimeOut": "1000",
+                "showEasing": "swing",
+                "hideEasing": "linear",
+                "showMethod": "fadeIn",
+                "hideMethod": "fadeOut"
+            };
+
+            switch (type) {
+                case 'success':
+                    toastr.success(message);
+                    break;
+                case 'error':
+                    toastr.error(message);
+                    break;
+                case 'warning':
+                    toastr.warning(message);
+                    break;
+                case 'info':
+                default:
+                    toastr.info(message);
+                    break;
+            }
         } else {
-            notification.textContent = message;
+            // Fallback a console.log si Toastr tampoco está disponible
+            console.warn("Toastr no está disponible. Mostrando notificación en consola.");
+            console.log(`[Notification ${type}]: ${message}`);
         }
-        
-        // Mostrar notificación
-        notification.style.display = 'block';
-        
-        // Ocultar después de un tiempo
-        setTimeout(() => {
-            notification.style.display = 'none';
-        }, type === 'error' ? 8000 : 5000);
     },
-    
+
     /**
-     * Mapea tipos de notificación a íconos de SweetAlert
-     * @param {string} type - Tipo de notificación
-     * @returns {string} - Tipo de ícono para SweetAlert
+     * Mapea el tipo de notificación a un ícono de SweetAlert2
+     * @param {string} type - Tipo de notificación: 'success', 'error', 'info', 'warning'
+     * @returns {string} - Nombre del ícono de SweetAlert2
      */
     mapNotificationType: function(type) {
         switch (type) {
-            case 'success': return 'success';
-            case 'error': return 'error';
-            case 'warning': return 'warning';
+            case 'success':
+                return 'success';
+            case 'error':
+                return 'error';
+            case 'warning':
+                return 'warning';
             case 'info':
-            default: return 'info';
+            default:
+                return 'info';
         }
     },
-    
+
     /**
-     * Obtiene el título según el tipo de notificación
-     * @param {string} type - Tipo de notificación
-     * @returns {string} - Título para la notificación
+     * Obtiene el título para una notificación de SweetAlert2
+     * @param {string} type - Tipo de notificación: 'success', 'error', 'info', 'warning'
+     * @returns {string} - Título de la notificación
      */
     getNotificationTitle: function(type) {
         switch (type) {
-            case 'success': return 'Éxito';
-            case 'error': return 'Error';
-            case 'warning': return 'Advertencia';
+            case 'success':
+                return 'Éxito';
+            case 'error':
+                return 'Error';
+            case 'warning':
+                return 'Advertencia';
             case 'info':
-            default: return 'Información';
+            default:
+                return 'Información';
         }
+    },
+
+    /**
+     * Muestra un mensaje de error con SweetAlert2
+     * @param {string} message - Mensaje de error a mostrar
+     */
+    showError: function(message) {
+        this.showNotification(message, 'error', true);
+    },
+
+    /**
+     * Muestra un mensaje de éxito con SweetAlert2
+     * @param {string} message - Mensaje de éxito a mostrar
+     */
+    showSuccess: function(message) {
+        this.showNotification(message, 'success', true);
+    },
+
+    /**
+     * Muestra un mensaje de advertencia con SweetAlert2
+     * @param {string} message - Mensaje de advertencia a mostrar
+     */
+    showWarning: function(message) {
+        this.showNotification(message, 'warning', true);
+    },
+
+    /**
+     * Muestra un mensaje de información con SweetAlert2
+     * @param {string} message - Mensaje de información a mostrar
+     */
+    showInfo: function(message) {
+        this.showNotification(message, 'info', true);
+    },
+
+    /**
+     * Muestra un mensaje de confirmación con SweetAlert2
+     * @param {string} title - Título de la confirmación
+     * @param {string} text - Texto del mensaje
+     * @param {function} onConfirm - Callback a ejecutar si el usuario confirma
+     * @param {function} onCancel - Callback a ejecutar si el usuario cancela
+     */
+    showConfirmation: function(title, text, onConfirm, onCancel) {
+        Swal.fire({
+            title: title,
+            text: text,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Sí',
+            cancelButtonText: 'No'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                if (onConfirm && typeof onConfirm === 'function') {
+                    onConfirm();
+                }
+            } else if (result.dismiss === Swal.DismissReason.cancel) {
+                if (onCancel && typeof onCancel === 'function') {
+                    onCancel();
+                }
+            }
+        });
     }
 };
 
-// DEBUGGING: Función para probar manualmente las funciones
-window.testConfigUtils = function() {
-    console.log('🧪 [Manual Test] Iniciando pruebas manuales...');
-    
-    // Test normalizeFieldType
-    const testFields = [
-        { name: 'fecha-nacimiento', type: 'alfanumerico', values: '' },
-        { name: 'edad', type: 'numerico', values: '' },
-        { name: 'estado', type: 'alfanumerico', values: '1-Activo\n2-Inactivo' },
-        { name: 'fecha-registro', type: 'alfanumerico', values: 'DD/MM/AAAA' }
-    ];
-    
-    testFields.forEach(field => {
-        const normalizedType = ConfigUtils.normalizeFieldType(field);
-        console.log(`🧪 Campo: ${field.name}, Tipo detectado: ${normalizedType}`);
-    });
-    
-    console.log('🧪 [Manual Test] Pruebas completadas');
-};
-
-// Hacer ConfigUtils disponible globalmente
-window.ConfigUtils = ConfigUtils;
-
-// Confirmar que el objeto está completo
-console.log('✅ [ConfigUtils] Objeto ConfigUtils cargado correctamente:', Object.keys(ConfigUtils));
+// Exponer ConfigUtils globalmente si es necesario (depende del patrón de módulos)
+// window.ConfigUtils = ConfigUtils; // Descomentar si se usa en un entorno global

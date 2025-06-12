@@ -7,7 +7,7 @@ const path = require('path');
 const fs = require('fs-extra');
 const router = express.Router();
 
-const messageCreator = require('../api/message-creator');
+const messageCreator = require('../utils/message-creator');
 const { findServiceByNumber } = require('../utils/service-lookup');
 const { generarEstructuraDetallada, procesarElementos } = require('../utils/ida-message-utils');
 
@@ -30,7 +30,7 @@ const { generarEstructuraDetallada, procesarElementos } = require('../utils/ida-
         return res.status(404).json({ error: `[IDA/sendmessage-detailed] Structure not found for service ${serviceNumber}` });
       }
       
-      const configDir = path.join(__dirname, '..', 'settings');
+      const configDir = path.join(__dirname, '..', 'JsonStorage', 'settings');
       let configData = null;
       try {
         const configFiles = fs.readdirSync(configDir)

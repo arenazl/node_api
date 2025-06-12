@@ -1,0 +1,11 @@
+{
+  "value": "",
+  "serviceNumber": "1010",
+  "timestamp": "2025-06-12T06:38:07.930Z",
+  "sourceFile": "20250612T06380_SVO1010-Consulta Productos por NIC.XLS",
+  "foundSheetName": null,
+  "foundRowContaining000": null,
+  "missingTab": true,
+  "availableTabs": 2,
+  "error": "No se encontró ninguna hoja que contenga \"ejemplo\" en su nombre. Pestañas disponibles: 2."
+}

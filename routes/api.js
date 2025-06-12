@@ -8,13 +8,13 @@ const fs = require('fs-extra');
 const router = express.Router();
 
 // Importar módulos de la API
-const messageCreator = require('../api/message-creator');
-const messageAnalyzer = require('../api/message-analyzer');
+const messageCreator = require('../utils/message-creator');
+const messageAnalyzer = require('../utils/message-analyzer');
 
 // Cargar estructura de cabecera
 let headerStructure = {};
 try {
-  const headerPath = path.join(__dirname, '..', 'structures', 'header_structure.json');
+  const headerPath = path.join(__dirname, '..', 'JsonStorage', 'structures', 'header_structure.json');
   if (fs.existsSync(headerPath)) {
     headerStructure = fs.readJsonSync(headerPath);
   }
@@ -82,7 +82,7 @@ router.post('/process', async (req, res) => {
     if (!serviceStructure) {
       // Intentar cargar la estructura de servicio por defecto
       try {
-        const servicePath = path.join(__dirname, '..', 'structures', 'service_structure.json');
+        const servicePath = path.join(__dirname, '..', 'JsonStorage', 'structures', 'service_structure.json');
         if (fs.existsSync(servicePath)) {
           serviceStructure = fs.readJsonSync(servicePath);
         } else {

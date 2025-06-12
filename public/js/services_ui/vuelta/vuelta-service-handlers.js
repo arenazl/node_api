@@ -35,6 +35,13 @@ function initializeVueltaServiceHandlers() {
         if (vueltaServiceSelect) {
             loadServicesInSelect(vueltaServiceSelect);
             
+            // Cargar automáticamente las configuraciones para el servicio 3088 predeterminado
+            if (vueltaConfigSelect) {
+                setTimeout(() => {
+                    loadConfigsForService('3088', vueltaConfigSelect);
+                }, 500); // Pequeño delay para asegurar que el DOM esté listo
+            }
+            
             // Evento al cambiar el servicio
             vueltaServiceSelect.addEventListener('change', function() {
                 const serviceNumber = this.value;
@@ -189,15 +196,180 @@ function initializeVueltaServiceHandlers() {
             console.log('[Services UI - VUELTA] Event listener added for Generate Example button');
         }
         
+        // Get reference to the copy result button
+        const copyVueltaResultBtn = document.getElementById('copyVueltaResultBtn');
+        const vueltaResultElement = document.getElementById('vueltaResult');
+
+        // Event for copying result string to clipboard
+        if (copyVueltaResultBtn && vueltaResultElement) {
+             // Remove previous listener to prevent duplication (if any)
+            copyVueltaResultBtn.removeEventListener('click', copyVueltaResultHandler);
+
+            // Define the handler function
+            function copyVueltaResultHandler() {
+                console.log('[DEBUG] copyVueltaResultHandler: Iniciando función...');
+                const textToCopy = vueltaResultElement.textContent;
+
+                if (!textToCopy || textToCopy.trim() === '' || textToCopy.trim() === 'La respuesta se mostrará aquí') {
+                    console.log('[DEBUG] copyVueltaResultHandler: No hay resultado para copiar.');
+                     if (typeof ConfigUtils !== 'undefined' && ConfigUtils.showNotification) {
+                        ConfigUtils.showNotification('No hay resultado para copiar', 'warning');
+                    } else {
+                        alert('No hay resultado para copiar');
+                    }
+                    return;
+                }
+
+                // Use the Clipboard API to copy text
+                navigator.clipboard.writeText(textToCopy)
+                    .then(() => {
+                        console.log('[DEBUG] copyVueltaResultHandler: Resultado copiado al portapapeles.');
+                        if (typeof ConfigUtils !== 'undefined' && ConfigUtils.showNotification) {
+                            ConfigUtils.showNotification('Resultado copiado al portapapeles', 'success');
+                        } else {
+                            alert('Resultado copiado al portapapeles');
+                        }
+                    })
+                    .catch(err => {
+                        console.error('[DEBUG] copyVueltaResultHandler: Error al copiar resultado:', err);
+                         if (typeof ConfigUtils !== 'undefined' && ConfigUtils.showNotification) {
+                            ConfigUtils.showNotification('Error al copiar resultado: ' + err.message, 'error');
+                        } else {
+                            alert('Error al copiar resultado: ' + err.message);
+                        }
+                    });
+            }
+
+            // Add the event listener
+            copyVueltaResultBtn.addEventListener('click', copyVueltaResultHandler);
+            console.log('[Services UI - VUELTA] Event listener added for Copy Result button');
+        }
+
         console.log('[Services UI - VUELTA] Manejadores de servicios VUELTA inicializados correctamente');
         
         // Marcar como inicializado
         if (window.ServiceInitializationState) {
             window.ServiceInitializationState.setVueltaInitialized();
         }
+
+        // Escuchar evento de actualización de lista de configuraciones
+        if (window.EventBus && window.AppEvents && window.AppEvents.CONFIG_LIST_CHANGED) {
+            window.EventBus.subscribe(window.AppEvents.CONFIG_LIST_CHANGED, (eventData) => {
+                console.log('[Services UI - VUELTA] Evento CONFIG_LIST_CHANGED recibido.', eventData);
+                const currentServiceInVueltaTab = vueltaServiceSelect ? vueltaServiceSelect.value : null;
+                if (currentServiceInVueltaTab && vueltaConfigSelect) {
+                    console.log(`[Services UI - VUELTA] Recargando configuraciones para el servicio ${currentServiceInVueltaTab} en la pestaña VUELTA.`);
+                    loadConfigsForService(currentServiceInVueltaTab, vueltaConfigSelect);
+                }
+            });
+        }
+
     } catch (error) {
         console.error('[Services UI - VUELTA] Error al inicializar manejadores:', error);
     }
+}
+
+/**
+ * Muestra la estructura completa del mensaje con el string de respuesta
+ */
+function mostrarEstructuraCompletaMensaje() {
+    // Obtener valores necesarios
+    const vueltaServiceSelect = document.getElementById('vueltaServiceSelect');
+    const vueltaConfigSelect = document.getElementById('vueltaConfigSelect');
+    const streamDataElement = document.getElementById('streamData');
+    
+    if (!vueltaServiceSelect || !streamDataElement) return;
+    
+    const serviceNumber = vueltaServiceSelect.value;
+    const responseString = streamDataElement.value;
+    
+    // Obtener canal desde la configuración seleccionada
+    let canal = 'XX'; // Valor por defecto
+    if (vueltaConfigSelect && vueltaConfigSelect.selectedOptions[0]) {
+        const selectedOption = vueltaConfigSelect.selectedOptions[0];
+        canal = selectedOption.dataset.canal || canal;
+    }
+    
+    // Buscar o crear contenedor para la estructura completa
+    let messageContainer = document.getElementById('message-structure-container');
+    if (!messageContainer) {
+        // Crear el contenedor después del resultado
+        const resultSection = document.querySelector('.result-section');
+        if (resultSection) {
+            messageContainer = document.createElement('div');
+            messageContainer.id = 'message-structure-container';
+            messageContainer.style.cssText = 'margin-top: 20px; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; background-color: #f9fafb;';
+            messageContainer.innerHTML = `
+                <h4 style="margin-bottom: 15px; color: #1f2937; font-weight: 600;">Estructura Completa del Mensaje</h4>
+                <div class="json-input-container auto-hide-scrollbar" style="margin-bottom: 10px;">
+                    <pre id="message-json-editor" class="json-editor" style="min-height: 150px; max-height: 300px; overflow: auto;"></pre>
+                </div>
+                <button id="copy-message-json" class="action-btn secondary-btn" style="width: 100%;">
+                    Copiar JSON
+                </button>
+            `;
+            resultSection.appendChild(messageContainer);
+        }
+    }
+    
+    // Crear estructura del mensaje
+    const messageStructure = {
+        serviceNumber: serviceNumber,
+        canal: canal,
+        soapResponseString: responseString  // Mantener el nombre del campo como en el documento original
+    };
+    
+    // Mostrar en el editor
+    const messageEditor = document.getElementById('message-json-editor');
+    if (messageEditor) {
+        const jsonString = JSON.stringify(messageStructure, null, 2);
+        messageEditor.textContent = jsonString;
+        
+        // Aplicar formato JSON si está disponible
+        if (typeof window.formatJsonElement === 'function') {
+            try {
+                window.formatJsonElement(messageEditor);
+            } catch (e) {
+                console.error('[Services UI - VUELTA] Error al formatear JSON:', e);
+            }
+        }
+    }
+    
+    // Configurar botón de copiar
+    const copyBtn = document.getElementById('copy-message-json');
+    if (copyBtn) {
+        // Remover listener anterior si existe
+        const newCopyBtn = copyBtn.cloneNode(true);
+        copyBtn.parentNode.replaceChild(newCopyBtn, copyBtn);
+        
+        newCopyBtn.addEventListener('click', function() {
+            navigator.clipboard.writeText(JSON.stringify(messageStructure, null, 2))
+                .then(() => {
+                    // Cambiar texto del botón temporalmente
+                    const originalText = newCopyBtn.textContent;
+                    newCopyBtn.textContent = '¡Copiado!';
+                    newCopyBtn.style.backgroundColor = '#10b981';
+                    
+                    setTimeout(() => {
+                        newCopyBtn.textContent = originalText;
+                        newCopyBtn.style.backgroundColor = '';
+                    }, 2000);
+                    
+                    if (typeof ConfigUtils !== 'undefined' && ConfigUtils.showNotification) {
+                        ConfigUtils.showNotification('JSON copiado al portapapeles', 'success');
+                    }
+                })
+                .catch(err => {
+                    console.error('[Services UI - VUELTA] Error al copiar JSON:', err);
+                    if (typeof ConfigUtils !== 'undefined' && ConfigUtils.showNotification) {
+                        ConfigUtils.showNotification('Error al copiar: ' + err.message, 'error');
+                    }
+                });
+        });
+    }
+    
+    // Hacer visible el contenedor
+    messageContainer.style.display = 'block';
 }
 
 /**
@@ -460,56 +632,98 @@ function loadDataFromConfig(configId, streamDataElement) {
 function displayVueltaResult(result) {
     const resultElement = document.getElementById('vueltaResult');
     if (!resultElement) return;
-    
+
     try {
         // Obtener los datos reales de respuesta (pueden venir en diferentes formatos)
         const responseData = result.response || result.dataVuelta || result;
-        
+
         // Verificar si la respuesta es válida para evitar errores
         if (!responseData) {
             resultElement.textContent = "No se recibieron datos de respuesta";
             return;
         }
-        
+
+        // --- INICIO: Procesamiento para display (deep copy and remove 'index') ---
+
+        // Recursive function to deep copy and remove 'index' property
+        function deepCopyAndRemoveIndex(data) {
+            if (typeof data !== 'object' || data === null) {
+                return data; // Return primitives directly
+            }
+
+            if (Array.isArray(data)) {
+                // If it's an array, map and recursively process each item
+                return data.map(item => deepCopyAndRemoveIndex(item));
+            }
+
+            // If it's an object
+            const newObject = {};
+            for (const key in data) {
+                if (data.hasOwnProperty(key)) {
+                    if (key === 'index' || key === 'randomNumber') { // Check for lowercase 'index' or 'randomNumber'
+                        // Skip adding these properties to the new object
+                        console.log(`[Services UI - VUELTA] Removing '${key}' field for display.`);
+                    } else {
+                        newObject[key] = deepCopyAndRemoveIndex(data[key]); // Recurse on other properties
+                    }
+                }
+            }
+            return newObject;
+        }
+
+        // Create a deep copy and remove the 'index' and 'randomNumber' fields for display
+        const dataToDisplay = deepCopyAndRemoveIndex(responseData);
+
+        // --- FIN: Procesamiento para display ---
+
+
         // Convertir a JSON limpio
-        const cleanJson = JSON.stringify(responseData, null, 2);
-        
+        const cleanJson = JSON.stringify(dataToDisplay, null, 2);
+
         // Asignar el JSON limpio al elemento
         resultElement.textContent = cleanJson;
-        
+
         // Aplicar formato JSON de manera segura
         try {
             if (typeof window.formatJsonElement === 'function') {
                 window.formatJsonElement(resultElement);
             } else {
-                // Si no está disponible el formateador, al menos mantener el texto con formato
+                // If formatter is not available, at least keep the text formatted
                 resultElement.innerHTML = `<pre class="plain-text-content">${cleanJson}</pre>`;
             }
         } catch (formatError) {
             console.error('[Services UI - VUELTA] Error al formatear JSON:', formatError);
-            // En caso de error, mostrar el JSON plano
+            // In case of error, show the plain JSON
             resultElement.innerHTML = `<pre class="plain-text-content">${cleanJson}</pre>`;
         }
-        
-        // Disparar evento para notificar que se ha procesado datos de vuelta
-        const event = new CustomEvent('vuelta-data-processed', { 
+
+        // Dispatch event to notify that vuelta data has been processed
+        // IMPORTANT: Use the original responseData here as per user requirement
+        const event = new CustomEvent('vuelta-data-processed', {
             detail: { result: responseData, container: resultElement }
         });
         document.dispatchEvent(event);
-        
-        // Mostrar información extra en consola si está disponible
+
+        // Mostrar estructura completa del mensaje
+        mostrarEstructuraCompletaMensaje();
+
+        // Show extra info in console if available
+        if (responseData && responseData.extraInfo) {
+            console.log('[Services UI - VUELTA] Información extra:', responseData.extraInfo);
+        }
+
         if (result.stringVuelta) {
             console.log('[Services UI - VUELTA] String de vuelta (longitud):', result.stringVuelta.length);
         }
-        
+
         // Mostrar notificación de éxito usando string para evitar el error de JSON inválido
         if (typeof ConfigUtils !== 'undefined' && ConfigUtils.showNotification) {
             ConfigUtils.showNotification('Servicio procesado correctamente', 'success');
         }
     } catch (error) {
-        console.error('[Services UI - VUELTA] Error al procesar resultado:', error);
-        resultElement.textContent = 'Error al procesar la respuesta: ' + error.message;
-        
+        console.error('[Services UI - VUELTA] Error in displayVueltaResult:', error);
+        resultElement.textContent = 'Error displaying result: ' + error.message;
+
         // Notificar el error
         if (typeof ConfigUtils !== 'undefined' && ConfigUtils.showNotification) {
             ConfigUtils.showNotification('Error al procesar resultado: ' + error.message, 'error');

@@ -16,7 +16,7 @@ const ServiceApiClient = {
      * @returns {Promise<Object>} - Promesa que resuelve con la respuesta del servidor
      */
     sendMessage: async function(header, parameters) {
-        console.log('[ServiceApiClient] Enviando mensaje con:', { header, parameters });
+        console.log('[ServiceApiClient] Enviando mensaje - Servicio:', header?.serviceNumber, 'Canal:', header?.canal);
         
         try {
             // Validar datos esenciales
@@ -44,7 +44,7 @@ const ServiceApiClient = {
             
             // Devolver la respuesta
             const result = await response.json();
-            console.log('[ServiceApiClient] Mensaje enviado correctamente:', result);
+            // console.log('[ServiceApiClient] Mensaje enviado correctamente:', result);
             return result;
         } catch (error) {
             console.error('[ServiceApiClient] Error al enviar mensaje:', error);

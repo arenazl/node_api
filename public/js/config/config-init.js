@@ -50,8 +50,8 @@ initUIManager: function() {
     }
     
     // Initialize ConfigDataHandler with DOM elements
-    if (typeof ConfigDataHandler !== 'undefined' && ConfigDataHandler.initialize) {
-        ConfigDataHandler.initialize(
+    if (typeof window.ConfigDataHandler !== 'undefined' && window.ConfigDataHandler.initialize) {
+        window.ConfigDataHandler.initialize(
             document.getElementById('headerConfigTable'),
             document.getElementById('requestConfigTable')
         );
@@ -117,8 +117,8 @@ initUIManager: function() {
      * Load saved configurations list if available
      */
     loadSavedConfigurations: function() {
-        if (typeof ConfigStorageManager !== 'undefined' && 
-            ConfigStorageManager.loadSavedConfigurations && 
+        if (typeof ConfigStorageManager !== 'undefined' &&
+            ConfigStorageManager.loadSavedConfigurations &&
             ConfigUIManager.updateSavedConfigurationsList) {
             
             console.log('Cargando lista de configuraciones guardadas al iniciar...');
@@ -160,11 +160,11 @@ initUIManager: function() {
             }
             
             // Get current header structure from ConfigServiceLoader
-            const headerStructure = ConfigServiceLoader.currentStructure ? 
+            const headerStructure = ConfigServiceLoader.currentStructure ?
                 ConfigServiceLoader.currentStructure.header_structure : null;
             
             // Call auto-fill function with current parameters
-            ConfigDataHandler.autoFillFields(serviceNumber, headerStructure, canalInput);
+            window.ConfigDataHandler.autoFillFields(serviceNumber, headerStructure, canalInput);
         });
         
         console.log('Auto-fill button initialized');
@@ -216,7 +216,7 @@ initUIManager: function() {
                         
                         // Fill fields with data from header sample
                         try {
-                            ConfigDataHandler.autoFillFields(serviceNumber, structure.header_structure, canalInput);
+                            window.ConfigDataHandler.autoFillFields(serviceNumber, structure.header_structure, canalInput);
                             console.log('Campos auto-completados al seleccionar servicio');
                             
                             // Aplicar validaciones a los campos después de completarlos
@@ -232,8 +232,8 @@ initUIManager: function() {
                         }
                         
                         // Cargar las configuraciones guardadas para este servicio
-                        if (typeof ConfigStorageManager !== 'undefined' && 
-                            ConfigStorageManager.loadSavedConfigurations && 
+                        if (typeof ConfigStorageManager !== 'undefined' &&
+                            ConfigStorageManager.loadSavedConfigurations &&
                             ConfigUIManager.updateSavedConfigurationsList) {
                             
                             console.log(`Cargando configuraciones guardadas para el servicio ${serviceNumber}...`);
@@ -276,21 +276,21 @@ initUIManager: function() {
         // Attach click event handler
         saveButton.addEventListener('click', function() {
             const serviceNumber = serviceSelect ? serviceSelect.value : null;
-            const serviceName = serviceSelect ? 
-                (serviceSelect.options[serviceSelect.selectedIndex] ? 
+            const serviceName = serviceSelect ?
+                (serviceSelect.options[serviceSelect.selectedIndex] ?
                  serviceSelect.options[serviceSelect.selectedIndex].text : '') : '';
             const canal = canalInput ? canalInput.value : '';
             
             // Validate inputs
-            if (ConfigDataHandler.validateInputs(canal, serviceNumber, canalInput, serviceSelect)) {
+            if (window.ConfigDataHandler.validateInputs(canal, serviceNumber, canalInput, serviceSelect)) {
                 // Disable save button while saving
                 saveButton.disabled = true;
                 saveButton.innerText = 'Guardando...';
                 
                 // Call save function with current parameters
-                ConfigDataHandler.saveConfiguration(
-                    serviceNumber, 
-                    serviceName, 
+                window.ConfigDataHandler.saveConfiguration(
+                    serviceNumber,
+                    serviceName,
                     canal,
                     // Success callback
                     function(config, filename) {
@@ -313,6 +313,13 @@ initUIManager: function() {
                                 if (ConfigUIManager && ConfigUIManager.updateSavedConfigurationsList) {
                                     console.log(`Actualizando lista de configuraciones después de guardar: ${configs.length} configs`);
                                     ConfigUIManager.updateSavedConfigurationsList(configs);
+
+                                    // Emitir evento de que la lista de configuraciones ha cambiado
+                                    if (window.EventBus && window.AppEvents && window.AppEvents.CONFIG_LIST_CHANGED) {
+                                        window.EventBus.publish(window.AppEvents.CONFIG_LIST_CHANGED, {
+                                            serviceNumber: serviceNumber // Opcional: pasar el número de servicio afectado
+                                        });
+                                    }
                                 }
                             });
                         }
@@ -355,6 +362,6 @@ initUIManager: function() {
         }
     }
 };
-
+    
 // Auto-initialize the config module
 ConfigInit.initialize();

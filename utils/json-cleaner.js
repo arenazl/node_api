@@ -67,11 +67,102 @@ function filterAllEmptyFields(data) {
   return result;
 }
 
+/**
+ * NEW FUNCTION: Recursively keeps ONLY fields that are empty or contain default "empty" values.
+ * This is the INVERSE of filterAllEmptyFields - shows only empty fields.
+ * @param {Object|Array} data - The data to filter.
+ * @returns {Object|Array} The filtered data containing only empty fields.
+ */
+function keepOnlyEmptyFields(data) {
+  if (!data || typeof data !== 'object') {
+    return data;
+  }
+
+  if (Array.isArray(data)) {
+    return data
+      .map(item => keepOnlyEmptyFields(item))
+      .filter(item => {
+        if (item === null || item === undefined) return false;
+        if (typeof item === 'object' && Object.keys(item).length === 0) return false;
+        // We should NOT keep items that only have an 'index' property
+        if (typeof item === 'object' && Object.keys(item).length === 1 && 'index' in item) {
+            return false; // Don't keep items that only have an index
+        }
+        return true;
+      });
+  }
+
+  const result = {};
+  for (const [key, value] of Object.entries(data)) {
+    if (key.startsWith('occ_') && Array.isArray(value)) {
+      const filteredArray = keepOnlyEmptyFields(value);
+      if (filteredArray.length > 0) {
+        // Further check if array contains more than just {index: X} items
+        const hasSubstantiveData = filteredArray.some(el => typeof el !== 'object' || Object.keys(el).length > 1 || !('index' in el) );
+        if (hasSubstantiveData) {
+            result[key] = filteredArray;
+        }
+      }
+    } else if (value && typeof value === 'object' && !Array.isArray(value)) {
+      const filteredObject = keepOnlyEmptyFields(value);
+      if (Object.keys(filteredObject).length > 0) {
+        result[key] = filteredObject;
+      }
+    } else if (isValueEmptyOrDefaultForFilter(value)) {
+      // INVERTED LOGIC: Keep only empty values
+      result[key] = value;
+    }
+  }
+  return result;
+}
+
+
+/**
+ * Updates count fields to reflect the actual number of occurrences after filtering
+ * @param {Object} data - The data object to update
+ * @returns {Object} The data with updated count fields
+ */
+function updateCountFields(data) {
+  if (!data || typeof data !== 'object') {
+    return data;
+  }
+
+  const result = { ...data };
+  
+  // Look for occurrence arrays and their corresponding count fields
+  for (const [key, value] of Object.entries(data)) {
+    if (key.startsWith('occ_') && Array.isArray(value)) {
+      const occNumber = key.replace('occ_', '');
+      
+      // Look for corresponding count fields (common patterns)
+      const countFieldPatterns = [
+        `SVC3088-CANT-REG`,
+        `CANT-REG`,
+        `CANT_REG`,
+        `COUNT_${occNumber}`,
+        `CANT-${occNumber}`,
+        `SVC3088-CANT-${occNumber}`
+      ];
+      
+      // Update any matching count field
+      for (const pattern of countFieldPatterns) {
+        if (result[pattern] !== undefined) {
+          const actualCount = value.length;
+          result[pattern] = actualCount.toString().padStart(2, '0'); // Format as "02", "03", etc.
+          console.log(`[JSON-CLEANER] Updated ${pattern} from original to ${result[pattern]} (actual count: ${actualCount})`);
+        }
+      }
+    }
+  }
+  
+  return result;
+}
 
 /**
  * Cleans parsed "vuelta" JSON.
  * - Ensures correct occurrence structure using occurrenceFixer.
  * - Optionally filters all empty/default fields.
+ * - Updates count fields to reflect actual number of occurrences after filtering.
  * @param {Object} parsedJson - The raw JSON object from messageAnalyzer.parseMessage.
  * @param {string} filterMode - 'aggressive' (filters all empty/default fields) or 'occurrencesOnly' (currently implies basic fixing).
  * @returns {Object} The cleaned JSON object.
@@ -140,14 +231,21 @@ function cleanVueltaJson(parsedJson, filterMode = 'aggressive') {
     return result;
   }
 
+  let cleanedData;
+  
   if (filterMode === 'aggressive') {
     if (dataToClean.hasOwnProperty('header') && dataToClean.hasOwnProperty('data')) {
-      return {
+      cleanedData = {
         header: dataToClean.header, // Header usually not filtered aggressively
         data: filterAllEmptyFields(dataToClean.data)
       };
+      // Update count fields after filtering
+      cleanedData.data = updateCountFields(cleanedData.data);
+      return cleanedData;
     }
-    return filterAllEmptyFields(dataToClean);
+    cleanedData = filterAllEmptyFields(dataToClean);
+    // Update count fields after filtering
+    return updateCountFields(cleanedData);
   }
   
   // Default (or 'occurrencesOnly' mode for now just returns the fixed data)
@@ -159,5 +257,6 @@ function cleanVueltaJson(parsedJson, filterMode = 'aggressive') {
 module.exports = {
   cleanVueltaJson,
   isValueEmptyOrDefaultForFilter, // Export for potential external use/testing
-  filterAllEmptyFields // Export for potential external use/testing
+  filterAllEmptyFields, // Export for potential external use/testing
+  keepOnlyEmptyFields // Export new function for showing only empty fields
 };

@@ -34,8 +34,8 @@ const serviceConfigRoutes = require('./routes/service-config');
 const systemMaintenanceRoutes = require('./routes/system-maintenance');
 
 // Crear directorios necesarios si no existen
-const uploadsDir = path.join(__dirname, 'uploads');
-const structuresDir = path.join(__dirname, 'structures');
+const uploadsDir = path.join(__dirname, 'JsonStorage', 'uploads');
+const structuresDir = path.join(__dirname, 'JsonStorage', 'structures');
 const logsDir = path.join(__dirname, 'logs');
 fs.ensureDirSync(uploadsDir);
 fs.ensureDirSync(structuresDir);

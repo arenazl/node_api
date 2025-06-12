@@ -1,0 +1,510 @@
+{
+  "header_structure": {
+    "totalLength": 102,
+    "fields": [
+      {
+        "name": "REQUERIMIENTO",
+        "length": null,
+        "type": "",
+        "required": "",
+        "values": "",
+        "description": ""
+      },
+      {
+        "name": "*",
+        "length": null,
+        "type": "Longitud del CAMPO",
+        "required": "Tipo de Datos",
+        "values": "obligatorio   /opcional",
+        "description": "VALORES"
+      },
+      {
+        "name": "LONGITUD DEL MENSAJE",
+        "length": 6,
+        "type": "numerico",
+        "required": "OBLIGATORIO",
+        "values": "VALOR",
+        "description": "VALOR"
+      },
+      {
+        "name": "CANAL",
+        "length": 2,
+        "type": "alfanumerico",
+        "required": "OBLIGATORIO",
+        "values": "VALOR",
+        "description": "VALOR"
+      },
+      {
+        "name": "SERVICIO",
+        "length": 4,
+        "type": "numerico",
+        "required": "OBLIGATORIO",
+        "values": "VALOR",
+        "description": "VALOR"
+      },
+      {
+        "name": "CÓDIGO DE RETORNO",
+        "length": 4,
+        "type": "numerico",
+        "required": "OBLIGATORIO",
+        "values": "CEROS",
+        "description": "0000  Transaccion exitosa                                               \n8991  ERROR Validacion Header mensaje    \n8992  CANAL/SERVICIO NO HABILITADO       \n8993  SERVICIO NO HABILITADO POR CANAL                       \n8001  ERROR PARRAFO DE VALIDACION GENERAL               \n6000 + CODIGO RETORNO <> 0 DEL MODULO MOO1045B"
+      },
+      {
+        "name": "ID DEL MENSAJE",
+        "length": 9,
+        "type": "numerico",
+        "required": "OBLIGATORIO",
+        "values": "VALOR",
+        "description": "VALOR"
+      },
+      {
+        "name": "FECHA",
+        "length": 8,
+        "type": "numerico",
+        "required": "OBLIGATORIO",
+        "values": "VALOR",
+        "description": "VALOR"
+      },
+      {
+        "name": "HORA",
+        "length": 6,
+        "type": "numerico",
+        "required": "OBLIGATORIO",
+        "values": "VALOR",
+        "description": "VALOR"
+      },
+      {
+        "name": "USUARIO",
+        "length": 7,
+        "type": "alfanumerico",
+        "required": "OBLIGATORIO",
+        "values": "VALOR",
+        "description": "VALOR"
+      },
+      {
+        "name": "Ubicación",
+        "length": 4,
+        "type": "numerico",
+        "required": "OBLIGATORIO",
+        "values": "VALOR",
+        "description": "VALOR"
+      },
+      {
+        "name": "TEXTO DEL CÓDIGO DE RETORNO",
+        "length": 45,
+        "type": "alfanumerico",
+        "required": "OBLIGATORIO",
+        "values": "ESPACIOS",
+        "description": "CÓDIGO DE RETORNO <> 0 texto del mensaje          ESTADO ENVIADO <> 0 texto del mensaje"
+      },
+      {
+        "name": "ESTADO ENVIADO",
+        "length": 2,
+        "type": "numerico",
+        "required": "OBLIGATORIO",
+        "values": "CEROS",
+        "description": "VALOR"
+      },
+      {
+        "name": "CAMPO COMPLEMENTARIO",
+        "length": 5,
+        "type": "alfanumerico",
+        "required": "OBLIGATORIO",
+        "values": "ESPACIOS",
+        "description": "ESPACIOS"
+      }
+    ]
+  },
+  "service_structure": {
+    "serviceNumber": "1213",
+    "serviceName": "SERVICIO 1213-Consulta de Convenios",
+    "request": {
+      "totalLength": 46,
+      "elements": [
+        {
+          "type": "field",
+          "index": 0,
+          "name": "SVC1213-TIPO-PEDIDO",
+          "length": 2,
+          "fieldType": "numérico",
+          "required": "Obligatorio",
+          "values": "1. consulta de Tabla del Codigo Nacional de Actividades Economicas",
+          "description": "Tipo de Pedido"
+        },
+        {
+          "type": "field",
+          "index": 1,
+          "name": "SVC1213-N-ITN-ACUE",
+          "length": 9,
+          "fieldType": "numerico",
+          "required": "opcional",
+          "values": "Valor",
+          "description": "Nro Interno de Acuerdo"
+        },
+        {
+          "type": "field",
+          "index": 2,
+          "name": "SVC1213-TI-ACU-COL",
+          "length": 3,
+          "fieldType": "numerico",
+          "required": "obligatorio",
+          "values": "3 = Prestamos                     \n 4 = Cuentas",
+          "description": "Tipo de Acuerdo"
+        },
+        {
+          "type": "occurrence",
+          "index": 3,
+          "id": "occ_3",
+          "count": 9,
+          "fields": [
+            {
+              "type": "field",
+              "index": 4,
+              "name": "SVC1213-CO-SIT-ACU",
+              "length": 1,
+              "fieldType": "numérico",
+              "required": "opcional",
+              "values": "0 = todos                     \n 1 = En fase de propuesta                                              \n 2 = Autorizado                                                        \n 3 = Denegado                                                          \n 4 = En trámite de cierre (la fecha fin de vigencia determina que no pu\n  ede                                                               \n  ser aplicado en más casos(*), salvo excepciones que se realizan po\n  r                                                                 \n  transacciones específicas, siempre y cuando esté en esta situación\n  )                                                                 \n 5 = Cerrado (ya no se puede aplicar, ni siquiera por transacciones    \n  específicas).",
+              "description": "codigo de situacion",
+              "parentId": "occ_3"
+            }
+          ],
+          "level": 1,
+          "parentId": null
+        },
+        {
+          "type": "field",
+          "index": 5,
+          "name": "SVC1213-N-ITN-ACUE-INIC",
+          "length": 9,
+          "fieldType": "numerico",
+          "required": "opcional",
+          "values": "",
+          "description": "Nro Interno de Acuerdo"
+        },
+        {
+          "type": "field",
+          "index": 6,
+          "name": "SVC1213-TI-ACU-COL-INIC",
+          "length": 3,
+          "fieldType": "numerico",
+          "required": "opcional",
+          "values": "",
+          "description": "Tipo de Acuerdo"
+        },
+        {
+          "type": "field",
+          "index": 7,
+          "name": "SVC1213-CO-SIT-ACU-INIC",
+          "length": 10,
+          "fieldType": "alfanumerico",
+          "required": "obligatorio",
+          "values": "",
+          "description": "codigo de situacion de acuerdo"
+        }
+      ],
+      "fieldCount": 6,
+      "occurrenceCount": 1,
+      "totalFieldCount": 7
+    },
+    "response": {
+      "totalLength": 27147,
+      "elements": [
+        {
+          "type": "field",
+          "index": 0,
+          "name": "SVC1213-ESTADO",
+          "length": 2,
+          "fieldType": "numerico",
+          "required": "Obligatorio",
+          "values": "00    PROCESO FINALIZO CORRECTAMENTE.      \n99    ERROR EN SVC0000-CODRET.",
+          "description": "Estado de los registros informados.                                               El valor de este campo, se informa tambien en el campo \"ESTADO ENVIADO\" y el texto correspondiente a este código, en el campo \"TEXTO DEL CÓDIGO DE RETORNO\" de la \"Cabecera Servicios\"."
+        },
+        {
+          "type": "field",
+          "index": 1,
+          "name": "SVC1213-CANT-REG",
+          "length": 2,
+          "fieldType": "numerico",
+          "required": "OPCIONAL",
+          "values": "--",
+          "description": "--"
+        },
+        {
+          "type": "field",
+          "index": 2,
+          "name": "SVC1213-MAS-DATOS",
+          "length": 1,
+          "fieldType": "numerico",
+          "required": "OPCIONAL",
+          "values": "0=NO TIENE MAS PROD.  \n1=TIENE MAS PRODUCTOS",
+          "description": ""
+        },
+        {
+          "type": "field",
+          "index": 3,
+          "name": "SVC1213-N-ITN-ACUE-R",
+          "length": 9,
+          "fieldType": "numerico",
+          "required": "OPCIONAL",
+          "values": "",
+          "description": "Nro Interno de Acuerdo"
+        },
+        {
+          "type": "field",
+          "index": 4,
+          "name": "SVC1213-TI-ACU-COL-R",
+          "length": 3,
+          "fieldType": "numerico",
+          "required": "OPCIONAL",
+          "values": "",
+          "description": "Tipo de Acuerdo"
+        },
+        {
+          "type": "field",
+          "index": 5,
+          "name": "SVC1213-CO-SIT-ACU-R",
+          "length": 10,
+          "fieldType": "alfanumerico",
+          "required": "OPCIONAL",
+          "values": "",
+          "description": "codigo de situacion de acuerdo"
+        },
+        {
+          "type": "occurrence",
+          "index": 6,
+          "id": "occ_6",
+          "count": 40,
+          "fields": [
+            {
+              "type": "field",
+              "index": 7,
+              "name": "SVC1213-N-ITN-ACUE-O",
+              "length": 9,
+              "fieldType": "numerico",
+              "required": "Obligatorio",
+              "values": "Valor",
+              "description": "Nro interno de Acuerdo",
+              "parentId": "occ_6"
+            },
+            {
+              "type": "field",
+              "index": 8,
+              "name": "SVC1213-TI-ACU-COL-O",
+              "length": 3,
+              "fieldType": "numerico",
+              "required": "Obligatorio",
+              "values": "Valor",
+              "description": "TIPO ACUERDO COLABORACION",
+              "parentId": "occ_6"
+            },
+            {
+              "type": "field",
+              "index": 9,
+              "name": "SVC1213-AMB-OF-ACU-O",
+              "length": 3,
+              "fieldType": "numerico",
+              "required": "Obligatorio",
+              "values": "Valor",
+              "description": "AMBITO OFICINA ACUERDO",
+              "parentId": "occ_6"
+            },
+            {
+              "type": "field",
+              "index": 10,
+              "name": "SVC1213-AMB-GE-ACU-O",
+              "length": 1,
+              "fieldType": "numerico",
+              "required": "Obligatorio",
+              "values": "Valor",
+              "description": "AMBITO GEOGRAFICO ACUERDO",
+              "parentId": "occ_6"
+            },
+            {
+              "type": "field",
+              "index": 11,
+              "name": "SVC1213-CO-SIT-ACU-O",
+              "length": 1,
+              "fieldType": "numerico",
+              "required": "Obligatorio",
+              "values": "Valor",
+              "description": "CODIGO SITUACION ACUERDO",
+              "parentId": "occ_6"
+            },
+            {
+              "type": "field",
+              "index": 12,
+              "name": "SVC1213-C-BGR-INTE-O",
+              "length": 5,
+              "fieldType": "numerico",
+              "required": "Obligatorio",
+              "values": "Valor",
+              "description": "CODIGO BANCO GRUPO INTERLOCUTO",
+              "parentId": "occ_6"
+            },
+            {
+              "type": "field",
+              "index": 13,
+              "name": "SVC1213-C-OFG-INTE-O",
+              "length": 5,
+              "fieldType": "numerico",
+              "required": "Obligatorio",
+              "values": "Valor",
+              "description": "CODIGO OFICINA INTERLOCUTORA",
+              "parentId": "occ_6"
+            },
+            {
+              "type": "field",
+              "index": 14,
+              "name": "SVC1213-F-COMI-VIG-O",
+              "length": 10,
+              "fieldType": "alfanumerico",
+              "required": "Obligatorio",
+              "values": "Valor",
+              "description": "FECHA COMIENZO VIGENCIA",
+              "parentId": "occ_6"
+            },
+            {
+              "type": "field",
+              "index": 15,
+              "name": "SVC1213-F-FIN-VIG-O",
+              "length": 10,
+              "fieldType": "alfanumerico",
+              "required": "Obligatorio",
+              "values": "Valor",
+              "description": "FECHA FINAL VIGENCIA",
+              "parentId": "occ_6"
+            },
+            {
+              "type": "field",
+              "index": 16,
+              "name": "SVC1213-F-ALTA-O",
+              "length": 10,
+              "fieldType": "alfanumerico",
+              "required": "Obligatorio",
+              "values": "Valor",
+              "description": "FECHA ALTA OCURRENCIA",
+              "parentId": "occ_6"
+            },
+            {
+              "type": "field",
+              "index": 17,
+              "name": "SVC1213-NO-RED-ACU-O",
+              "length": 30,
+              "fieldType": "alfanumerico",
+              "required": "Obligatorio",
+              "values": "Valor",
+              "description": "NOMBRE REDUCIDO ACUERDO COLAB.",
+              "parentId": "occ_6"
+            },
+            {
+              "type": "field",
+              "index": 18,
+              "name": "SVC1213-NO-ACU-COL-O",
+              "length": 100,
+              "fieldType": "alfanumerico",
+              "required": "Obligatorio",
+              "values": "Valor",
+              "description": "NOMBRE ACUERDO COLABORACION",
+              "parentId": "occ_6"
+            },
+            {
+              "type": "field",
+              "index": 19,
+              "name": "SVC1213-F-MAX-ADSO-O",
+              "length": 10,
+              "fieldType": "alfanumerico",
+              "required": "Obligatorio",
+              "values": "Valor",
+              "description": "FECHA MAXIMA ADMISION SOLICITU",
+              "parentId": "occ_6"
+            },
+            {
+              "type": "field",
+              "index": 20,
+              "name": "SVC1213-F-PROX-REV-O",
+              "length": 10,
+              "fieldType": "alfanumerico",
+              "required": "Obligatorio",
+              "values": "Valor",
+              "description": "FECHA PROXIMA REVISION",
+              "parentId": "occ_6"
+            },
+            {
+              "type": "field",
+              "index": 21,
+              "name": "SVC1213-F-UL-REACU-O",
+              "length": 10,
+              "fieldType": "alfanumerico",
+              "required": "Obligatorio",
+              "values": "Valor",
+              "description": "FECHA ULTIMA RENOVACION ACUERD",
+              "parentId": "occ_6"
+            },
+            {
+              "type": "field",
+              "index": 22,
+              "name": "SVC1213-N-EMP-RESP-O",
+              "length": 5,
+              "fieldType": "numerico",
+              "required": "Obligatorio",
+              "values": "Valor",
+              "description": "NUMERO EMPLEADO RESPONSABLE",
+              "parentId": "occ_6"
+            },
+            {
+              "type": "field",
+              "index": 23,
+              "name": "SVC1213-RES-APL-AC-O",
+              "length": 200,
+              "fieldType": "alfanumerico",
+              "required": "Obligatorio",
+              "values": "Valor",
+              "description": "RESTRICCION APLICACION ACUERDO",
+              "parentId": "occ_6"
+            },
+            {
+              "type": "field",
+              "index": 24,
+              "name": "SVC1213-OB-ACU-COL-O",
+              "length": 250,
+              "fieldType": "alfanumerico",
+              "required": "Obligatorio",
+              "values": "Valor",
+              "description": "OBJETO ACUERDO COLABORACION",
+              "parentId": "occ_6"
+            },
+            {
+              "type": "field",
+              "index": 25,
+              "name": "SVC1213-C-ORI-INFA-O",
+              "length": 3,
+              "fieldType": "numerico",
+              "required": "Obligatorio",
+              "values": "Valor",
+              "description": "CODIGO ORIGEN INFORM. ACUERDO",
+              "parentId": "occ_6"
+            },
+            {
+              "type": "field",
+              "index": 26,
+              "name": "SVC1213-C-ALF-IMON-O",
+              "length": 3,
+              "fieldType": "alfanumerico",
+              "required": "Obligatorio",
+              "values": "Valor",
+              "description": "CODIGO ALFABETICO ISO MONEDA",
+              "parentId": "occ_6"
+            }
+          ],
+          "level": 1,
+          "parentId": null
+        }
+      ],
+      "fieldCount": 6,
+      "occurrenceCount": 1,
+      "totalFieldCount": 26
+    }
+  }
+}

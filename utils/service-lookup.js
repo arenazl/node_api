@@ -6,8 +6,8 @@ const path = require('path');
 const fs = require('fs-extra');
 const excelParser = require('./excel-parser'); // For parsing Excel if structure JSON not found
 
-const structuresDir = path.join(__dirname, '..', 'structures');
-const uploadsDir = path.join(__dirname, '..', 'uploads');
+const structuresDir = path.join(__dirname, '..', 'JsonStorage', 'structures');
+const uploadsDir = path.join(__dirname, '..', 'JsonStorage', 'uploads');
 
 // Initialize cache
 if (!global.serviceCache) {
@@ -26,21 +26,17 @@ if (!global.serviceCache) {
 async function getAvailableServices(forceRefresh = false) {
   try {
     if (forceRefresh) {
-      console.log("[ServiceLookup] Forzando recarga de caché de servicios.");
       global.serviceCache.services = null;
       global.serviceCache.lastUpdate = null;
     } else if (global.serviceCache.services && global.serviceCache.lastUpdate) {
       const cacheAge = Date.now() - new Date(global.serviceCache.lastUpdate).getTime();
       if (cacheAge < 5 * 60 * 1000) { // 5 minutos
-        console.log(`[ServiceLookup] Usando caché de servicios (edad: ${Math.round(cacheAge/1000)}s)`);
         return global.serviceCache.services;
       } else {
-        console.log(`[ServiceLookup] Caché de servicios expirada (edad: ${Math.round(cacheAge/1000)}s), recargando...`);
       }
     }
 
     if (!fs.existsSync(uploadsDir)) {
-      console.log("[ServiceLookup] El directorio de uploads no existe.");
       return [];
     }
 
@@ -86,11 +82,36 @@ async function getAvailableServices(forceRefresh = false) {
         let uploadDate = new Date();
         if (timestampMatch && timestampMatch[1]) {
           const ts = timestampMatch[1];
-          if (ts.length >= 14) {
+          if (ts.length >= 13) {
             try {
-              const parsedDate = new Date(`${ts.substring(0,4)}-${ts.substring(4,6)}-${ts.substring(6,8)}T${ts.substring(8,10)}:${ts.substring(10,12)}:${ts.substring(12,14)}`);
-              if (!isNaN(parsedDate.getTime())) uploadDate = parsedDate;
-            } catch (e) { /* ignore date parse error, use current */ }
+              // Extraer partes de la fecha
+              const year = ts.substring(0, 4);
+              const month = ts.substring(4, 6);
+              const day = ts.substring(6, 8);
+              
+              // Encontrar la posición de la T
+              const tIndex = ts.indexOf('T');
+              if (tIndex > 0) {
+                const timePart = ts.substring(tIndex + 1);
+                let hour = '00';
+                let minute = '00';
+                let second = '00';
+                
+                // Parsear la parte de tiempo según la longitud disponible
+                if (timePart.length >= 2) hour = timePart.substring(0, 2);
+                if (timePart.length >= 4) minute = timePart.substring(2, 4);
+                if (timePart.length >= 6) second = timePart.substring(4, 6);
+                
+                const dateStr = `${year}-${month}-${day}T${hour}:${minute}:${second}`;
+                const parsedDate = new Date(dateStr);
+                
+                if (!isNaN(parsedDate.getTime())) {
+                  uploadDate = parsedDate;
+                }
+              }
+            } catch (e) { 
+              console.warn(`Error parsing timestamp ${ts}: ${e.message}`);
+            }
           }
         }
         
@@ -114,7 +135,6 @@ async function getAvailableServices(forceRefresh = false) {
     
     global.serviceCache.services = services;
     global.serviceCache.lastUpdate = new Date().toISOString();
-    console.log(`[ServiceLookup] Caché de servicios actualizada con ${services.length} servicios.`);
     return services;
   } catch (error) {
     console.error("[ServiceLookup] Error general en getAvailableServices:", error);
@@ -136,11 +156,9 @@ async function findServiceByNumber(serviceNumber, forceRefreshCache = false) {
   }
 
   if (!forceRefreshCache && global.serviceCache.structures[serviceNumber]) {
-    console.log(`[ServiceLookup] Usando caché de estructura para servicio ${serviceNumber}`);
     return global.serviceCache.structures[serviceNumber];
   }
 
-  console.log(`[ServiceLookup] Buscando servicio ${serviceNumber} (forceRefreshCache: ${forceRefreshCache})`);
   const services = await getAvailableServices(); // Uses its own caching for service list
   const service = services.find(s => s.service_number === serviceNumber);
 
@@ -155,14 +173,12 @@ async function findServiceByNumber(serviceNumber, forceRefreshCache = false) {
     const structureFilePath = path.join(structuresDir, service.structure_file);
     try {
       if (fs.existsSync(structureFilePath)) {
-        console.log(`[ServiceLookup] Usando archivo de estructura: ${structureFilePath}`);
         const structure = await fs.readJson(structureFilePath);
         result = { 
           headerStructure: structure.header_structure || {},
           serviceStructure: structure.service_structure || {}
         };
       } else {
-        console.warn(`[ServiceLookup] Archivo de estructura ${structureFilePath} no encontrado.`);
       }
     } catch (e) {
       console.error(`[ServiceLookup] Error leyendo ${structureFilePath}: ${e.message}`);
@@ -173,7 +189,6 @@ async function findServiceByNumber(serviceNumber, forceRefreshCache = false) {
     const excelPath = path.join(uploadsDir, service.excel_file);
     try {
       if (fs.existsSync(excelPath)) {
-        console.log(`[ServiceLookup] Parseando Excel directamente: ${excelPath}`);
         const headerStructure = excelParser.parseHeaderStructure(excelPath);
         const serviceStructure = excelParser.parseServiceStructure(excelPath);
         result = { headerStructure, serviceStructure };

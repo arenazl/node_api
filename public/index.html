@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,13 +9,16 @@
   <title>Procesador de Mensajes Excel</title>
 
   <!-- Favicon -->
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📊</text></svg>">
-  
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📊</text></svg>">
+
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lato:wght@400;700&family=Montserrat:wght@400;500;600;700&family=Nunito:wght@400;600;700&family=Open+Sans:wght@400;600;700&family=Poppins:wght@400;500;600;700&family=Raleway:wght@400;500;600;700&family=Roboto:wght@400;500;700&family=Source+Sans+Pro:wght@400;600;700&family=Ubuntu:wght@400;500;700&display=swap" rel="stylesheet">
-  
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lato:wght@400;700&family=Montserrat:wght@400;500;600;700&family=Nunito:wght@400;600;700&family=Open+Sans:wght@400;600;700&family=Poppins:wght@400;500;600;700&family=Raleway:wght@400;500;600;700&family=Roboto:wght@400;500;700&family=Source+Sans+Pro:wght@400;600;700&family=Ubuntu:wght@400;500;700&display=swap"
+    rel="stylesheet">
+
   <!-- Estilos CSS -->
   <link rel="stylesheet" href="/css/styles.css">
   <link rel="stylesheet" href="/css/json-editor.css">
@@ -29,15 +33,80 @@
   <link rel="stylesheet" href="/css/api-documentation.css">
   <link rel="stylesheet" href="/css/system-utils.css">
   <link rel="stylesheet" href="/css/field-validations.css">
-  
+
   <!-- Toastr - para notificaciones elegantes -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
-  
+
   <!-- SweetAlert2 - para alertas y confirmaciones elegantes -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+
+  <style>
+    /* Estilos para el overlay de progreso */
+    #progressOverlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      /* Fondo semitransparente */
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      /* Asegurar que esté por encima de todo */
+      color: white;
+      font-size: 1.2em;
+      text-align: center;
+    }
+
+    #progressOverlay.hide {
+      display: none;
+    }
+
+    .progress-content {
+      background-color: #fff;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+      color: #333;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .progress-content .spinner {
+      border: 4px solid #f3f3f3;
+      /* Light grey */
+      border-top: 4px solid #2563eb;
+      /* Blue */
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin-bottom: 15px;
+    }
+
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    .blurred-background>*:not(#progressOverlay) {
+      filter: blur(5px);
+      pointer-events: none;
+      /* Evita interacción con el fondo */
+    }
+  </style>
 </head>
 
 <body>
+
   <div class="container">
     <!-- Selector de fuentes temporal -->
     <div class="font-selector-container">
@@ -56,7 +125,7 @@
         <option value="'Lato', sans-serif">Lato</option>
       </select>
     </div>
-    
+
     <div class="header">
       <h1>Procesador de Mensajes Excel</h1>
       <p class="subtitle">Importación y procesamiento de archivos SVO</p>
@@ -72,7 +141,7 @@
         </div>
       </div>
     </div>
-    
+
     <!-- Modal para versiones de servicio -->
     <div id="versionsModal" class="modal">
       <div class="modal-content">
@@ -108,10 +177,10 @@
 
     <!-- Tab Content Container -->
     <div class="tab-content-container">
-      
+
       <!-- Tab Content -->
       <div class="tab-content">
-        
+
         <!-- Pestaña de carga -->
         <div id="carga" class="tab-pane active">
           <!-- Formulario de Carga de Archivos (solo visible en la pestaña "carga") -->
@@ -121,18 +190,25 @@
               <h3>Suba su archivo Excel</h3>
               <p>Formatos soportados: .xls, .xlsx</p>
               <label for="excelFile" class="file-input-label">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="upload-icon"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                  class="upload-icon">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="17 8 12 3 7 8"></polyline>
+                  <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
                 Seleccionar Archivo Excel
               </label>
               <input type="file" id="excelFile" name="file" accept=".xlsx,.xls">
               <div class="file-name" id="fileName">Ningún archivo seleccionado</div>
+              <!-- El id="uploadProgress" original se puede eliminar o dejar, ya que ahora usamos progressOverlay -->
               <div class="progress-container" id="uploadProgress" style="display: none;">
                 <div class="progress-bar"></div>
                 <div class="progress-text">Procesando archivo...</div>
               </div>
             </form>
           </div>
-        
+
           <!-- Subtabs para la pestaña de carga -->
           <div class="subtabs-container">
             <div class="subtabs-nav">
@@ -141,263 +217,309 @@
               <button class="subtab-btn" data-subtab="respuesta">Respuesta</button>
               <button class="subtab-btn" data-subtab="json">Estructura</button>
             </div>
-              
-              <!-- Contenidos de las subpestañas -->
-              <div class="subtab-content">
-                <div id="subtab-cabecera" class="subtab-pane active">
-                  <div class="table-container auto-hide-scrollbar">
-                    <table id="headerTable">
-                      <thead>
-                        <tr>
-                          <th>Campo</th>
-                          <th>Longitud</th>
-                          <th>Tipo</th>
-                          <th>Requerido</th>
-                          <th>Valores</th>
-                          <th>Descripción</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <!-- Mensaje por defecto -->
-                        <tr class="empty-message">
-                          <td colspan="6" class="text-center">Seleccione un archivo Excel para ver la estructura de cabecera.</td>
-                        </tr>
-                        <!-- Contenido de la cabecera se insertará aquí -->
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-                
-                <div id="subtab-requerimiento" class="subtab-pane">
-                  <div class="table-container auto-hide-scrollbar">
-                    <table id="requestTable">
-                      <thead>
-                        <tr>
-                          <th>Campo</th>
-                          <th>Longitud</th>
-                          <th>Tipo</th>
-                          <th>Requerido</th>
-                          <th>Valores</th>
-                          <th>Descripción</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <!-- Mensaje por defecto -->
-                        <tr class="empty-message">
-                          <td colspan="6" class="text-center">Seleccione un archivo Excel para ver la estructura de requerimiento.</td>
-                        </tr>
-                        <!-- Contenido del requerimiento se insertará aquí -->
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-                
-                <div id="subtab-respuesta" class="subtab-pane">
-                  <div class="table-container auto-hide-scrollbar">
-                    <table id="responseTable">
-                      <thead>
-                        <tr>
-                          <th>Campo</th>
-                          <th>Longitud</th>
-                          <th>Tipo</th>
-                          <th>Requerido</th>
-                          <th>Valores</th>
-                          <th>Descripción</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <!-- Mensaje por defecto -->
-                        <tr class="empty-message">
-                          <td colspan="6" class="text-center">Seleccione un archivo Excel para ver la estructura de respuesta.</td>
-                        </tr>
-                        <!-- Contenido de la respuesta se insertará aquí -->
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-                
-                <div id="subtab-json" class="subtab-pane">
-                  <div class="json-container auto-hide-scrollbar">
-                    <pre id="jsonContent">Seleccione un archivo Excel para ver la estructura JSON.</pre>
-                  </div>
+
+            <!-- Contenidos de las subpestañas -->
+            <div class="subtab-content">
+              <div id="subtab-cabecera" class="subtab-pane active">
+                <div class="table-container auto-hide-scrollbar">
+                  <table id="headerTable">
+                    <thead>
+                      <tr>
+                        <th>Campo</th>
+                        <th>Longitud</th>
+                        <th>Tipo</th>
+                        <th>Requerido</th>
+                        <th>Valores</th>
+                        <th>Descripción</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <!-- Mensaje por defecto -->
+                      <tr class="empty-message">
+                        <td colspan="6" class="text-center">Seleccione un archivo Excel para ver la estructura de
+                          cabecera.</td>
+                      </tr>
+                      <!-- Contenido de la cabecera se insertará aquí -->
+                    </tbody>
+                  </table>
                 </div>
               </div>
-            </div>
-          </div>
-          
-          <!-- Panel de búsqueda de estructuras (se mostrará cuando la subpestaña JSON esté activa) -->
-          <div id="structuresPanel" class="structures-panel">
-            <div class="structures-search-container">
-              <h3>Estructuras Disponibles</h3>
-              <div class="search-container">
-                <input type="text" id="structureSearchInput" class="form-control" placeholder="Buscar estructura...">
-                <span class="search-icon">🔍</span>
+
+              <div id="subtab-requerimiento" class="subtab-pane">
+                <div class="table-container auto-hide-scrollbar">
+                  <table id="requestTable">
+                    <thead>
+                      <tr>
+                        <th>Campo</th>
+                        <th>Longitud</th>
+                        <th>Tipo</th>
+                        <th>Requerido</th>
+                        <th>Valores</th>
+                        <th>Descripción</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <!-- Mensaje por defecto -->
+                      <tr class="empty-message">
+                        <td colspan="6" class="text-center">Seleccione un archivo Excel para ver la estructura de
+                          requerimiento.</td>
+                      </tr>
+                      <!-- Contenido del requerimiento se insertará aquí -->
+                    </tbody>
+                  </table>
+                </div>
               </div>
-              <div id="structureAutocompleteResults" class="autocomplete-results" style="display: none;"></div>
-              <div id="structuresList" class="structures-list">
-                <p id="noStructuresMessage" class="text-center">No hay estructuras cargadas.</p>
+
+              <div id="subtab-respuesta" class="subtab-pane">
+                <div class="table-container auto-hide-scrollbar">
+                  <table id="responseTable">
+                    <thead>
+                      <tr>
+                        <th>Campo</th>
+                        <th>Longitud</th>
+                        <th>Tipo</th>
+                        <th>Requerido</th>
+                        <th>Valores</th>
+                        <th>Descripción</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <!-- Mensaje por defecto -->
+                      <tr class="empty-message">
+                        <td colspan="6" class="text-center">Seleccione un archivo Excel para ver la estructura de
+                          respuesta.</td>
+                      </tr>
+                      <!-- Contenido de la respuesta se insertará aquí -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div id="subtab-json" class="subtab-pane">
+                <div class="json-container auto-hide-scrollbar">
+                  <pre id="jsonContent">Seleccione un archivo Excel para ver la estructura JSON.</pre>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        <div id="archivos" class="tab-pane">
-          <div class="files-container auto-hide-scrollbar">
-            <table id="filesTable">
-              <thead>
-                <tr>
-                  <th>Archivo</th>
-                  <th>Fecha</th>
-                  <th>Acción</th>
-                </tr>
-              </thead>
-              <tbody>
-                <!-- Lista de archivos se insertará aquí -->
-              </tbody>
-            </table>
+        <!-- Panel de búsqueda de estructuras (se mostrará cuando la subpestaña JSON esté activa) -->
+        <div id="structuresPanel" class="structures-panel">
+          <div class="structures-search-container">
+            <h3>Estructuras Disponibles</h3>
+            <div class="search-container">
+              <input type="text" id="structureSearchInput" class="form-control" placeholder="Buscar estructura...">
+              <span class="search-icon">🔍</span>
+            </div>
+            <div id="structureAutocompleteResults" class="autocomplete-results" style="display: none;"></div>
+            <div id="structuresList" class="structures-list">
+              <p id="noStructuresMessage" class="text-center">No hay estructuras cargadas.</p>
+            </div>
           </div>
         </div>
+      </div>
 
-        <div id="configuracion" class="tab-pane">
-          <div class="config-container" data-simplebar>
-            <h3>Configuración del Servicio</h3>
-            <div class="config-form">
-              <div class="form-group select-service-group">
-                <label for="configServiceSelect">Seleccione un servicio:</label>
-                <select id="configServiceSelect" class="service-select">
-                  <option value="">-- Seleccione un servicio --</option>
-                  <!-- Las opciones se cargarán dinámicamente -->
-                </select>
+      <div id="archivos" class="tab-pane">
+        <div class="files-container auto-hide-scrollbar">
+          <table id="filesTable">
+            <thead>
+              <tr>
+                <th>Archivo</th>
+                <th>Fecha</th>
+                <th>Acción</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Lista de archivos se insertará aquí -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="configuracion" class="tab-pane">
+        <div class="config-container" data-simplebar>
+          <h3>Configuración del Servicio</h3>
+          <div class="config-form">
+            <div class="form-group select-service-group">
+              <label for="configServiceSelect">Seleccione un servicio:</label>
+              <select id="configServiceSelect" class="service-select">
+                <option value="">-- Seleccione un servicio --</option>
+                <!-- Las opciones se cargarán dinámicamente -->
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="canalInput">Canal (máximo 2 caracteres):</label>
+              <input type="text" id="canalInput" maxlength="2" placeholder="Ingrese su canal (obligatorio)" required>
+            </div>
+
+            <div class="form-group">
+              <label for="versionDisplay">Versión:</label>
+              <div id="versionDisplay" class="version-display">v1</div>
+              <input type="hidden" id="versionInput" value="v1">
+            </div>
+
+            <div class="config-tabs">
+              <div class="config-tabs-nav">
+                <button class="config-tab-btn active" data-config-tab="headerConfig">Cabecera</button>
+                <button class="config-tab-btn" data-config-tab="requestConfig">Requerimiento</button>
               </div>
-              
-              <div class="form-group">
-                <label for="canalInput">Canal (máximo 3 caracteres):</label>
-                <input type="text" id="canalInput" maxlength="3" placeholder="Ingrese su canal (obligatorio)" required>
-              </div>
-              
-              <div class="form-group">
-                <label for="versionDisplay">Versión:</label>
-                <div id="versionDisplay" class="version-display">v1</div>
-                <input type="hidden" id="versionInput" value="v1">
-              </div>
-                          
-              <div class="config-tabs">
-                <div class="config-tabs-nav">
-                  <button class="config-tab-btn active" data-config-tab="headerConfig">Cabecera</button>
-                  <button class="config-tab-btn" data-config-tab="requestConfig">Requerimiento</button>
+
+              <div class="config-tab-content">
+                <div id="headerConfig" class="config-tab-pane active">
+                  <div class="table-container auto-hide-scrollbar">
+                    <table id="headerConfigTable">
+                      <thead>
+                        <tr>
+                          <th>Campo</th>
+                          <th>Tipo</th>
+                          <th>Longitud</th>
+                          <th>Valor</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <!-- Contenido de configuración de cabecera se insertará aquí -->
+                        <tr class="empty-message">
+                          <td colspan="4" class="text-center">Seleccione un servicio para cargar los campos de la
+                            cabecera</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-                
-                <div class="config-tab-content">
-                  <div id="headerConfig" class="config-tab-pane active">
-                    <div class="table-container auto-hide-scrollbar">
-                      <table id="headerConfigTable">
-                        <thead>
-                          <tr>
-                            <th>Campo</th>
-                            <th>Tipo</th>
-                            <th>Longitud</th>
-                            <th>Valor</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <!-- Contenido de configuración de cabecera se insertará aquí -->
-                          <tr class="empty-message">
-                            <td colspan="4" class="text-center">Seleccione un servicio para cargar los campos de la cabecera</td>
-                          </tr>
-                        </tbody>
-                      </table>
+
+                <div id="requestConfig" class="config-tab-pane">
+                  <div class="table-container auto-hide-scrollbar">
+                    <table id="requestConfigTable">
+                      <thead>
+                        <tr>
+                          <th>Campo</th>
+                          <th>Tipo</th>
+                          <th>Longitud</th>
+                          <th>Valor</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <!-- Contenido de configuración de requerimiento se insertará aquí -->
+                        <tr class="empty-message">
+                          <td colspan="4" class="text-center">Seleccione un servicio para cargar los campos del
+                            requerimiento</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="config-actions">
+              <button id="saveConfigBtn" class="action-btn save-config-btn-highlight">Guardar Configuración</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+      <div id="serviciosList" class="tab-pane">
+        <div class="services-list-section">
+          <h3>Servicios Disponibles <button id="refreshServicesBtn" class="action-btn secondary-btn"
+              style="font-size: 0.75rem; padding: 0.2rem 0.5rem; margin-left: 0.5rem;">Refrescar</button></h3>
+          <table id="servicesTable">
+            <thead>
+              <tr>
+                <th>Número</th>
+                <th>Nombre</th>
+                <th>Acción</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Lista de servicios se insertará aquí -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="servicios" class="tab-pane">
+
+        <div class="services-tabs">
+
+          <div class="services-nav">
+            <button class="services-tab-btn active" data-service-tab="ida">Servicio de Ida</button>
+            <button class="services-tab-btn" data-service-tab="vuelta">Servicio de Vuelta</button>
+            <button class="services-tab-btn d-none" data-service-tab="documentacion">Documentación</button>
+          </div>
+
+          <!-- Servicio de Ida -->
+          <div id="idaService" class="service-tab-content active">
+
+            <div class="service-panel">
+
+              <h3>Servicio de Ida</h3>
+              <div class="service-form">
+                <div class="form-group">
+                  <label for="idaServiceSelect">Seleccione un servicio:</label>
+                  <select id="idaServiceSelect" class="service-select">
+                    <option value="">-- Seleccione un servicio --</option>
+                    <!-- Las opciones se cargarán dinámicamente -->
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label for="idaConfigSelect">Seleccione una configuración:</label>
+                  <select id="idaConfigSelect" class="service-select">
+                    <option value="">-- Seleccione una configuración --</option>
+                    <!-- Las opciones se cargarán dinámicamente -->
+                  </select>
+                </div>
+
+                <!-- Sub-pestañas para JSON y Parámetros Detallados -->
+                <div class="ida-input-tabs" style="margin-top: 15px; margin-bottom: 10px;">
+                  <button class="ida-input-tab-btn active" data-ida-input-tab="json">Json Completo</button>
+                  <button class="ida-input-tab-btn" data-ida-input-tab="params">Json Parametros Dinamicos</button>
+                </div>
+
+                <div class="ida-input-tab-content">
+
+                  <div id="ida-input-json-pane" class="ida-input-pane active">
+                    
+                    <div class="form-group">
+                      <div class="json-input-header">
+                        <div class="json-input-title">
+                          <label for="idaJsonInput">JSON Completo:</label>
+                        </div>
+                        <div class="api-endpoints-info">
+                          <div class="endpoint-info">
+                            <span class="endpoint-label">🔀 Envío:</span>
+                            <code class="endpoint-code">POST /api/sendmessage</code>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="json-input-container auto-hide-scrollbar">
+                        <pre id="idaJsonInput" class="json-editor" contenteditable="true">{}</pre>
+                      </div>
                     </div>
                   </div>
-                  
-                  <div id="requestConfig" class="config-tab-pane">
-                    <div class="table-container auto-hide-scrollbar">
-                      <table id="requestConfigTable">
-                        <thead>
-                          <tr>
-                            <th>Campo</th>
-                            <th>Tipo</th>
-                            <th>Longitud</th>
-                            <th>Valor</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <!-- Contenido de configuración de requerimiento se insertará aquí -->
-                          <tr class="empty-message">
-                            <td colspan="4" class="text-center">Seleccione un servicio para cargar los campos del requerimiento</td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              <div class="config-actions">
-                <button id="saveConfigBtn" class="action-btn save-config-btn-highlight">Guardar Configuración</button>
-              </div>
-            </div>
-          </div>
-        </div>
 
-    
-        <div id="serviciosList" class="tab-pane">
-          <div class="services-list-section">
-            <h3>Servicios Disponibles <button id="refreshServicesBtn" class="action-btn secondary-btn" style="font-size: 0.75rem; padding: 0.2rem 0.5rem; margin-left: 0.5rem;">Refrescar</button></h3>
-            <table id="servicesTable">
-              <thead>
-                <tr>
-                  <th>Número</th>
-                  <th>Nombre</th>
-                  <th>Acción</th>
-                </tr>
-              </thead>
-              <tbody>
-                <!-- Lista de servicios se insertará aquí -->
-              </tbody>
-            </table>
-          </div>
-        </div>
-        
-        <div id="servicios" class="tab-pane">
-          <div class="services-tabs">
-            <div class="services-nav">
-              <button class="services-tab-btn active" data-service-tab="ida">Servicio de Ida</button>
-              <button class="services-tab-btn" data-service-tab="vuelta">Servicio de Vuelta</button>
-              
-              <button class="services-tab-btn" data-service-tab="documentacion">Documentación</button>
-            </div>
-            
-            <!-- Servicio de Ida -->
-            <div id="idaService" class="service-tab-content active">
-              <div class="service-panel">
-                <h3>Servicio de Ida</h3>
-                <div class="service-form">
-                  <div class="form-group">
-                    <label for="idaServiceSelect">Seleccione un servicio:</label>
-                    <select id="idaServiceSelect" class="service-select">
-                      <option value="">-- Seleccione un servicio --</option>
-                      <!-- Las opciones se cargarán dinámicamente -->
-                    </select>
-                  </div>
+                  <div id="ida-input-params-pane" class="ida-input-pane" style="display: none;">
 
-                  <div class="form-group">
-                    <label for="idaConfigSelect">Seleccione una configuración:</label>
-                    <select id="idaConfigSelect" class="service-select">
-                      <option value="">-- Seleccione una configuración --</option>
-                      <!-- Las opciones se cargarán dinámicamente -->
-                    </select>
-                  </div>
-                  
-                         
-                  <div class="form-group">
-                    <label for="idaJsonInput">JSON a enviar:</label>
+                        <div class="json-input-title">
+                          <label for="idaDynamicParamsInput">Json Parametros Dinamicos:</label>
+                        </div>
+      
                     <div class="json-input-container auto-hide-scrollbar">
-                      <pre id="idaJsonInput" class="json-editor" contenteditable="true">{ }</pre>
+                      <pre id="idaDynamicParamsInput" class="json-editor" contenteditable="true">{}</pre>
+                    </div>
+                    <button id="copyDetailedParamsJsonBtn" class="action-btn secondary-btn" style="margin-top: 10px; width: 100%;">Copiar JSON Detallado</button>
                     </div>
                   </div>
+                
+                      </div>
+
+                    </div>
+                           
 
                   <div class="button-group" style="margin-bottom: 15px;">
-                    <button id="processIdaBtn" style="display: none;" class="service-button">Procesar Servicio de Ida</button>
                     <button id="generateStringBtn" class="service-button secondary-btn">Generar String Fijo</button>
                   </div>
                   
@@ -405,28 +527,21 @@
                     <label for="fixedStringOutput">String de longitud fija:</label>
                     <textarea id="fixedStringOutput" rows="4" placeholder="El string generado se mostrará aquí" readonly></textarea>
                     <div class="character-count">Cantidad de caracteres: <span id="charCount">0</span></div>
+                    <button id="copyFixedStringBtn" class="action-btn secondary-btn" style="margin-top: 0.5rem;">Copiar String</button>
                   </div>
-                </div>
+          </div>
                 
-                <div class="result-section" style="display: none;">
-                  <h4>Respuesta:</h4>
-                  <div class="result-container auto-hide-scrollbar">
-                    <pre id="idaResult">La respuesta se mostrará aquí</pre>
-                  </div>
-                </div>
-
-              </div>
-            </div>
-            
+                  
             <!-- Servicio de Vuelta -->
             <div id="vueltaService" class="service-tab-content">
               <div class="service-panel">
                 <h3>Servicio de Vuelta</h3>
                 <div class="service-form">
-                  <div class="form-group">
+                  <!-- Servicio predeterminado oculto -->
+                  <div class="form-group" style="display: none;">
                     <label for="vueltaServiceSelect">Seleccione un servicio:</label>
                     <select id="vueltaServiceSelect" class="service-select">
-                      <option value="">-- Seleccione un servicio --</option>
+                      <option value="3088" selected>SERVICIO 3088 - Imputador Genérico para varias operaciones</option>
                       <!-- Las opciones se cargarán dinámicamente -->
                     </select>
                   </div>
@@ -440,127 +555,206 @@
                   </div>
                   
                   <div class="button-group" style="margin-bottom: 15px;">
-                    <button id="processVueltaBtn" class="service-button">Procesar Servicio de Vuelta</button>
                     <button id="generateExampleBtn" class="service-button secondary-btn">Generar Ejemplo</button>
                   </div>
 
                   <div class="form-group">
-                    <label for="streamData">Stream de datos:</label>
+                    <div class="json-input-header">
+                      <div class="json-input-title">
+                        <label for="streamData">Stream de datos:</label>
+                      </div>
+                      <div class="api-endpoints-info">
+                        <div class="endpoint-info">
+                          <span class="endpoint-label">📥 Procesamiento:</span>
+                          <code class="endpoint-code">POST /api/receivemessage</code>
+                        </div>
+                      </div>
+                    </div>
                     <textarea id="streamData" rows="8" placeholder="Ingrese el stream de datos a procesar"></textarea>
                     <div class="character-count">Cantidad de caracteres: <span id="streamCharCount">0</span></div>
                   </div>
                 </div>
+
+                 <div class="" style="margin-bottom: 15px;">
+                    <button id="processVueltaBtn" class="service-button">Procesar Servicio de Vuelta</button>
+                  </div>
                 
                 <div class="result-section">
                   <h4>Respuesta:</h4>
                   <div class="result-container auto-hide-scrollbar" style="height: 400px; max-height: 400px; overflow: auto;">
                     <pre id="vueltaResult" class="json-editor">La respuesta se mostrará aquí</pre>
+                    </div>
+                    <button id="copyVueltaResultBtn" class="action-btn secondary-btn"
+                      style="margin-top: 1.5rem;width: -webkit-fill-available;">Copiar String</button>
                   </div>
                 </div>
               </div>
-            </div>
-            
-            <!-- Documentación de API -->
-            <div id="documentacionService" class="service-tab-content d-none">
-              <div class="service-panel">
-                <h3>Documentación de API</h3>
-                <div id="apiDocumentation">
-                  <!-- Aquí se cargará la documentación de la API generada dinámicamente -->
-                  <p class="loading-message">Cargando documentación de API...</p>
+
+        </div>
+      </div>
+           
+              <!-- Documentación de API -->
+              <div id="documentacionService" class="service-tab-content d-none">
+                <div class="service-panel">
+                  <h3>Documentación de API</h3>
+                  <div id="apiDocumentation">
+                    <!-- Aquí se cargará la documentación de la API generada dinámicamente -->
+                    <p class="loading-message">Cargando documentación de API...</p>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
 
-    
-    <div id="notification" class="notification" style="display: none;"></div>
-    
-    <!-- Modal de confirmación -->
-    <div id="confirmModal" class="modal">
-      <div class="modal-content">
-        <span class="close">&times;</span>
-        <h3>Confirmar actualización</h3>
-        <p id="confirmMessage">¿Desea actualizar este servicio? La versión anterior será eliminada.</p>
-        <div class="modal-buttons">
-          <button id="confirmYes" class="action-btn">Sí, actualizar</button>
-          <button id="confirmNo" class="action-btn secondary-btn">No, cancelar</button>
+
+      <div id="notification" class="notification" style="display: none;"></div>
+
+      <!-- Modal de confirmación -->
+      <div id="confirmModal" class="modal">
+        <div class="modal-content">
+          <span class="close">&times;</span>
+          <h3>Confirmar actualización</h3>
+          <p id="confirmMessage">¿Desea actualizar este servicio? La versión anterior será eliminada.</p>
+          <div class="modal-buttons">
+            <button id="confirmYes" class="action-btn">Sí, actualizar</button>
+            <button id="confirmNo" class="action-btn secondary-btn">No, cancelar</button>
+          </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- CDN Scripts -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
-  <script src="/socket.io/socket.io.js"></script>
-  
-  <!-- App Scripts -->
-  <script src="/js/json/json-formatter.js"></script>
-  <script src="/js/json/json-initializer.js"></script>
-  <script src="/js/api_client/service-api-client.js"></script>
-  <!-- Modular configuration system - Load utilities first -->
-  <script src="/js/config/config-utils.js"></script>
-  <script src="/js/config/config-service-loader.js"></script>
-  <script src="/js/config/config-occurrence-handler.js"></script>
-  <script src="/js/config/config-utils-extension.js"></script>
-  <script src="/js/config/config-data-handler.js"></script>
-  <script src="/js/config/config-storage.js"></script>
-  <script src="/js/config/config-storage-manager.js"></script>
-  <script src="/js/config/config-ui-manager.js"></script>
-  <script src="/js/config/config-init.js"></script>
-  <script src="/js/config/config-manager.js"></script>
-  
-  <!-- Main app and tabs -->
-  <script src="/js/core/main.js"></script>
-  <script src="/js/services_ui/common/service-initialization-state.js"></script>
-  <script src="/js/services_ui/common/service-tabs.js"></script>
-  
-  <script src="/js/core/app-events.js"></script>
-  <script src="/js/core/structure-search.js"></script>
-  <script src="/js/core/tab-manager.js"></script>
-  <script src="/js/services_ui/common/simple-example-generator.js"></script>
-  <script src="/js/ui_utils/simple-scrollbar.js"></script>
-  <script src="/js/core/theme-selector.js"></script>
-  <script src="/js/core/file-info.js"></script>
-  <script src="/js/core/tab-activation.js"></script>
-  <script src="/js/services_ui/common/servicios-manager.js"></script>
-  <script src="/js/core/system-utils.js"></script>
-  
-  <!-- IDA and VUELTA service handlers -->
-  <script src="/js/services_ui/ida/ida-service-handlers.js"></script>
-  <script src="/js/services_ui/vuelta/vuelta-service-handlers.js"></script>
-  
-  <!-- API Documentation -->
-  <script src="/js/api_documentation/api-documentation.js"></script>
-  
-  <!-- Script para establecer Montserrat como fuente oficial -->
-  <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      // Establecer Montserrat como fuente predeterminada para toda la aplicación
-      document.body.style.fontFamily = "'Montserrat', sans-serif";
-      
-      // El selector todavía está disponible pero oculto, por si se necesita en el futuro
-      const fontSelector = document.getElementById('fontSelector');
-      if (fontSelector) {
-        // Función para aplicar la fuente seleccionada a toda la aplicación
-        function applyFont(fontFamily) {
-          document.body.style.fontFamily = fontFamily;
-          localStorage.setItem('preferredFont', fontFamily);
+    <!-- CDN Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+
+    <!-- App Scripts -->
+    <script src="/js/json/json-formatter.js"></script>
+    <script src="/js/json/json-initializer.js"></script>
+    <script src="/js/api_client/service-api-client.js"></script>
+    <!-- Modular configuration system - Load utilities first -->
+    <script src="/js/config/config-utils.js"></script>
+    <script src="/js/config/config-service-loader.js"></script>
+    <script src="/js/config/config-occurrence-handler.js"></script>
+    <script src="/js/config/config-utils-extension.js"></script>
+    <script src="/js/config/config-data-handler.js"></script>
+    <script src="/js/config/config-storage.js"></script>
+    <script src="/js/config/config-storage-manager.js"></script>
+    <script src="/js/config/config-ui-manager.js"></script>
+    <script src="/js/config/config-init.js"></script>
+    <script src="/js/config/config-manager.js"></script>
+
+
+    <!-- IDA and VUELTA service handlers -->
+    <script src="/js/services_ui/ida/ida-service-handlers.js"></script>
+    <script src="/js/services_ui/vuelta/vuelta-service-handlers.js"></script>
+
+    <!-- Main app and tabs -->
+    <script src="/js/core/main.js"></script>
+    <script src="/js/services_ui/common/service-initialization-state.js"></script>
+    <script src="/js/services_ui/common/service-tabs.js"></script>
+
+    <script src="/js/core/app-events.js"></script>
+    <script src="/js/core/structure-search.js"></script>
+    <script src="/js/core/tab-manager.js"></script>
+    <script src="/js/services_ui/common/simple-example-generator.js"></script>
+    <script src="/js/ui_utils/simple-scrollbar.js"></script>
+    <script src="/js/core/theme-selector.js"></script>
+    <script src="/js/core/file-info.js"></script>
+    <script src="/js/core/tab-activation.js"></script>
+    <script src="/js/services_ui/common/servicios-manager.js"></script>
+    <script src="/js/core/system-utils.js"></script>
+
+    <!-- API Documentation -->
+    <script src="/js/api_documentation/api-documentation.js"></script>
+
+    <!-- Script para establecer Montserrat como fuente oficial -->
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        // Establecer Montserrat como fuente predeterminada para toda la aplicación
+        document.body.style.fontFamily = "'Montserrat', sans-serif";
+
+        // El selector todavía está disponible pero oculto, por si se necesita en el futuro
+        const fontSelector = document.getElementById('fontSelector');
+        if (fontSelector) {
+          // Función para aplicar la fuente seleccionada a toda la aplicación
+          function applyFont(fontFamily) {
+            document.body.style.fontFamily = fontFamily;
+            localStorage.setItem('preferredFont', fontFamily);
+          }
+
+          // Event listener para cambios en el selector (por si se habilita en el futuro)
+          fontSelector.addEventListener('change', function () {
+            applyFont(this.value);
+          });
+
+          // Establecer Montserrat como opción seleccionada en el combo
+          fontSelector.value = "'Montserrat', sans-serif";
         }
-        
-        // Event listener para cambios en el selector (por si se habilita en el futuro)
-        fontSelector.addEventListener('change', function() {
-          applyFont(this.value);
-        });
-        
-        // Establecer Montserrat como opción seleccionada en el combo
-        fontSelector.value = "'Montserrat', sans-serif";
+      });
+    </script>
+
+    <!-- Estilos para los endpoints API -->
+    <style>
+      .json-input-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 8px;
+        flex-wrap: wrap;
+        gap: 10px;
       }
-    });
-  </script>
+
+      .json-input-title {
+        flex: 1;
+      }
+
+      .api-endpoints-info {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        font-size: 0.85rem;
+      }
+
+      .endpoint-info {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .endpoint-label {
+        color: #6b7280;
+        font-weight: 500;
+        min-width: 80px;
+      }
+
+      .endpoint-code {
+        background: #f3f4f6;
+        border: 1px solid #d1d5db;
+        border-radius: 4px;
+        padding: 2px 6px;
+        font-family: 'Courier New', monospace;
+        font-size: 0.8rem;
+        color: #374151;
+        font-weight: 500;
+      }
+
+      /* Responsive design for smaller screens */
+      @media (max-width: 768px) {
+        .json-input-header {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+
+        .api-endpoints-info {
+          margin-top: 8px;
+        }
+      }
+    </style>
+
 </body>
+
 </html>

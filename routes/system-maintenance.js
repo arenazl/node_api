@@ -14,10 +14,10 @@ const router = express.Router();
 router.delete('/clear-dirs', async (req, res) => {
   try {
     const dirs = [
-      { path: path.join(__dirname, '..', 'structures'), keep: ['.gitkeep'] },
-      { path: path.join(__dirname, '..', 'uploads'), keep: ['.gitkeep'] },
-      { path: path.join(__dirname, '..', 'headers'), keep: ['.gitkeep'] },
-      { path: path.join(__dirname, '..', 'settings'), keep: ['.gitkeep'] }
+      { path: path.join(__dirname, '..', 'JsonStorage', 'structures'), keep: ['.gitkeep'] },
+      { path: path.join(__dirname, '..', 'JsonStorage', 'uploads'), keep: ['.gitkeep'] },
+      { path: path.join(__dirname, '..', 'JsonStorage', 'headers'), keep: ['.gitkeep'] },
+      { path: path.join(__dirname, '..', 'JsonStorage', 'settings'), keep: ['.gitkeep'] }
     ];
     
     const results = [];
