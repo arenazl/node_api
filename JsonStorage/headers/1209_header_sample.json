@@ -1,0 +1,11 @@
+{
+  "value": "000107SD1209000000000100120052011090909P0425831047                                             00     ",
+  "serviceNumber": "1209",
+  "timestamp": "2025-06-27T12:01:46.323Z",
+  "sourceFile": "20250627T12014_SVO1209 - Consulta Tabla Parametros de Productos.xls",
+  "foundSheetName": "Trama Ejemplo",
+  "foundRowContaining000": "000107SD1209000000000100120052011090909P0425831047                                             00     01000",
+  "missingTab": false,
+  "availableTabs": 4,
+  "error": null
+}

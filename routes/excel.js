@@ -223,9 +223,8 @@ router.post('/upload', async (req, res) => {
         global.io.emit('file:uploaded', eventPayload);
         global.io.emit('services:refreshed', eventPayload);
       } else {
-        // Sin Socket.IO, podemos usar un enfoque basado en archivo temporal
-        // para notificar a los componentes que deben actualizarse (enfoque fallback)
-        console.log('[EXCEL] Socket.IO no disponible, guardando evento en archivo temporal');
+        // Sin Socket.IO, guardar evento para que el frontend pueda consultarlo
+        console.log('[EXCEL] Socket.IO no disponible, guardando evento para consulta');
         try {
           const eventFile = path.join(__dirname, '..', 'tmp', 'last_event.json');
           fs.writeFileSync(eventFile, JSON.stringify({
@@ -487,6 +486,42 @@ router.get('/structure-by-service', async (req, res) => {
   }
 });
 
+/**
+ * @route GET /excel/events/last
+ * @description Obtiene el último evento registrado para sincronización
+ */
+router.get('/events/last', (req, res) => {
+  try {
+    const eventFile = path.join(__dirname, '..', 'tmp', 'last_event.json');
+    
+    if (!fs.existsSync(eventFile)) {
+      return res.json({
+        hasEvent: false,
+        event: null
+      });
+    }
+
+    const eventData = JSON.parse(fs.readFileSync(eventFile, 'utf-8'));
+    
+    // Verificar si el evento es reciente (menos de 5 minutos)
+    const eventAge = Date.now() - new Date(eventData.timestamp).getTime();
+    const isRecent = eventAge < 5 * 60 * 1000; // 5 minutos
+
+    res.json({
+      hasEvent: isRecent,
+      event: isRecent ? eventData : null,
+      eventAge: eventAge
+    });
+
+  } catch (error) {
+    console.error('[EXCEL] Error al obtener último evento:', error);
+    res.json({
+      hasEvent: false,
+      event: null,
+      error: error.message
+    });
+  }
+});
 
 /**
  * Guarda la estructura JSON completa en un único archivo

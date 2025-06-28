@@ -277,8 +277,11 @@ function mostrarEstructuraCompletaMensaje() {
     const vueltaServiceSelect = document.getElementById('vueltaServiceSelect');
     const vueltaConfigSelect = document.getElementById('vueltaConfigSelect');
     const streamDataElement = document.getElementById('streamData');
+    const messagePanel = document.getElementById('message-structure-panel');
+    const messageEditor = document.getElementById('message-json-editor');
+    const copyBtn = document.getElementById('copy-message-json');
     
-    if (!vueltaServiceSelect || !streamDataElement) return;
+    if (!vueltaServiceSelect || !streamDataElement || !messagePanel || !messageEditor || !copyBtn) return;
     
     const serviceNumber = vueltaServiceSelect.value;
     const responseString = streamDataElement.value;
@@ -290,28 +293,6 @@ function mostrarEstructuraCompletaMensaje() {
         canal = selectedOption.dataset.canal || canal;
     }
     
-    // Buscar o crear contenedor para la estructura completa
-    let messageContainer = document.getElementById('message-structure-container');
-    if (!messageContainer) {
-        // Crear el contenedor después del resultado
-        const resultSection = document.querySelector('.result-section');
-        if (resultSection) {
-            messageContainer = document.createElement('div');
-            messageContainer.id = 'message-structure-container';
-            messageContainer.style.cssText = 'margin-top: 20px; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; background-color: #f9fafb;';
-            messageContainer.innerHTML = `
-                <h4 style="margin-bottom: 15px; color: #1f2937; font-weight: 600;">Estructura Completa del Mensaje</h4>
-                <div class="json-input-container auto-hide-scrollbar" style="margin-bottom: 10px;">
-                    <pre id="message-json-editor" class="json-editor" style="min-height: 150px; max-height: 300px; overflow: auto;"></pre>
-                </div>
-                <button id="copy-message-json" class="action-btn secondary-btn" style="width: 100%;">
-                    Copiar JSON
-                </button>
-            `;
-            resultSection.appendChild(messageContainer);
-        }
-    }
-    
     // Crear estructura del mensaje
     const messageStructure = {
         serviceNumber: serviceNumber,
@@ -320,41 +301,31 @@ function mostrarEstructuraCompletaMensaje() {
     };
     
     // Mostrar en el editor
-    const messageEditor = document.getElementById('message-json-editor');
-    if (messageEditor) {
-        const jsonString = JSON.stringify(messageStructure, null, 2);
-        messageEditor.textContent = jsonString;
-        
-        // Aplicar formato JSON si está disponible
-        if (typeof window.formatJsonElement === 'function') {
-            try {
-                window.formatJsonElement(messageEditor);
-            } catch (e) {
-                console.error('[Services UI - VUELTA] Error al formatear JSON:', e);
-            }
+    const jsonString = JSON.stringify(messageStructure, null, 2);
+    messageEditor.textContent = jsonString;
+    
+    // Aplicar formato JSON si está disponible
+    if (typeof window.formatJsonElement === 'function') {
+        try {
+            window.formatJsonElement(messageEditor);
+        } catch (e) {
+            console.error('[Services UI - VUELTA] Error al formatear JSON:', e);
         }
     }
     
-    // Configurar botón de copiar
-    const copyBtn = document.getElementById('copy-message-json');
-    if (copyBtn) {
-        // Remover listener anterior si existe
-        const newCopyBtn = copyBtn.cloneNode(true);
-        copyBtn.parentNode.replaceChild(newCopyBtn, copyBtn);
-        
-        newCopyBtn.addEventListener('click', function() {
-            navigator.clipboard.writeText(JSON.stringify(messageStructure, null, 2))
+    // Configurar botón de copiar (solo una vez)
+    if (!copyBtn.dataset.listenerAttached) {
+        copyBtn.addEventListener('click', function() {
+            navigator.clipboard.writeText(jsonString)
                 .then(() => {
                     // Cambiar texto del botón temporalmente
-                    const originalText = newCopyBtn.textContent;
-                    newCopyBtn.textContent = '¡Copiado!';
-                    newCopyBtn.style.backgroundColor = '#10b981';
-                    
+                    const originalText = copyBtn.textContent;
+                    copyBtn.textContent = '¡Copiado!';
+                    copyBtn.style.backgroundColor = '#10b981';
                     setTimeout(() => {
-                        newCopyBtn.textContent = originalText;
-                        newCopyBtn.style.backgroundColor = '';
+                        copyBtn.textContent = originalText;
+                        copyBtn.style.backgroundColor = '';
                     }, 2000);
-                    
                     if (typeof ConfigUtils !== 'undefined' && ConfigUtils.showNotification) {
                         ConfigUtils.showNotification('JSON copiado al portapapeles', 'success');
                     }
@@ -366,10 +337,11 @@ function mostrarEstructuraCompletaMensaje() {
                     }
                 });
         });
+        copyBtn.dataset.listenerAttached = 'true';
     }
     
     // Hacer visible el contenedor
-    messageContainer.style.display = 'block';
+    messagePanel.style.display = 'block';
 }
 
 /**
@@ -704,7 +676,7 @@ function displayVueltaResult(result) {
         });
         document.dispatchEvent(event);
 
-        // Mostrar estructura completa del mensaje
+        // Mostrar message-structure-containere
         mostrarEstructuraCompletaMensaje();
 
         // Show extra info in console if available

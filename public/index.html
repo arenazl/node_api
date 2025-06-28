@@ -33,6 +33,7 @@
   <link rel="stylesheet" href="/css/api-documentation.css">
   <link rel="stylesheet" href="/css/system-utils.css">
   <link rel="stylesheet" href="/css/field-validations.css">
+  <link rel="stylesheet" href="/css/logs-styles.css">
 
   <!-- Toastr - para notificaciones elegantes -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
@@ -172,6 +173,7 @@
         <button class="main-tab-btn" data-tab="configuracion">Configuración</button>
         <button class="main-tab-btn" data-tab="servicios">Api</button>
         <button class="main-tab-btn" data-tab="serviciosList">Servicios</button>
+        <button class="main-tab-btn" data-tab="logs">Logs</button>
       </div>
     </div>
 
@@ -482,7 +484,7 @@
                 <div class="ida-input-tab-content">
 
                   <div id="ida-input-json-pane" class="ida-input-pane active">
-                    
+
                     <div class="form-group">
                       <div class="json-input-header">
                         <div class="json-input-title">
@@ -503,257 +505,390 @@
 
                   <div id="ida-input-params-pane" class="ida-input-pane" style="display: none;">
 
-                        <div class="json-input-title">
-                          <label for="idaDynamicParamsInput">Json Parametros Dinamicos:</label>
-                        </div>
-      
+                    <div class="json-input-title">
+                      <label for="idaDynamicParamsInput">Json Parametros Dinamicos:</label>
+                    </div>
+
                     <div class="json-input-container auto-hide-scrollbar">
                       <pre id="idaDynamicParamsInput" class="json-editor" contenteditable="true">{}</pre>
                     </div>
-                    <button id="copyDetailedParamsJsonBtn" class="action-btn secondary-btn" style="margin-top: 10px; width: 100%;">Copiar JSON Detallado</button>
-                    </div>
-                  </div>
-                
-                      </div>
-
-                    </div>
-                           
-
-                  <div class="button-group" style="margin-bottom: 15px;">
-                    <button id="generateStringBtn" class="service-button secondary-btn">Generar String Fijo</button>
-                  </div>
-                  
-                  <div class="form-group">
-                    <label for="fixedStringOutput">String de longitud fija:</label>
-                    <textarea id="fixedStringOutput" rows="4" placeholder="El string generado se mostrará aquí" readonly></textarea>
-                    <div class="character-count">Cantidad de caracteres: <span id="charCount">0</span></div>
-                    <button id="copyFixedStringBtn" class="action-btn secondary-btn" style="margin-top: 0.5rem;">Copiar String</button>
-                  </div>
-          </div>
-                
-                  
-            <!-- Servicio de Vuelta -->
-            <div id="vueltaService" class="service-tab-content">
-              <div class="service-panel">
-                <h3>Servicio de Vuelta</h3>
-                <div class="service-form">
-                  <!-- Servicio predeterminado oculto -->
-                  <div class="form-group" style="display: none;">
-                    <label for="vueltaServiceSelect">Seleccione un servicio:</label>
-                    <select id="vueltaServiceSelect" class="service-select">
-                      <option value="3088" selected>SERVICIO 3088 - Imputador Genérico para varias operaciones</option>
-                      <!-- Las opciones se cargarán dinámicamente -->
-                    </select>
-                  </div>
-                  
-                  <div class="form-group">
-                    <label for="vueltaConfigSelect">Seleccione una configuración:</label>
-                    <select id="vueltaConfigSelect" class="service-select">
-                      <option value="">-- Seleccione una configuración --</option>
-                      <!-- Las opciones se cargarán dinámicamente -->
-                    </select>
-                  </div>
-                  
-                  <div class="button-group" style="margin-bottom: 15px;">
-                    <button id="generateExampleBtn" class="service-button secondary-btn">Generar Ejemplo</button>
-                  </div>
-
-                  <div class="form-group">
-                    <div class="json-input-header">
-                      <div class="json-input-title">
-                        <label for="streamData">Stream de datos:</label>
-                      </div>
-                      <div class="api-endpoints-info">
-                        <div class="endpoint-info">
-                          <span class="endpoint-label">📥 Procesamiento:</span>
-                          <code class="endpoint-code">POST /api/receivemessage</code>
-                        </div>
-                      </div>
-                    </div>
-                    <textarea id="streamData" rows="8" placeholder="Ingrese el stream de datos a procesar"></textarea>
-                    <div class="character-count">Cantidad de caracteres: <span id="streamCharCount">0</span></div>
+                    <button id="copyDetailedParamsJsonBtn" class="action-btn secondary-btn"
+                      style="margin-top: 10px; width: 100%;">Copiar JSON Detallado</button>
                   </div>
                 </div>
 
-                 <div class="" style="margin-bottom: 15px;">
-                    <button id="processVueltaBtn" class="service-button">Procesar Servicio de Vuelta</button>
-                  </div>
-                
-                <div class="result-section">
-                  <h4>Respuesta:</h4>
-                  <div class="result-container auto-hide-scrollbar" style="height: 400px; max-height: 400px; overflow: auto;">
-                    <pre id="vueltaResult" class="json-editor">La respuesta se mostrará aquí</pre>
+              </div>
+
+            </div>
+
+
+            <div class="button-group" style="margin-bottom: 15px;">
+              <button id="generateStringBtn" class="service-button secondary-btn">Generar String Fijo</button>
+            </div>
+
+            <div class="form-group">
+              <label for="fixedStringOutput">String de longitud fija:</label>
+              <textarea id="fixedStringOutput" rows="4" placeholder="El string generado se mostrará aquí"
+                readonly></textarea>
+              <div class="character-count">Cantidad de caracteres: <span id="charCount">0</span></div>
+              <button id="copyFixedStringBtn" class="action-btn secondary-btn" style="margin-top: 0.5rem;">Copiar
+                String</button>
+            </div>
+          </div>
+
+
+          <!-- Servicio de Vuelta -->
+          <div id="vueltaService" class="service-tab-content">
+            <div class="service-panel">
+              <h3>Servicio de Vuelta</h3>
+              <div class="service-form">
+                <!-- Servicio predeterminado oculto -->
+                <div class="form-group" style="display: none;">
+                  <label for="vueltaServiceSelect">Seleccione un servicio:</label>
+                  <select id="vueltaServiceSelect" class="service-select">
+                    <option value="3088" selected>SERVICIO 3088 - Imputador Genérico para varias operaciones</option>
+                    <!-- Las opciones se cargarán dinámicamente -->
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label for="vueltaConfigSelect">Seleccione una configuración:</label>
+                  <select id="vueltaConfigSelect" class="service-select">
+                    <option value="">-- Seleccione una configuración --</option>
+                    <!-- Las opciones se cargarán dinámicamente -->
+                  </select>
+                </div>
+
+                <div class="button-group" style="margin-bottom: 15px;">
+                  <button id="generateExampleBtn" class="service-button secondary-btn">Generar Ejemplo</button>
+                </div>
+
+                <div class="form-group">
+                  <div class="json-input-header">
+                    <div class="json-input-title">
+                      <label for="streamData">Stream de datos:</label>
                     </div>
-                    <button id="copyVueltaResultBtn" class="action-btn secondary-btn"
-                      style="margin-top: 1.5rem;width: -webkit-fill-available;">Copiar String</button>
+                    <div class="api-endpoints-info">
+                      <div class="endpoint-info">
+                        <span class="endpoint-label">📥 Procesamiento:</span>
+                        <code class="endpoint-code">POST /api/receivemessage</code>
+                      </div>
+                    </div>
                   </div>
+                  <textarea id="streamData" rows="8" placeholder="Ingrese el stream de datos a procesar"></textarea>
+                  <div class="character-count">Cantidad de caracteres: <span id="streamCharCount">0</span></div>
                 </div>
               </div>
+
+              <div class="" style="margin-bottom: 15px;">
+                <button id="processVueltaBtn" class="service-button">Procesar Servicio de Vuelta</button>
+              </div>
+
+              <div class="result-section">
+                <h4>Respuesta Simplificada:</h4>
+                <div class="result-container auto-hide-scrollbar"
+                  style="height: 400px; max-height: 400px; overflow: auto;">
+                  <pre id="vueltaResult" class="json-editor">La respuesta se mostrará aquí</pre>
+                </div>
+                <button id="copyVueltaResultBtn" class="action-btn secondary-btn"
+                  style="margin-top: 1.5rem;width: -webkit-fill-available;">Copiar String</button>
+              </div>
+            </div>
+          </div>
 
         </div>
       </div>
-           
-              <!-- Documentación de API -->
-              <div id="documentacionService" class="service-tab-content d-none">
-                <div class="service-panel">
-                  <h3>Documentación de API</h3>
-                  <div id="apiDocumentation">
-                    <!-- Aquí se cargará la documentación de la API generada dinámicamente -->
-                    <p class="loading-message">Cargando documentación de API...</p>
-                  </div>
-                </div>
+
+      <!-- Documentación de API -->
+      <div id="documentacionService" class="service-tab-content d-none">
+        <div class="service-panel">
+          <h3>Documentación de API</h3>
+          <div id="apiDocumentation">
+            <!-- Aquí se cargará la documentación de la API generada dinámicamente -->
+            <p class="loading-message">Cargando documentación de API...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab de Logs -->
+      <div id="logs" class="tab-pane">
+        <div class="logs-container">
+          <h2>Registro de Peticiones API</h2>
+
+          <!-- Filtros -->
+          <div class="logs-filters">
+            <div class="filter-group">
+              <label>Fecha Inicio:</label>
+              <input type="datetime-local" id="logsStartDate" class="form-control">
+            </div>
+            <div class="filter-group">
+              <label>Fecha Fin:</label>
+              <input type="datetime-local" id="logsEndDate" class="form-control">
+            </div>
+            <div class="filter-group">
+              <label>Método:</label>
+              <select id="logsMethod" class="form-control">
+                <option value="">Todos</option>
+                <option value="GET">GET</option>
+                <option value="POST">POST</option>
+                <option value="PUT">PUT</option>
+                <option value="DELETE">DELETE</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label>Status:</label>
+              <select id="logsStatus" class="form-control">
+                <option value="">Todos</option>
+                <option value="200">200 - OK</option>
+                <option value="201">201 - Created</option>
+                <option value="400">400 - Bad Request</option>
+                <option value="401">401 - Unauthorized</option>
+                <option value="404">404 - Not Found</option>
+                <option value="500">500 - Server Error</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label>Endpoint:</label>
+              <select id="logsEndpoint" class="form-control">
+                <option value="">Todos</option>
+              </select>
+            </div>
+            <button class="action-btn" onclick="loadLogs()">Buscar</button>
+            <button class="action-btn secondary-btn" onclick="loadLogsSummary()">Ver Resumen</button>
+          </div>
+
+          <!-- Tabs para logs y resumen -->
+          <div class="logs-tabs">
+            <button class="logs-tab-btn active" onclick="showLogsView('details')">Detalle de Logs</button>
+            <button class="logs-tab-btn" onclick="showLogsView('summary')">Resumen y Estadísticas</button>
+          </div>
+
+          <!-- Vista de logs detallados -->
+          <div id="logsDetailsView" class="logs-view active">
+            <div class="logs-table-container">
+              <table class="logs-table">
+                <thead>
+                  <tr>
+                    <th>Fecha/Hora</th>
+                    <th>Método</th>
+                    <th>Endpoint</th>
+                    <th>Status</th>
+                    <th>Duración</th>
+                    <th>IP</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody id="logsTableBody">
+                  <!-- Los logs se cargarán aquí -->
+                </tbody>
+              </table>
+            </div>
+            <div class="logs-pagination">
+              <span id="logsCount"></span>
+            </div>
+          </div>
+
+          <!-- Vista de resumen -->
+          <div id="logsSummaryView" class="logs-view" style="display: none;">
+            <div class="summary-cards">
+              <div class="summary-card">
+                <h3>Total de Peticiones</h3>
+                <p class="summary-value" id="totalRequests">-</p>
               </div>
+              <div class="summary-card">
+                <h3>Tasa de Error</h3>
+                <p class="summary-value" id="errorRate">-</p>
+              </div>
+              <div class="summary-card">
+                <h3>Tiempo Promedio</h3>
+                <p class="summary-value" id="avgResponseTime">-</p>
+              </div>
+            </div>
+
+            <div class="summary-section">
+              <h3>Top 10 Endpoints Más Usados</h3>
+              <div id="topEndpointsList"></div>
+            </div>
+
+            <div class="summary-section">
+              <h3>Distribución de Métodos</h3>
+              <div id="methodDistribution"></div>
+            </div>
+
+            <div class="summary-section">
+              <h3>Distribución de Errores</h3>
+              <div id="errorDistribution"></div>
             </div>
           </div>
         </div>
       </div>
 
 
-      <div id="notification" class="notification" style="display: none;"></div>
+    </div>
+  </div>
+  </div>
+  </div>
 
-      <!-- Modal de confirmación -->
-      <div id="confirmModal" class="modal">
-        <div class="modal-content">
-          <span class="close">&times;</span>
-          <h3>Confirmar actualización</h3>
-          <p id="confirmMessage">¿Desea actualizar este servicio? La versión anterior será eliminada.</p>
-          <div class="modal-buttons">
-            <button id="confirmYes" class="action-btn">Sí, actualizar</button>
-            <button id="confirmNo" class="action-btn secondary-btn">No, cancelar</button>
-          </div>
-        </div>
+
+  <div id="notification" class="notification" style="display: none;"></div>
+
+  <!-- Modal de confirmación -->
+  <div id="confirmModal" class="modal">
+    <div class="modal-content">
+      <span class="close">&times;</span>
+      <h3>Confirmar actualización</h3>
+      <p id="confirmMessage">¿Desea actualizar este servicio? La versión anterior será eliminada.</p>
+      <div class="modal-buttons">
+        <button id="confirmYes" class="action-btn">Sí, actualizar</button>
+        <button id="confirmNo" class="action-btn secondary-btn">No, cancelar</button>
       </div>
     </div>
-
-    <!-- CDN Scripts -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
-    <script src="/socket.io/socket.io.js"></script>
-
-    <!-- App Scripts -->
-    <script src="/js/json/json-formatter.js"></script>
-    <script src="/js/json/json-initializer.js"></script>
-    <script src="/js/api_client/service-api-client.js"></script>
-    <!-- Modular configuration system - Load utilities first -->
-    <script src="/js/config/config-utils.js"></script>
-    <script src="/js/config/config-service-loader.js"></script>
-    <script src="/js/config/config-occurrence-handler.js"></script>
-    <script src="/js/config/config-utils-extension.js"></script>
-    <script src="/js/config/config-data-handler.js"></script>
-    <script src="/js/config/config-storage.js"></script>
-    <script src="/js/config/config-storage-manager.js"></script>
-    <script src="/js/config/config-ui-manager.js"></script>
-    <script src="/js/config/config-init.js"></script>
-    <script src="/js/config/config-manager.js"></script>
+  </div>
 
 
-    <!-- IDA and VUELTA service handlers -->
-    <script src="/js/services_ui/ida/ida-service-handlers.js"></script>
-    <script src="/js/services_ui/vuelta/vuelta-service-handlers.js"></script>
+  </div>
 
-    <!-- Main app and tabs -->
-    <script src="/js/core/main.js"></script>
-    <script src="/js/services_ui/common/service-initialization-state.js"></script>
-    <script src="/js/services_ui/common/service-tabs.js"></script>
+  <!-- Modal para ver detalles del log -->
+  <div id="logDetailModal" class="modal" style="display: none;">
+    <div class="modal-content large-modal">
+      <span class="close" onclick="closeLogDetail()">&times;</span>
+      <h2>Detalle de Petición</h2>
+      <div id="logDetailContent"></div>
+    </div>
+  </div>
 
-    <script src="/js/core/app-events.js"></script>
-    <script src="/js/core/structure-search.js"></script>
-    <script src="/js/core/tab-manager.js"></script>
-    <script src="/js/services_ui/common/simple-example-generator.js"></script>
-    <script src="/js/ui_utils/simple-scrollbar.js"></script>
-    <script src="/js/core/theme-selector.js"></script>
-    <script src="/js/core/file-info.js"></script>
-    <script src="/js/core/tab-activation.js"></script>
-    <script src="/js/services_ui/common/servicios-manager.js"></script>
-    <script src="/js/core/system-utils.js"></script>
+  <!-- CDN Scripts -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+  <!-- App Scripts -->
+  <script src="/js/json/json-formatter.js"></script>
+  <script src="/js/json/json-initializer.js"></script>
+  <script src="/js/api_client/service-api-client.js"></script>
+  <!-- Modular configuration system - Load utilities first -->
+  <script src="/js/config/config-utils.js"></script>
+  <script src="/js/config/config-service-loader.js"></script>
+  <script src="/js/config/config-occurrence-handler.js"></script>
+  <script src="/js/config/config-utils-extension.js"></script>
+  <script src="/js/config/config-data-handler.js"></script>
+  <script src="/js/config/config-storage.js"></script>
+  <script src="/js/config/config-storage-manager.js"></script>
+  <script src="/js/config/config-ui-manager.js"></script>
+  <script src="/js/config/config-init.js"></script>
+  <script src="/js/config/config-manager.js"></script>
 
-    <!-- API Documentation -->
-    <script src="/js/api_documentation/api-documentation.js"></script>
 
-    <!-- Script para establecer Montserrat como fuente oficial -->
-    <script>
-      document.addEventListener('DOMContentLoaded', function () {
-        // Establecer Montserrat como fuente predeterminada para toda la aplicación
-        document.body.style.fontFamily = "'Montserrat', sans-serif";
+  <!-- IDA and VUELTA service handlers -->
+  <script src="/js/services_ui/ida/ida-service-handlers.js"></script>
+  <script src="/js/services_ui/vuelta/vuelta-service-handlers.js"></script>
 
-        // El selector todavía está disponible pero oculto, por si se necesita en el futuro
-        const fontSelector = document.getElementById('fontSelector');
-        if (fontSelector) {
-          // Función para aplicar la fuente seleccionada a toda la aplicación
-          function applyFont(fontFamily) {
-            document.body.style.fontFamily = fontFamily;
-            localStorage.setItem('preferredFont', fontFamily);
-          }
+  <!-- Main app and tabs -->
+  <script src="/js/core/main.js"></script>
+  <script src="/js/services_ui/common/service-initialization-state.js"></script>
+  <script src="/js/services_ui/common/service-tabs.js"></script>
 
-          // Event listener para cambios en el selector (por si se habilita en el futuro)
-          fontSelector.addEventListener('change', function () {
-            applyFont(this.value);
-          });
+  <script src="/js/core/app-events.js"></script>
+  <script src="/js/core/structure-search.js"></script>
+  <script src="/js/core/tab-manager.js"></script>
+  <script src="/js/services_ui/common/simple-example-generator.js"></script>
+  <script src="/js/ui_utils/simple-scrollbar.js"></script>
+  <script src="/js/core/theme-selector.js"></script>
+  <script src="/js/core/file-info.js"></script>
+  <script src="/js/core/tab-activation.js"></script>
+  <script src="/js/services_ui/common/servicios-manager.js"></script>
+  <script src="/js/core/system-utils.js"></script>
 
-          // Establecer Montserrat como opción seleccionada en el combo
-          fontSelector.value = "'Montserrat', sans-serif";
+  <!-- API Documentation -->
+  <script src="/js/api_documentation/api-documentation.js"></script>
+
+  <!-- Logs Manager -->
+  <script src="/js/logs/logs-manager.js"></script>
+
+  <!-- Script para establecer Montserrat como fuente oficial -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      // Establecer Montserrat como fuente predeterminada para toda la aplicación
+      document.body.style.fontFamily = "'Montserrat', sans-serif";
+
+      // El selector todavía está disponible pero oculto, por si se necesita en el futuro
+      const fontSelector = document.getElementById('fontSelector');
+      if (fontSelector) {
+        // Función para aplicar la fuente seleccionada a toda la aplicación
+        function applyFont(fontFamily) {
+          document.body.style.fontFamily = fontFamily;
+          localStorage.setItem('preferredFont', fontFamily);
         }
-      });
-    </script>
 
-    <!-- Estilos para los endpoints API -->
-    <style>
-      .json-input-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        margin-bottom: 8px;
-        flex-wrap: wrap;
-        gap: 10px;
+        // Event listener para cambios en el selector (por si se habilita en el futuro)
+        fontSelector.addEventListener('change', function () {
+          applyFont(this.value);
+        });
+
+        // Establecer Montserrat como opción seleccionada en el combo
+        fontSelector.value = "'Montserrat', sans-serif";
       }
+    });
+  </script>
 
-      .json-input-title {
-        flex: 1;
+  <!-- Estilos para los endpoints API -->
+  <style>
+    .json-input-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .json-input-title {
+      flex: 1;
+    }
+
+    .api-endpoints-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 0.85rem;
+    }
+
+    .endpoint-info {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .endpoint-label {
+      color: #6b7280;
+      font-weight: 500;
+      min-width: 80px;
+    }
+
+    .endpoint-code {
+      background: #f3f4f6;
+      border: 1px solid #d1d5db;
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.8rem;
+      color: #374151;
+      font-weight: 500;
+    }
+
+    /* Responsive design for smaller screens */
+    @media (max-width: 768px) {
+      .json-input-header {
+        flex-direction: column;
+        align-items: flex-start;
       }
 
       .api-endpoints-info {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-        font-size: 0.85rem;
+        margin-top: 8px;
       }
+    }
+  </style>
 
-      .endpoint-info {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-      }
-
-      .endpoint-label {
-        color: #6b7280;
-        font-weight: 500;
-        min-width: 80px;
-      }
-
-      .endpoint-code {
-        background: #f3f4f6;
-        border: 1px solid #d1d5db;
-        border-radius: 4px;
-        padding: 2px 6px;
-        font-family: 'Courier New', monospace;
-        font-size: 0.8rem;
-        color: #374151;
-        font-weight: 500;
-      }
-
-      /* Responsive design for smaller screens */
-      @media (max-width: 768px) {
-        .json-input-header {
-          flex-direction: column;
-          align-items: flex-start;
-        }
-
-        .api-endpoints-info {
-          margin-top: 8px;
-        }
-      }
-    </style>
+  <div id="breadcrumb-bar" class="breadcrumb-bar"></div>
 
 </body>
 

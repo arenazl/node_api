@@ -8,52 +8,90 @@
  * múltiples componentes necesitan actualizarse (selectores, tablas, etc.)
  */
 
-// Sistema de eventos global que combina WebSockets con eventos locales
+// Sistema de eventos global que usa EventManager local
 const EventBus = {
     // Almacena los eventos y sus suscriptores
     events: {},
-    socket: null,
     
-    // Inicializar conexión Socket.IO
+    // Inicializar sistema de eventos
     init: function() {
         try {
-            // Si ya tenemos un socket, no crear otro
-            if (this.socket) return;
+            console.log('Inicializando sistema de eventos locales...');
             
-            console.log('Inicializando conexión Socket.IO para eventos en tiempo real...');
-            
-            // Conectar al servidor Socket.IO
-            this.socket = io();
-            
-            // Configurar eventos de Socket.IO
-            this.socket.on('connect', () => {
-                console.log(`Conexión WebSocket establecida. ID: ${this.socket.id}`);
+            // Verificar si EventManager está disponible
+            if (typeof EventManager !== 'undefined') {
+                console.log('EventManager disponible, configurando eventos...');
                 
-                // Suscribirse a eventos del servidor
-                this.socket.on('file:uploaded', (data) => {
-                    console.log('Evento file:uploaded recibido desde el servidor:', data);
-                    this.publish(AppEvents.FILE_UPLOADED, data);
+                // Suscribirse a eventos del servidor usando EventManager
+                EventManager.on('file:uploaded', (data) => {
+                    console.log('Evento file:uploaded recibido:', data);
+                    this.publish(AppEvents.FILE_UPLOADED, data.data);
                 });
                 
-                this.socket.on('services:refreshed', (data) => {
-                    console.log('Evento services:refreshed recibido desde el servidor:', data);
-                    this.publish(AppEvents.SERVICES_REFRESHED, data);
+                EventManager.on('services:refreshed', (data) => {
+                    console.log('Evento services:refreshed recibido:', data);
+                    this.publish(AppEvents.SERVICES_REFRESHED, data.data);
                 });
-            });
-            
-            this.socket.on('connect_error', (error) => {
-                console.warn('Error de conexión Socket.IO:', error);
-                console.warn('Las actualizaciones automáticas podrían no funcionar correctamente');
-            });
-            
-            this.socket.on('disconnect', (reason) => {
-                console.warn(`Desconexión Socket.IO: ${reason}`);
-            });
+                
+                EventManager.on('config:saved', (data) => {
+                    console.log('Evento config:saved recibido:', data);
+                    this.publish(AppEvents.CONFIG_SAVED, data.data);
+                });
+                
+                // Iniciar polling para eventos del servidor
+                this.startServerEventPolling();
+                
+            } else {
+                console.warn('EventManager no disponible, usando solo eventos locales');
+            }
             
         } catch (error) {
-            console.error('Error al inicializar Socket.IO:', error);
-            console.warn('Operando sin Socket.IO - las actualizaciones automáticas podrían no funcionar correctamente');
+            console.error('Error al inicializar sistema de eventos:', error);
+            console.warn('Operando sin sistema de eventos - las actualizaciones automáticas podrían no funcionar correctamente');
         }
+    },
+    
+    /**
+     * Inicia el polling para eventos del servidor
+     */
+    startServerEventPolling: function() {
+        // Polling para eventos de Excel
+        setInterval(async () => {
+            try {
+                const response = await fetch('/excel/events/last');
+                const data = await response.json();
+                
+                if (data.hasEvent && data.event) {
+                    console.log('Evento del servidor recibido:', data.event);
+                    
+                    // Emitir evento local
+                    if (typeof EventManager !== 'undefined') {
+                        EventManager.emit(data.event.type, data.event.payload);
+                    }
+                }
+            } catch (error) {
+                // Silenciar errores de polling
+            }
+        }, 10000); // Cada 10 segundos
+        
+        // Polling para eventos de configuración
+        setInterval(async () => {
+            try {
+                const response = await fetch('/service-config/events/last');
+                const data = await response.json();
+                
+                if (data.hasEvent && data.event) {
+                    console.log('Evento de configuración del servidor recibido:', data.event);
+                    
+                    // Emitir evento local
+                    if (typeof EventManager !== 'undefined') {
+                        EventManager.emit(data.event.type, data.event.payload);
+                    }
+                }
+            } catch (error) {
+                // Silenciar errores de polling
+            }
+        }, 10000); // Cada 10 segundos
     },
     
     /**
@@ -90,6 +128,8 @@ const EventBus = {
             return;
         }
         
+        console.log(`Publicando evento: ${eventName}`, data);
+        
         // Notificar a todos los suscriptores
         this.events[eventName].forEach(callback => {
             try {
@@ -99,10 +139,9 @@ const EventBus = {
             }
         });
         
-        // Si estamos solicitando refresh de servicios, enviarlo también por socket
-        if (eventName === AppEvents.SERVICES_REFRESHED && this.socket && this.socket.connected) {
-            console.log('Enviando solicitud de actualización al servidor vía Socket.IO');
-            this.socket.emit('refresh:services', { timestamp: new Date().toISOString() });
+        // También emitir usando EventManager si está disponible
+        if (typeof EventManager !== 'undefined') {
+            EventManager.emit(eventName, data);
         }
     }
 };
@@ -128,6 +167,6 @@ window.AppEvents = AppEvents;
 
 // Inicializar EventBus cuando el DOM esté cargado
 document.addEventListener('DOMContentLoaded', function() {
-    // Inicializar la conexión Socket.IO
+    // Inicializar el sistema de eventos
     EventBus.init();
 });

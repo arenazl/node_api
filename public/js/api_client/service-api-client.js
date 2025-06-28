@@ -138,7 +138,7 @@ const ServiceApiClient = {
     },
     
     /**
-     * Obtiene la lista de servicios disponibles
+     * Obtiene la lista de servicios disponibles usando el caché centralizado
      * @param {boolean} forceRefresh - Si es true, fuerza una actualización de la caché
      * @returns {Promise<Array>} - Promesa que resuelve con la lista de servicios
      */
@@ -146,18 +146,21 @@ const ServiceApiClient = {
         console.log(`[ServiceApiClient] Obteniendo servicios${forceRefresh ? ' (forzando recarga)' : ''}`);
         
         try {
-            // Determinar el endpoint según si se fuerza la recarga o no
-            const endpoint = forceRefresh ? '/api/services/refresh' : '/api/services';
+            // Usar el caché centralizado si está disponible
+            if (typeof ServicesCache !== 'undefined') {
+                console.log('[ServiceApiClient] Usando caché centralizado');
+                return await ServicesCache.getServices(forceRefresh);
+            }
             
-            // Realizar la petición
+            // Fallback al método anterior si no hay caché
+            console.log('[ServiceApiClient] Caché no disponible, usando método directo');
+            const endpoint = forceRefresh ? '/api/services/refresh' : '/api/services';
             const response = await fetch(endpoint);
             
-            // Verificar respuesta
             if (!response.ok) {
                 throw new Error(`Error ${response.status} al obtener servicios`);
             }
             
-            // Obtener datos
             const data = await response.json();
             
             // Si se forzó la recarga, obtener la lista actualizada

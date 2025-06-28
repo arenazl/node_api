@@ -2127,3 +2127,61 @@ async function processService(serviceNumber = null) {
     ConfigUtils.showNotification(error.message, 'error');
   }
 }
+
+// Detectar cambio de tab y recargar configuraciones guardadas al entrar a 'Configuración'
+document.addEventListener('DOMContentLoaded', function() {
+  const configTabBtn = document.querySelector('.main-tab-btn[data-tab="configuracion"]');
+  if (configTabBtn) {
+    configTabBtn.addEventListener('click', function() {
+      if (typeof ConfigStorageManager !== 'undefined' && typeof ConfigUIManager !== 'undefined') {
+        ConfigStorageManager.loadSavedConfigurations(null, function(configs) {
+          if (ConfigUIManager.updateSavedConfigurationsList) {
+            ConfigUIManager.updateSavedConfigurationsList(configs);
+          }
+        }, true); // true = forzar recarga
+      }
+    });
+  }
+});
+
+function updateBreadcrumb() {
+  // Buscar el tab principal activo o visible
+  let mainTabBtn = document.querySelector('.main-tab-btn.active');
+  if (!mainTabBtn) {
+    // Si no hay activo, buscar el que tenga aria-selected="true" o visible
+    mainTabBtn = document.querySelector('.main-tab-btn[aria-selected="true"]') || document.querySelector('.main-tab-btn');
+  }
+  // Buscar el subtab activo o visible
+  let subTabBtn = document.querySelector('.subtab-btn.active');
+  if (!subTabBtn) {
+    subTabBtn = document.querySelector('.subtab-btn[aria-selected="true"]') || document.querySelector('.subtab-btn');
+  }
+  const breadcrumbBar = document.getElementById('breadcrumb-bar');
+  if (!breadcrumbBar) return;
+
+  let html = '';
+  if (mainTabBtn) {
+    html += `<span class=\"breadcrumb-main\">${mainTabBtn.textContent.trim()}</span>`;
+  }
+  if (subTabBtn && subTabBtn.offsetParent !== null) {
+    html += `<span class=\"breadcrumb-sep\">&gt;</span> <span class=\"breadcrumb-sub\">${subTabBtn.textContent.trim()}</span>`;
+  }
+  breadcrumbBar.innerHTML = html;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  // Actualizar al cargar
+  updateBreadcrumb();
+  // Actualizar al cambiar de tab principal
+  document.querySelectorAll('.main-tab-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      setTimeout(updateBreadcrumb, 10);
+    });
+  });
+  // Actualizar al cambiar de subtab
+  document.querySelectorAll('.subtab-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      setTimeout(updateBreadcrumb, 10);
+    });
+  });
+});

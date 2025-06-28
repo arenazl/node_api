@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualizador de Logs API</title>
+    <!-- Incluye el componente JSON Viewer desde CDN -->
+    <script type="module" src="https://unpkg.com/@alenaksu/json-viewer@2.1.0/dist/json-viewer.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #282c34; /* Fondo oscuro similar a un editor de código */
+            color: #abb2bf; /* Color de texto claro */
+        }
+        h1 {
+            color: #61afef;
+            text-align: center;
+        }
+        .controls {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            justify-content: center;
+        }
+        .controls input[type="text"] {
+            padding: 8px;
+            border: 1px solid #61afef;
+            border-radius: 4px;
+            background-color: #3e4451;
+            color: #abb2bf;
+            width: 300px;
+        }
+        .controls button {
+            padding: 8px 15px;
+            background-color: #61afef;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .controls button:hover {
+            background-color: #528bff;
+        }
+        json-viewer {
+            /* Personaliza el tema de la librería. Puedes elegir entre los temas disponibles o definir uno custom. */
+            /* theme: "monokai"; */
+            --background-color: #282c34;
+            --color: #abb2bf;
+            --font-family: "Fira Code", monospace; /* Fuente más de programador */
+            --font-size: 14px;
+            --line-height: 1.5;
+            --indent-size: 2em;
+            --string-color: #98c379;
+            --number-color: #d19a66;
+            --boolean-color: #c678dd;
+            --null-color: #e06c75;
+            --property-color: #e5c07b;
+            --preview-color: #56b6c2;
+            --highlight-color: #e5c07b; /* Color para resultados de búsqueda */
+        }
+        .loading-message {
+            text-align: center;
+            color: #61afef;
+            font-size: 1.2em;
+            margin-top: 50px;
+        }
+        .error-message {
+            text-align: center;
+            color: #e06c75;
+            font-size: 1.2em;
+            margin-top: 50px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Logs de API</h1>
+
+    <div class="controls">
+        <input type="text" id="filterInput" placeholder="Filtrar por texto o regex...">
+        <button id="filterButton">Filtrar</button>
+        <button id="resetFilterButton">Limpiar Filtro</button>
+        <button id="expandAllButton">Expandir Todo</button>
+        <button id="collapseAllButton">Colapsar Todo</button>
+    </div>
+
+    <div id="loading" class="loading-message">Cargando logs...</div>
+    <div id="error" class="error-message" style="display: none;"></div>
+    <json-viewer id="logViewer"></json-viewer>
+
+    <script>
+        const logViewer = document.getElementById('logViewer');
+        const filterInput = document.getElementById('filterInput');
+        const filterButton = document.getElementById('filterButton');
+        const resetFilterButton = document.getElementById('resetFilterButton');
+        const expandAllButton = document.getElementById('expandAllButton');
+        const collapseAllButton = document.getElementById('collapseAllButton');
+        const loadingMessage = document.getElementById('loading');
+        const errorMessage = document.getElementById('error');
+
+        async function fetchLogs() {
+            loadingMessage.style.display = 'block';
+            errorMessage.style.display = 'none';
+            try {
+                const response = await fetch('http://localhost:3000/system-maintenance/view-logs');
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Error al cargar los logs');
+                }
+                const logs = await response.json();
+                logViewer.data = logs; // Asigna los datos JSON al componente
+                logViewer.expanded = 2; // Expande los primeros 2 niveles por defecto
+            } catch (error) {
+                console.error('Error fetching logs:', error);
+                errorMessage.textContent = `Error al cargar logs: ${error.message}`;
+                errorMessage.style.display = 'block';
+            } finally {
+                loadingMessage.style.display = 'none';
+            }
+        }
+
+        filterButton.addEventListener('click', () => {
+            const filterText = filterInput.value.trim();
+            if (filterText) {
+                logViewer.filter(filterText);
+            }
+        });
+
+        resetFilterButton.addEventListener('click', () => {
+            filterInput.value = '';
+            logViewer.resetFilter();
+        });
+
+        expandAllButton.addEventListener('click', () => {
+            logViewer.expandAll();
+        });
+
+        collapseAllButton.addEventListener('click', () => {
+            logViewer.collapseAll();
+        });
+
+        // Carga los logs al iniciar la página
+        fetchLogs();
+    </script>
+</body>
+</html> 

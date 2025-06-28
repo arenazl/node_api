@@ -1,4 +1,3 @@
-
 /**
  * Servidor principal para la API de MQ Importer
  */
@@ -32,6 +31,7 @@ const excelRoutes = require('./routes/excel');
 const serviceRoutes = require('./routes/services');
 const serviceConfigRoutes = require('./routes/service-config');
 const systemMaintenanceRoutes = require('./routes/system-maintenance');
+const logsRoutes = require('./routes/logs');
 
 // Crear directorios necesarios si no existen
 const uploadsDir = path.join(__dirname, 'JsonStorage', 'uploads');
@@ -102,15 +102,11 @@ app.use(fileUpload({
   tempFileDir: path.join(__dirname, 'tmp')
 }));
 
-// Middleware para loggear solicitudes
-app.use((req, res, next) => {
-  const start = Date.now();
-  res.on('finish', () => {
-    const duration = Date.now() - start;
-    console.log(`${req.method} ${req.url} ${res.statusCode} - ${duration}ms`);
-  });
-  next();
-});
+// Importar middleware de logging
+const { requestLoggerMiddleware } = require('./middleware/request-logger');
+
+// Aplicar middleware de logging a todas las rutas
+app.use(requestLoggerMiddleware);
 
 // Middleware para manejar errores
 app.use((err, req, res, next) => {
@@ -141,6 +137,7 @@ app.use('/excel', excelRoutes);
 app.use('/api/services', serviceRoutes);
 app.use('/service-config', serviceConfigRoutes);
 app.use('/system-maintenance', systemMaintenanceRoutes);
+app.use('/logs', logsRoutes);
 
 // Ruta principal - Servir la interfaz web
 app.get('/', (req, res) => {
@@ -192,39 +189,6 @@ const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`Documentación API: http://localhost:${PORT}/api`);
   console.log(`Monitoreo de salud: http://localhost:${PORT}/health`);
 });
-
-// Inicializar EventBus de WebSockets para comunicación en tiempo real
-try {
-  const io = require('socket.io')(server, {
-    cors: {
-      origin: '*',
-      methods: ['GET', 'POST'],
-      credentials: true
-    }
-  });
-
-  // Configurar eventos de Socket.IO
-  io.on('connection', (socket) => {
-    console.log(`Cliente conectado: ${socket.id}`);
-    
-    // Cuando un cliente solicita una actualización forzada
-    socket.on('refresh:services', () => {
-      console.log(`Cliente ${socket.id} solicitó actualización de servicios`);
-      io.emit('services:refreshed', { timestamp: new Date().toISOString() });
-    });
-    
-    socket.on('disconnect', () => {
-      console.log(`Cliente desconectado: ${socket.id}`);
-    });
-  });
-  
-  // Hacer disponible el objeto io globalmente para los otros módulos
-  global.io = io;
-  console.log('Sistema de eventos en tiempo real inicializado correctamente');
-} catch (socketError) {
-  console.warn('No se pudo inicializar el sistema de eventos en tiempo real:', socketError.message);
-  console.warn('Las actualizaciones automáticas podrían no funcionar correctamente');
-}
 
 // Configurar timeout para solicitudes utilizando la variable de entorno
 server.timeout = REQUEST_TIMEOUT; // Valor por defecto: 2 minutos

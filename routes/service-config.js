@@ -59,7 +59,8 @@ router.post('/save', async (req, res) => {
 
     // Guardar configuración en archivo JSON
     await fs.writeJson(filePath, config, { spaces: 2 });
-    // Emitir evento de configuración guardada a través de Socket.IO
+    
+    // Emitir evento de configuración guardada
     if (global.io) {
       console.log(`[WebSocket] Emitiendo evento config:saved para servicio ${serviceNumber}`);
       global.io.emit('config:saved', { 
@@ -69,6 +70,25 @@ router.post('/save', async (req, res) => {
         filename,
         timestamp: config.timestamp
       });
+    } else {
+      // Sin Socket.IO, guardar evento para consulta
+      console.log(`[ServiceConfig] Socket.IO no disponible, guardando evento para consulta`);
+      try {
+        const eventFile = path.join(__dirname, '..', 'tmp', 'config_event.json');
+        fs.writeFileSync(eventFile, JSON.stringify({
+          type: 'config:saved',
+          payload: {
+            serviceNumber,
+            canal: safeCanal,
+            version: safeVersion,
+            filename,
+            timestamp: config.timestamp
+          },
+          timestamp: new Date().toISOString()
+        }, null, 2));
+      } catch (eventError) {
+        console.warn('[ServiceConfig] No se pudo guardar evento:', eventError);
+      }
     }
     
     // Devolver respuesta exitosa
@@ -207,6 +227,43 @@ router.get('/get/:id', async (req, res) => {
     console.error('Error al obtener configuración:', error);
     res.status(500).json({ 
       error: `Error al obtener configuración: ${error.message}` 
+    });
+  }
+});
+
+/**
+ * @route GET /service-config/events/last
+ * @description Obtiene el último evento de configuración registrado
+ */
+router.get('/events/last', (req, res) => {
+  try {
+    const eventFile = path.join(__dirname, '..', 'tmp', 'config_event.json');
+    
+    if (!fs.existsSync(eventFile)) {
+      return res.json({
+        hasEvent: false,
+        event: null
+      });
+    }
+
+    const eventData = JSON.parse(fs.readFileSync(eventFile, 'utf-8'));
+    
+    // Verificar si el evento es reciente (menos de 5 minutos)
+    const eventAge = Date.now() - new Date(eventData.timestamp).getTime();
+    const isRecent = eventAge < 5 * 60 * 1000; // 5 minutos
+
+    res.json({
+      hasEvent: isRecent,
+      event: isRecent ? eventData : null,
+      eventAge: eventAge
+    });
+
+  } catch (error) {
+    console.error('[ServiceConfig] Error al obtener último evento:', error);
+    res.json({
+      hasEvent: false,
+      event: null,
+      error: error.message
     });
   }
 });
