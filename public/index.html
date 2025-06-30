@@ -542,8 +542,8 @@
             <div class="service-panel">
               <h3>Servicio de Vuelta</h3>
               <div class="service-form">
-                <!-- Servicio predeterminado oculto -->
-                <div class="form-group" style="display: none;">
+              
+                <div class="form-group">
                   <label for="vueltaServiceSelect">Seleccione un servicio:</label>
                   <select id="vueltaServiceSelect" class="service-select">
                     <option value="3088" selected>SERVICIO 3088 - Imputador Genérico para varias operaciones</option>
@@ -576,6 +576,9 @@
                     </div>
                   </div>
                   <textarea id="streamData" rows="8" placeholder="Ingrese el stream de datos a procesar"></textarea>
+                  <div style="margin-top: 8px;">
+                    <button id="copyStreamBtn" class="action-btn secondary-btn" style="margin-top: 1.5rem;width: -webkit-fill-available;">Copiar String</button>
+                  </div>
                   <div class="character-count">Cantidad de caracteres: <span id="streamCharCount">0</span></div>
                 </div>
               </div>

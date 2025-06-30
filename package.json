@@ -34,5 +34,10 @@
   },
   "devDependencies": {
     "nodemon": "^2.0.22"
+  },
+  "overrides": {
+    "get-intrinsic": "^1.2.4",
+    "side-channel": "^1.0.6",
+    "function-bind": "^1.1.2"
   }
 }

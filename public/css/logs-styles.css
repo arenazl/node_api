@@ -294,6 +294,16 @@
     font-size: 0.9rem;
     overflow-x: auto;
     white-space: pre-wrap;
+    word-wrap: break-word;
+    max-width: 100%;
+}
+
+.log-detail-content pre {
+    margin: 0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    max-width: 100%;
 }
 
 /* Responsive */

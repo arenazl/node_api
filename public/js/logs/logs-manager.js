@@ -167,18 +167,50 @@ function viewLogDetails(index) {
         html += '<div class="log-detail-section">';
         html += '<h4>Response</h4>';
         html += '<div class="log-detail-content">';
-        html += `Status: ${log.response.statusCode} ${log.response.statusMessage || ''}\n`;
-        html += `Duración: ${log.response.duration}\n`;
+        html += `<pre>Status: ${log.response.statusCode} ${log.response.statusMessage || ''}\nDuración: ${log.response.duration}`;
+        
         if (log.response.body) {
-            html += '\nBody:\n';
+            html += '\n\nBody:\n';
             try {
-                const body = typeof log.response.body === 'string' ? 
-                    JSON.parse(log.response.body) : log.response.body;
-                html += JSON.stringify(body, null, 2);
+                let bodyContent = log.response.body;
+                
+                // Si el body es un string que parece JSON, intentar parsearlo
+                if (typeof bodyContent === 'string') {
+                    // Verificar si es un string truncado
+                    if (bodyContent.endsWith('...')) {
+                        html += '\n[NOTA: El contenido fue truncado en el servidor]\n\n';
+                    }
+                    
+                    // Intentar parsear si parece JSON
+                    if (bodyContent.trim().startsWith('{') || bodyContent.trim().startsWith('[')) {
+                        try {
+                            const parsed = JSON.parse(bodyContent);
+                            bodyContent = JSON.stringify(parsed, null, 2);
+                        } catch (e) {
+                            // Si falla el parse, mostrar como está
+                        }
+                    }
+                }
+                // Si ya es un objeto, convertirlo a JSON formateado
+                else if (typeof bodyContent === 'object') {
+                    bodyContent = JSON.stringify(bodyContent, null, 2);
+                }
+                
+                // Escapar caracteres HTML para evitar problemas de renderizado
+                const escapedBody = String(bodyContent)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#039;');
+                
+                html += escapedBody;
             } catch (e) {
-                html += log.response.body;
+                html += `\n[Error al procesar body: ${e.message}]\n`;
+                html += String(log.response.body || '');
             }
         }
+        html += '</pre>';
         html += '</div>';
         html += '</div>';
     }

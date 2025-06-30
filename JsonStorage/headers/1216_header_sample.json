@@ -1,8 +1,8 @@
 {
   "value": "000169SD1216000000000100120052011090909P0425831047                                             00     ",
   "serviceNumber": "1216",
-  "timestamp": "2025-06-28T09:46:59.330Z",
-  "sourceFile": "20250628T09465_SVO1216 - Consulta de Sucursales (FIXED).xls",
+  "timestamp": "2025-06-30T06:24:43.554Z",
+  "sourceFile": "20250630T06244_SVO1216 - Consulta de Sucursales.xls",
   "foundSheetName": "Trama Ejemplo",
   "foundRowContaining000": "000169SD1216000000000100120052011090909P0425831047                                             00     01000000",
   "missingTab": false,

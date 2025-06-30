@@ -129,6 +129,14 @@ function initializeIdaServiceHandlers() {
                             if (detailedParamsView) {
                                 detailedParamsView.innerHTML = '<p>Seleccione una configuración para ver los parámetros detallados.</p>';
                             }
+                            // Sincronizar con el select de VUELTA
+                            const vueltaServiceSelect = document.getElementById('vueltaServiceSelect');
+                            if (vueltaServiceSelect) {
+                                vueltaServiceSelect.value = serviceNumber;
+                                // Disparar el evento change para que se actualicen configs y UI de vuelta
+                                const event = new Event('change');
+                                vueltaServiceSelect.dispatchEvent(event);
+                            }
                         },
                         (errorMessage) => {
                             console.error('[Services UI - IDA] Error loading service structure:', errorMessage);

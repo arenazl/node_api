@@ -78,14 +78,26 @@ const requestLoggerMiddleware = (req, res, next) => {
         error: null // Se llenará si ocurre un error
     };
 
-    // Capturar el body original de la respuesta
+    // Capturar TODAS las formas de respuesta
     const originalSend = res.send;
+    const originalJson = res.json;
+    const originalEnd = res.end;
     let responseBody;
     let errorCaught = null;
 
     res.send = function(data) {
         responseBody = data;
-        originalSend.call(this, data);
+        return originalSend.call(this, data);
+    };
+
+    res.json = function(data) {
+        responseBody = data;
+        return originalJson.call(this, data);
+    };
+
+    res.end = function(data) {
+        if (data) responseBody = data;
+        return originalEnd.call(this, data);
     };
 
     // Capturar errores de la respuesta
@@ -100,11 +112,27 @@ const requestLoggerMiddleware = (req, res, next) => {
         // Serializar body y responseBody de forma segura
         function safeStringify(obj) {
             try {
+                // Manejar casos especiales
+                if (obj === undefined) return '[undefined]';
+                if (obj === null) return '[null]';
+                if (obj === '') return '[empty string]';
+                
+                // Si es un Buffer, indicarlo
+                if (Buffer.isBuffer(obj)) {
+                    return `[Buffer: ${obj.length} bytes]`;
+                }
+                
+                // Convertir a string
                 let str = typeof obj === 'string' ? obj : JSON.stringify(obj);
-                if (str.length > 2000) str = str.substring(0, 2000) + '...';
+                
+                // Limitar longitud (aumentado para logs más completos)
+                if (str.length > 10000) {
+                    str = str.substring(0, 10000) + '... [truncado]';
+                }
+                
                 return str;
-            } catch {
-                return '[Unserializable]';
+            } catch (error) {
+                return `[Unserializable: ${error.message}]`;
             }
         }
 
@@ -116,7 +144,7 @@ const requestLoggerMiddleware = (req, res, next) => {
                 statusMessage: res.statusMessage,
                 duration: `${duration}ms`,
                 headers: res.getHeaders ? res.getHeaders() : {},
-                body: safeStringify(responseBody)
+                body: responseBody !== undefined ? safeStringify(responseBody) : '[No body]'
             },
             error: errorCaught ? safeStringify(errorCaught) : null
         };
@@ -141,11 +169,11 @@ const requestLoggerMiddleware = (req, res, next) => {
             const logEntry = {
                 ...requestInfo,
                 response: {
-                    statusCode: res.statusCode,
-                    statusMessage: res.statusMessage,
+                    statusCode: res.statusCode || 0,
+                    statusMessage: res.statusMessage || 'Connection closed',
                     duration: `${duration}ms`,
                     headers: res.getHeaders ? res.getHeaders() : {},
-                    body: safeStringify(responseBody)
+                    body: responseBody !== undefined ? safeStringify(responseBody) : '[No body - connection closed]'
                 },
                 error: errorCaught ? safeStringify(errorCaught) : '[Connection closed before response]'
             };

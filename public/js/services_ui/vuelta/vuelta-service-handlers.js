@@ -245,6 +245,20 @@ function initializeVueltaServiceHandlers() {
             console.log('[Services UI - VUELTA] Event listener added for Copy Result button');
         }
 
+        // Agregar funcionalidad al botón 'Copiar String'
+        const copyStreamBtn = document.getElementById('copyStreamBtn');
+        if (copyStreamBtn && streamData) {
+            copyStreamBtn.addEventListener('click', function() {
+                streamData.select();
+                document.execCommand('copy');
+                if (typeof ConfigUtils !== 'undefined' && ConfigUtils.showNotification) {
+                    ConfigUtils.showNotification('¡String copiado al portapapeles!', 'success');
+                } else {
+                    alert('¡String copiado al portapapeles!');
+                }
+            });
+        }
+
         console.log('[Services UI - VUELTA] Manejadores de servicios VUELTA inicializados correctamente');
         
         // Marcar como inicializado

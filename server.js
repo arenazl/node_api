@@ -2,6 +2,20 @@
  * Servidor principal para la API de MQ Importer
  */
 
+// Workaround para el error de strict mode en dependencias
+global._babelPolyfill = global._babelPolyfill || false;
+
+// Ignorar errores específicos de get-intrinsic
+process.on('uncaughtException', (err) => {
+  if (err.message && err.message.includes('callee') && err.message.includes('strict mode')) {
+    // Ignorar este error específico pero continuar la ejecución
+    console.warn('Ignorando error conocido de get-intrinsic');
+    return;
+  }
+  // Para otros errores, usar el manejador existente
+  throw err;
+});
+
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
