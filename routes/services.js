@@ -452,12 +452,6 @@ router.get('/:serviceNumber', async (req, res) => {
   }
 });
 
-// Importar el parseador de Excel (ya no es necesario aquí si service-lookup lo maneja)
-// const excelParser = require('../utils/excel-parser'); 
-// const { getAvailableServices, findServiceByNumber } = require('../utils/service-lookup'); // Moved up
-
-// Helper functions generarEstructuraDetallada and procesarElementos are now imported from ../utils/ida-message-utils
-
 /**
  * Procesa una solicitud de servicio
  * @param {string} serviceNumber - Número de servicio
@@ -509,7 +503,6 @@ async function processServiceRequest(serviceNumber, stream) {
     status: "success"
   };
 }
-// ion removeEmptyOccurrences(responseData) { ... } // This function is now replaced by jsonCleaner.cleanVueltaJson - Comentando la línea problemática
 
 /**
  * @route POST /api/services/sendmessage
@@ -604,6 +597,7 @@ const backendResponseGenerator = require('../utils/backend-response-generator');
  * @param {boolean} parameters.simulate - Si es true, genera una respuesta simulada en lugar de procesar el stream
  */
 router.post('/receivemessage', async (req, res) => {
+  
     const DEBUG_LOG = false; 
     try {
       const { header, parameters } = req.body;
@@ -734,7 +728,4 @@ router.post('/receivemessage', async (req, res) => {
 module.exports = router;
 module.exports.getAvailableServices = getAvailableServices;
 
-// Importar el nuevo generador de respuestas de backend (already imported for generate-legacy, now moved)
-// const backendResponseGenerator = require('../utils/backend-response-generator'); // This line can be removed if not used elsewhere in this file
 
-// generate-example-response was moved to example-generation-routes.js

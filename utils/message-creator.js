@@ -88,7 +88,8 @@ function createDataMessage(serviceStructure, data, section) {
       // Procesar campo
       const fieldName = element.name;
       const fieldLength = element.length;
-      const fieldValue = data[fieldName] || '';
+      let fieldValue = data[fieldName];
+      fieldValue = fieldValue.slice(0, fieldLength);
 
       // Formatear valor según longitud y tipo
       const formattedValue = formatValue(fieldValue, fieldLength, element.fieldType, fieldName, element.valores || '');

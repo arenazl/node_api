@@ -1,0 +1,559 @@
+{
+  "header_structure": {
+    "totalLength": 102,
+    "fields": [
+      {
+        "name": "REQUERIMIENTO",
+        "length": null,
+        "type": "",
+        "required": "",
+        "values": "",
+        "description": ""
+      },
+      {
+        "name": "*",
+        "length": null,
+        "type": "Longitud del CAMPO",
+        "required": "Tipo de Datos",
+        "values": "obligatorio   /opcional",
+        "description": "VALORES"
+      },
+      {
+        "name": "LONGITUD DEL MENSAJE",
+        "length": 6,
+        "type": "numerico",
+        "required": "OBLIGATORIO",
+        "values": "VALOR",
+        "description": "VALOR"
+      },
+      {
+        "name": "CANAL",
+        "length": 2,
+        "type": "alfanumerico",
+        "required": "OBLIGATORIO",
+        "values": "VALOR",
+        "description": "VALOR"
+      },
+      {
+        "name": "SERVICIO",
+        "length": 4,
+        "type": "numerico",
+        "required": "OBLIGATORIO",
+        "values": "VALOR",
+        "description": "VALOR"
+      },
+      {
+        "name": "CÓDIGO DE RETORNO",
+        "length": 4,
+        "type": "numerico",
+        "required": "OBLIGATORIO",
+        "values": "CEROS",
+        "description": "0000  Transaccion exitosa                                               \n8991  ERROR Validacion Header mensaje    \n8992  CANAL/SERVICIO NO HABILITADO       \n8993  SERVICIO NO HABILITADO POR CANAL                       \n8001  ERROR PARRAFO DE VALIDACION GENERAL               \n6000 + CODIGO RETORNO <> 0 DEL MODULO MOO6001A"
+      },
+      {
+        "name": "ID DEL MENSAJE",
+        "length": 9,
+        "type": "numerico",
+        "required": "OBLIGATORIO",
+        "values": "VALOR",
+        "description": "VALOR"
+      },
+      {
+        "name": "FECHA",
+        "length": 8,
+        "type": "numerico",
+        "required": "OBLIGATORIO",
+        "values": "VALOR",
+        "description": "VALOR"
+      },
+      {
+        "name": "HORA",
+        "length": 6,
+        "type": "numerico",
+        "required": "OBLIGATORIO",
+        "values": "VALOR",
+        "description": "VALOR"
+      },
+      {
+        "name": "USUARIO",
+        "length": 7,
+        "type": "alfanumerico",
+        "required": "OBLIGATORIO",
+        "values": "VALOR",
+        "description": "VALOR"
+      },
+      {
+        "name": "Ubicación",
+        "length": 4,
+        "type": "numerico",
+        "required": "OBLIGATORIO",
+        "values": "VALOR",
+        "description": "VALOR"
+      },
+      {
+        "name": "TEXTO DEL CÓDIGO DE RETORNO",
+        "length": 45,
+        "type": "alfanumerico",
+        "required": "OBLIGATORIO",
+        "values": "ESPACIOS",
+        "description": "CÓDIGO DE RETORNO <> 0 texto del mensaje          ESTADO ENVIADO <> 0 texto del mensaje"
+      },
+      {
+        "name": "ESTADO ENVIADO",
+        "length": 2,
+        "type": "numerico",
+        "required": "OBLIGATORIO",
+        "values": "CEROS",
+        "description": "VALOR"
+      },
+      {
+        "name": "CAMPO COMPLEMENTARIO",
+        "length": 5,
+        "type": "alfanumerico",
+        "required": "OBLIGATORIO",
+        "values": "ESPACIOS",
+        "description": "ESPACIOS"
+      }
+    ]
+  },
+  "service_structure": {
+    "serviceNumber": "1216",
+    "serviceName": "SERVICIO 1216-Consulta de Sucursales",
+    "request": {
+      "totalLength": 67,
+      "elements": [
+        {
+          "type": "field",
+          "index": 0,
+          "name": "SVC1216-TIPO-PEDIDO",
+          "length": 2,
+          "fieldType": "numérico",
+          "required": "Obligatorio",
+          "values": "1. consulta de Sucursales\n2. Consulta Sucursal Puntual",
+          "description": "Tipo de Pedido"
+        },
+        {
+          "type": "field",
+          "index": 1,
+          "name": "SVC1216-COD-OF-GRU",
+          "length": 5,
+          "fieldType": "numerico",
+          "required": "Obligatorio  2",
+          "values": "Valor",
+          "description": "Numero Interno de Territorio"
+        },
+        {
+          "type": "occurrence",
+          "index": 2,
+          "id": "occ_2",
+          "count": 20,
+          "fields": [
+            {
+              "type": "field",
+              "index": 3,
+              "name": "SVC1216-T-OFIC-GRU",
+              "length": 3,
+              "fieldType": "numérico",
+              "required": "obligatorio",
+              "values": "0 = todos                     \n 1 = Oficina principal dentro de una plaza                             \n 2 = Agencia urbana                                                    \n 3 = Oficina de cambio                                                 \n 4 = Dirección regional                                                \n 5 = Oficina administrativa                                            \n 6 = Dirección de Zona (operativa)                                     \n 7 = Centro operativo                                                  \n 8 = Organo de dirección                                               \n 9 = Dirección delegada                                                \n10 = Oficina de filial no bancaria                                     \n11 = Dirección de zona (análisis de negocio)                           \n12 = Laboratorio                                                       \n13 = Piloto (para pruebas)                                             \n14 = Oficina financiera especializada (OFE), por ejemplo, oficinas \"-IN   G\"                                                                \n   (renting, leasing, confirming, fáctoring).                        \n15 = Delegación representación en el extranjero",
+              "description": "INDICA EL TIPO DE OFICINA",
+              "parentId": "occ_2"
+            }
+          ],
+          "level": 1,
+          "parentId": null
+        }
+      ],
+      "fieldCount": 2,
+      "occurrenceCount": 1,
+      "totalFieldCount": 3
+    },
+    "response": {
+      "totalLength": 24990,
+      "elements": [
+        {
+          "type": "field",
+          "index": 0,
+          "name": "SVC1216-ESTADO",
+          "length": 2,
+          "fieldType": "numerico",
+          "required": "Obligatorio",
+          "values": "00    PROCESO FINALIZO CORRECTAMENTE.      \n99    ERROR EN SVC0000-CODRET.",
+          "description": "Estado de los registros informados.                                               El valor de este campo, se informa tambien en el campo \"ESTADO ENVIADO\" y el texto correspondiente a este código, en el campo \"TEXTO DEL CÓDIGO DE RETORNO\" de la \"Cabecera Servicios\"."
+        },
+        {
+          "type": "field",
+          "index": 1,
+          "name": "SVC1216-CANT-REG",
+          "length": 2,
+          "fieldType": "numerico",
+          "required": "OPCIONAL",
+          "values": "--",
+          "description": "--"
+        },
+        {
+          "type": "field",
+          "index": 2,
+          "name": "SVC1216-MAS-DATOS",
+          "length": 1,
+          "fieldType": "numerico",
+          "required": "OPCIONAL",
+          "values": "0=NO TIENE MAS PROD.  \n1=TIENE MAS PRODUCTOS",
+          "description": ""
+        },
+        {
+          "type": "field",
+          "index": 3,
+          "name": "SVC1216-COD-OF-GRU-R",
+          "length": 5,
+          "fieldType": "numerico",
+          "required": "OBLIGATORIO",
+          "values": "VALOR",
+          "description": "OFICINADE RELLAMADA"
+        },
+        {
+          "type": "field",
+          "index": 4,
+          "name": "SVC1216-T-OFIC-GRU-R",
+          "length": 60,
+          "fieldType": "numerico",
+          "required": "OBLIGATORIO",
+          "values": "VALOR",
+          "description": "INDICA EL TIPO DE OFICINA DE RELLAMADA"
+        },
+        {
+          "type": "occurrence",
+          "index": 5,
+          "id": "occ_5",
+          "count": 70,
+          "fields": [
+            {
+              "type": "field",
+              "index": 6,
+              "name": "SVC1216-COD-BCO-GR-O",
+              "length": 5,
+              "fieldType": "numerico",
+              "required": "Obligatorio",
+              "values": "Valor",
+              "description": "CODIGO BANCO GRUPO",
+              "parentId": "occ_5"
+            },
+            {
+              "type": "field",
+              "index": 7,
+              "name": "SVC1216-COD-OF-GRU-O",
+              "length": 5,
+              "fieldType": "numerico",
+              "required": "Obligatorio",
+              "values": "Valor",
+              "description": "CODIGO OFICINA GRUPO",
+              "parentId": "occ_5"
+            },
+            {
+              "type": "field",
+              "index": 8,
+              "name": "SVC1216-NUM-REG-GR-O",
+              "length": 3,
+              "fieldType": "numerico",
+              "required": "Obligatorio",
+              "values": "Valor",
+              "description": "NUMERO DE REGION",
+              "parentId": "occ_5"
+            },
+            {
+              "type": "field",
+              "index": 9,
+              "name": "SVC1216-NOM-OF-GRU-O",
+              "length": 50,
+              "fieldType": "alfanumerico",
+              "required": "Obligatorio",
+              "values": "Valor",
+              "description": "NOMBRE DE LA OFICINA",
+              "parentId": "occ_5"
+            },
+            {
+              "type": "field",
+              "index": 10,
+              "name": "SVC1216-NO-RED-OFG-O",
+              "length": 30,
+              "fieldType": "alfanumerico",
+              "required": "Obligatorio",
+              "values": "Valor",
+              "description": "NOMBRE REDUCIDO OFICINA GRUPO",
+              "parentId": "occ_5"
+            },
+            {
+              "type": "field",
+              "index": 11,
+              "name": "SVC1216-T-OFIC-GRU-O",
+              "length": 3,
+              "fieldType": "numerico",
+              "required": "Obligatorio",
+              "values": "Valor",
+              "description": "TIPO OFICINA GRUPO",
+              "parentId": "occ_5"
+            },
+            {
+              "type": "field",
+              "index": 12,
+              "name": "SVC1216-NUM-URBANA-O",
+              "length": 5,
+              "fieldType": "numerico",
+              "required": "Obligatorio",
+              "values": "Valor",
+              "description": "NUMERO URBANA",
+              "parentId": "occ_5"
+            },
+            {
+              "type": "field",
+              "index": 13,
+              "name": "SVC1216-DO-OF-GRUP-O",
+              "length": 80,
+              "fieldType": "alfanumerico",
+              "required": "Obligatorio",
+              "values": "Valor",
+              "description": "DOMICILIO OFICINA GRUPO",
+              "parentId": "occ_5"
+            },
+            {
+              "type": "field",
+              "index": 14,
+              "name": "SVC1216-PL-OF-GRUP-O",
+              "length": 30,
+              "fieldType": "alfanumerico",
+              "required": "Obligatorio",
+              "values": "Valor",
+              "description": "PLAZA OFICINA GRUPO",
+              "parentId": "occ_5"
+            },
+            {
+              "type": "field",
+              "index": 15,
+              "name": "SVC1216-C-POS-OFGR-O",
+              "length": 8,
+              "fieldType": "alfanumerico",
+              "required": "Obligatorio",
+              "values": "Valor",
+              "description": "CODIGO POSTAL OFICINA GRUPO",
+              "parentId": "occ_5"
+            },
+            {
+              "type": "field",
+              "index": 16,
+              "name": "SVC1216-N-ITN-PL-O",
+              "length": 9,
+              "fieldType": "numerico",
+              "required": "Obligatorio",
+              "values": "Valor",
+              "description": "NUMERO INTERNO PLAZA",
+              "parentId": "occ_5"
+            },
+            {
+              "type": "field",
+              "index": 17,
+              "name": "SVC1216-N-ITN-TERR-O",
+              "length": 4,
+              "fieldType": "numerico",
+              "required": "Obligatorio",
+              "values": "Valor",
+              "description": "NUMERO INTERNO TERRITORIO",
+              "parentId": "occ_5"
+            },
+            {
+              "type": "field",
+              "index": 18,
+              "name": "SVC1216-PR-TFNO-OF-O",
+              "length": 9,
+              "fieldType": "numerico",
+              "required": "Obligatorio",
+              "values": "Valor",
+              "description": "PREFIJO TELEFONO OFICINA GRUPO",
+              "parentId": "occ_5"
+            },
+            {
+              "type": "field",
+              "index": 19,
+              "name": "SVC1216-N-TFNO-OF-O",
+              "length": 15,
+              "fieldType": "numerico",
+              "required": "Obligatorio",
+              "values": "Valor",
+              "description": "NUMERO TELEFONO OFICINA GRUPO",
+              "parentId": "occ_5"
+            },
+            {
+              "type": "field",
+              "index": 20,
+              "name": "SVC1216-N-FAX-OF-O",
+              "length": 15,
+              "fieldType": "numerico",
+              "required": "Obligatorio",
+              "values": "Valor",
+              "description": "NUMERO TELEFAX OFICINA GRUPO",
+              "parentId": "occ_5"
+            },
+            {
+              "type": "field",
+              "index": 21,
+              "name": "SVC1216-CAR-CO-OFG-O",
+              "length": 1,
+              "fieldType": "numerico",
+              "required": "Obligatorio",
+              "values": "Valor",
+              "description": "CARACTER CONTABLE OFICINA GRUP",
+              "parentId": "occ_5"
+            },
+            {
+              "type": "field",
+              "index": 22,
+              "name": "SVC1216-C-TIPO-TPD-O",
+              "length": 1,
+              "fieldType": "numerico",
+              "required": "Obligatorio",
+              "values": "Valor",
+              "description": "CODIGO TIPO TELEPROCESO",
+              "parentId": "occ_5"
+            },
+            {
+              "type": "field",
+              "index": 23,
+              "name": "SVC1216-F-APER-OF-O",
+              "length": 10,
+              "fieldType": "alfanumerico",
+              "required": "Obligatorio",
+              "values": "Valor",
+              "description": "FECHA APERTURA OFICINA",
+              "parentId": "occ_5"
+            },
+            {
+              "type": "field",
+              "index": 24,
+              "name": "SVC1216-T-ATR-OFGR-O",
+              "length": 3,
+              "fieldType": "numerico",
+              "required": "Obligatorio",
+              "values": "Valor",
+              "description": "TIPO ATRIBUCION OFICINA GRUPO",
+              "parentId": "occ_5"
+            },
+            {
+              "type": "field",
+              "index": 25,
+              "name": "SVC1216-F-CIERRE-O",
+              "length": 10,
+              "fieldType": "alfanumerico",
+              "required": "Obligatorio",
+              "values": "Valor",
+              "description": "FECHA CIERRE",
+              "parentId": "occ_5"
+            },
+            {
+              "type": "field",
+              "index": 26,
+              "name": "SVC1216-F-ACTZ-O",
+              "length": 10,
+              "fieldType": "alfanumerico",
+              "required": "Obligatorio",
+              "values": "Valor",
+              "description": "FECHA ACTUALIZACION OCURRENCIA",
+              "parentId": "occ_5"
+            },
+            {
+              "type": "field",
+              "index": 27,
+              "name": "SVC1216-IN-ULT-MOD-O",
+              "length": 3,
+              "fieldType": "numerico",
+              "required": "Obligatorio",
+              "values": "Valor",
+              "description": "INDICATIVO ULTIMA MODIFICACION",
+              "parentId": "occ_5"
+            },
+            {
+              "type": "field",
+              "index": 28,
+              "name": "SVC1216-CONSID-REG-O",
+              "length": 1,
+              "fieldType": "numerico",
+              "required": "Obligatorio",
+              "values": "Valor",
+              "description": "CONSIDERACIÓN REGION GRUPO",
+              "parentId": "occ_5"
+            },
+            {
+              "type": "field",
+              "index": 29,
+              "name": "SVC1216-F-PREAP-OF-O",
+              "length": 10,
+              "fieldType": "alfanumerico",
+              "required": "Obligatorio",
+              "values": "Valor",
+              "description": "FECHA PREAPERTURA OFICINA GR",
+              "parentId": "occ_5"
+            },
+            {
+              "type": "field",
+              "index": 30,
+              "name": "SVC1216-F-ALTA-O",
+              "length": 10,
+              "fieldType": "alfanumerico",
+              "required": "Obligatorio",
+              "values": "Valor",
+              "description": "FECHA ALTA OCURRENCIA",
+              "parentId": "occ_5"
+            },
+            {
+              "type": "field",
+              "index": 31,
+              "name": "SVC1216-F-BAJA-O",
+              "length": 10,
+              "fieldType": "alfanumerico",
+              "required": "Obligatorio",
+              "values": "Valor",
+              "description": "FECHA BAJA OCURRENCIA",
+              "parentId": "occ_5"
+            },
+            {
+              "type": "field",
+              "index": 32,
+              "name": "SVC1216-C-PL-INEOF-O",
+              "length": 9,
+              "fieldType": "alfanumerico",
+              "required": "Obligatorio",
+              "values": "Valor",
+              "description": "CODIGO PLAZA INE OFICINA GRUPO",
+              "parentId": "occ_5"
+            },
+            {
+              "type": "field",
+              "index": 33,
+              "name": "SVC1216-C-ALFA-BCO-O",
+              "length": 3,
+              "fieldType": "alfanumerico",
+              "required": "Obligatorio",
+              "values": "Valor",
+              "description": "CODIGO ALFABETICO BANCO GRUPO",
+              "parentId": "occ_5"
+            },
+            {
+              "type": "field",
+              "index": 34,
+              "name": "SVC1216-C-SUC-BCRA-O",
+              "length": 4,
+              "fieldType": "numerico",
+              "required": "Obligatorio",
+              "values": "Valor",
+              "description": "CGO ASIG BCRA SUCURSAL",
+              "parentId": "occ_5"
+            }
+          ],
+          "level": 1,
+          "parentId": null
+        }
+      ],
+      "fieldCount": 5,
+      "occurrenceCount": 1,
+      "totalFieldCount": 34
+    }
+  }
+}
