@@ -13,6 +13,7 @@ if (-not (Test-Path $nssmPath)) {
     Write-Host "Asegúrate de que nssm.exe se encuentra en la ruta especificada y que la arquitectura (win32/win64) es correcta." -ForegroundColor Red
     pause
     exit 1
+    
 }
 
 # Verificar el estado actual del servicio
@@ -31,7 +32,8 @@ Write-Host "Desinstalando servicio..." -ForegroundColor Yellow
 if ($LASTEXITCODE -eq 0) {
     Write-Host "¡Servicio desinstalado exitosamente!" -ForegroundColor Green
     Write-Host "El servicio MQImporterAPI ha sido eliminado del sistema" -ForegroundColor Cyan
-} else {
+}
+else {
     Write-Host "ERROR: No se pudo desinstalar el servicio" -ForegroundColor Red
     Write-Host "Código de salida: $LASTEXITCODE" -ForegroundColor Red
     Write-Host "Puedes intentar desinstalarlo manualmente desde services.msc" -ForegroundColor Yellow
