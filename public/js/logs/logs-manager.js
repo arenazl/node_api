@@ -110,6 +110,75 @@ function displayLogs(logs) {
     });
 }
 
+// Función auxiliar para escapar HTML
+function escapeHtml(str) {
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+// Función para formatear JSON con colores (usa las clases CSS existentes)
+function formatJsonWithColors(obj, title) {
+    try {
+        let jsonStr;
+        let objectToFormat = obj;
+        
+        // Si es un string, verificar si ya es JSON formateado o necesita ser parseado
+        if (typeof obj === 'string') {
+            const trimmed = obj.trim();
+            
+            // Verificar si es un JSON string que necesita ser parseado
+            if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || 
+                (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
+                try {
+                    objectToFormat = JSON.parse(obj);
+                } catch (e) {
+                    // No se pudo parsear, mostrar como texto plano
+                    return `<pre class="log-detail-content">${escapeHtml(obj)}</pre>`;
+                }
+            } else {
+                // No parece ser JSON, mostrar como texto plano
+                return `<pre class="log-detail-content">${escapeHtml(obj)}</pre>`;
+            }
+        }
+        
+        // Formatear como JSON con indentación
+        jsonStr = JSON.stringify(objectToFormat, null, 2);
+        
+        // Aplicar colores similar a como lo hace el json-formatter.js
+        let formatted = escapeHtml(jsonStr);
+        
+        // Colorear las claves (propiedades)
+        formatted = formatted.replace(/&quot;([^&]+?)&quot;:/g, '<span class="json-key">&quot;$1&quot;</span>');
+        
+        // Colorear strings (mejorado para manejar strings con comillas escapadas)
+        formatted = formatted.replace(/:( *)&quot;((?:[^&]|&(?!quot;))*)&quot;/g, ':$1<span class="json-string">&quot;$2&quot;</span>');
+        
+        // Colorear números (mejorado para incluir negativos y notación científica)
+        formatted = formatted.replace(/:( *)(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)/g, ':$1<span class="json-number">$2</span>');
+        
+        // Colorear booleanos
+        formatted = formatted.replace(/:( *)(true|false)/g, ':$1<span class="json-boolean">$2</span>');
+        
+        // Colorear null
+        formatted = formatted.replace(/:( *)(null)/g, ':$1<span class="json-null">$2</span>');
+        
+        // Colorear valores en arrays (que no están precedidos por ':')
+        formatted = formatted.replace(/([\[,]\s*)&quot;((?:[^&]|&(?!quot;))*)&quot;/g, '$1<span class="json-string">&quot;$2&quot;</span>');
+        formatted = formatted.replace(/([\[,]\s*)(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)/g, '$1<span class="json-number">$2</span>');
+        formatted = formatted.replace(/([\[,]\s*)(true|false)/g, '$1<span class="json-boolean">$2</span>');
+        formatted = formatted.replace(/([\[,]\s*)(null)/g, '$1<span class="json-null">$2</span>');
+        
+        return `<pre class="log-json-content">${formatted}</pre>`;
+    } catch (error) {
+        console.error('Error formateando JSON:', error);
+        return `<pre class="log-detail-content">${escapeHtml(String(obj))}</pre>`;
+    }
+}
+
 // Ver detalles de un log
 function viewLogDetails(index) {
     const log = currentLogs[index];
@@ -123,22 +192,20 @@ function viewLogDetails(index) {
     // Información general
     html += '<div class="log-detail-section">';
     html += '<h4>Información General</h4>';
-    html += '<div class="log-detail-content">';
-    html += `Timestamp: ${new Date(log.timestamp).toLocaleString('es-ES')}\n`;
-    html += `Método: ${log.method}\n`;
-    html += `Endpoint: ${log.endpoint}\n`;
-    html += `IP: ${log.ip}\n`;
-    html += `Usuario: ${log.user || 'anonymous'}\n`;
-    html += '</div>';
+    html += '<pre class="log-detail-content">';
+    html += escapeHtml(`Timestamp: ${new Date(log.timestamp).toLocaleString('es-ES')}\n`);
+    html += escapeHtml(`Método: ${log.method}\n`);
+    html += escapeHtml(`Endpoint: ${log.endpoint}\n`);
+    html += escapeHtml(`IP: ${log.ip}\n`);
+    html += escapeHtml(`Usuario: ${log.user || 'anonymous'}\n`);
+    html += '</pre>';
     html += '</div>';
     
     // Headers de request
     if (log.headers && Object.keys(log.headers).length > 0) {
         html += '<div class="log-detail-section">';
         html += '<h4>Headers de Request</h4>';
-        html += '<div class="log-detail-content">';
-        html += JSON.stringify(log.headers, null, 2);
-        html += '</div>';
+        html += formatJsonWithColors(log.headers);
         html += '</div>';
     }
     
@@ -146,9 +213,7 @@ function viewLogDetails(index) {
     if (log.query && Object.keys(log.query).length > 0) {
         html += '<div class="log-detail-section">';
         html += '<h4>Query Parameters</h4>';
-        html += '<div class="log-detail-content">';
-        html += JSON.stringify(log.query, null, 2);
-        html += '</div>';
+        html += formatJsonWithColors(log.query);
         html += '</div>';
     }
     
@@ -156,9 +221,9 @@ function viewLogDetails(index) {
     if (log.body && Object.keys(log.body).length > 0) {
         html += '<div class="log-detail-section">';
         html += '<h4>Request Body</h4>';
-        html += '<div class="log-detail-content">';
-        html += JSON.stringify(log.body, null, 2);
-        html += '</div>';
+        const formattedBody = formatJsonWithColors(log.body);
+        console.log('Request Body formatted:', formattedBody.substring(0, 200));
+        html += formattedBody;
         html += '</div>';
     }
     
@@ -166,52 +231,160 @@ function viewLogDetails(index) {
     if (log.response) {
         html += '<div class="log-detail-section">';
         html += '<h4>Response</h4>';
-        html += '<div class="log-detail-content">';
-        html += `<pre>Status: ${log.response.statusCode} ${log.response.statusMessage || ''}\nDuración: ${log.response.duration}`;
         
+        // Información de status y duración
+        html += '<pre class="log-detail-content">';
+        html += escapeHtml(`Status: ${log.response.statusCode} ${log.response.statusMessage || ''}\n`);
+        html += escapeHtml(`Duración: ${log.response.duration}`);
+        html += '</pre>';
+        
+        // Response body
         if (log.response.body) {
-            html += '\n\nBody:\n';
+            html += '<h5>Response Body:</h5>';
+            
             try {
                 let bodyContent = log.response.body;
                 
-                // Si el body es un string que parece JSON, intentar parsearlo
-                if (typeof bodyContent === 'string') {
-                    // Verificar si es un string truncado
-                    if (bodyContent.endsWith('...')) {
-                        html += '\n[NOTA: El contenido fue truncado en el servidor]\n\n';
-                    }
+                // Debug: mostrar el tipo y una muestra del contenido
+                console.log('Response body type:', typeof bodyContent);
+                console.log('Response body sample:', typeof bodyContent === 'string' ? bodyContent.substring(0, 100) : bodyContent);
+                
+                // Verificar si fue truncado
+                if (typeof bodyContent === 'string' && bodyContent.includes('[truncado en servidor')) {
+                    html += '<div class="alert alert-warning" style="background-color: #fff3cd; border: 1px solid #ffeaa7; color: #856404; padding: 10px; margin: 10px 0; border-radius: 4px;">';
+                    html += '⚠️ <strong>Nota:</strong> El contenido fue truncado en el servidor para evitar problemas de memoria. ';
                     
-                    // Intentar parsear si parece JSON
-                    if (bodyContent.trim().startsWith('{') || bodyContent.trim().startsWith('[')) {
+                    // Extraer el tamaño total si está disponible
+                    const sizeMatch = bodyContent.match(/(\d+) caracteres totales/);
+                    if (sizeMatch) {
+                        html += `El contenido original tenía ${sizeMatch[1]} caracteres.`;
+                    }
+                    html += '</div>';
+                }
+                
+                // Procesar el contenido
+                if (typeof bodyContent === 'string') {
+                    // Es un string, necesitamos determinar qué tipo de string es
+                    let processedContent = bodyContent;
+                    
+                    // Caso 1: String JSON escapado (comienza y termina con comillas)
+                    if (processedContent.startsWith('"') && processedContent.endsWith('"')) {
                         try {
-                            const parsed = JSON.parse(bodyContent);
-                            bodyContent = JSON.stringify(parsed, null, 2);
+                            // Quitar las comillas externas
+                            processedContent = JSON.parse(processedContent);
+                            console.log('Contenido después de quitar comillas externas:', processedContent.substring(0, 100));
                         } catch (e) {
-                            // Si falla el parse, mostrar como está
+                            console.log('No se pudieron quitar las comillas externas:', e);
                         }
                     }
+                    
+                    // Caso 2: Ahora verificar si el contenido es JSON
+                    if (typeof processedContent === 'string' && 
+                        (processedContent.trim().startsWith('{') || processedContent.trim().startsWith('['))) {
+                        
+                        // Manejar truncamiento si existe
+                        let jsonToParse = processedContent;
+                        if (processedContent.includes('[truncado en servidor')) {
+                            jsonToParse = processedContent.substring(0, processedContent.indexOf('[truncado en servidor'));
+                        }
+                        
+                        try {
+                            // Intentar parsear como JSON
+                            const parsed = JSON.parse(jsonToParse);
+                            console.log('JSON parseado exitosamente');
+                            html += formatJsonWithColors(parsed);
+                        } catch (parseError) {
+                            console.log('Error al parsear JSON:', parseError);
+                            // Si no se puede parsear, intentar formatear y colorear manualmente
+                            console.log('Intentando formatear y colorear JSON manualmente');
+                            
+                            // Primero, intentar formatear el JSON agregando saltos de línea e indentación
+                            let formattedJson = processedContent;
+                            try {
+                                // Agregar saltos de línea después de { [ , ]
+                                formattedJson = formattedJson
+                                    .replace(/([{\[])/g, '$1\n')
+                                    .replace(/([}\]])/g, '\n$1')
+                                    .replace(/,/g, ',\n');
+                                
+                                // Agregar indentación básica
+                                let indentLevel = 0;
+                                const lines = formattedJson.split('\n');
+                                const indentedLines = lines.map(line => {
+                                    const trimmedLine = line.trim();
+                                    if (trimmedLine === '') return '';
+                                    
+                                    // Reducir indentación antes de } o ]
+                                    if (trimmedLine.startsWith('}') || trimmedLine.startsWith(']')) {
+                                        indentLevel = Math.max(0, indentLevel - 1);
+                                    }
+                                    
+                                    const indentedLine = '  '.repeat(indentLevel) + trimmedLine;
+                                    
+                                    // Aumentar indentación después de { o [
+                                    if (trimmedLine.endsWith('{') || trimmedLine.endsWith('[')) {
+                                        indentLevel++;
+                                    }
+                                    
+                                    return indentedLine;
+                                });
+                                
+                                formattedJson = indentedLines.filter(line => line !== '').join('\n');
+                            } catch (e) {
+                                console.log('Error al formatear JSON:', e);
+                                // Si falla el formateo, usar el original
+                                formattedJson = processedContent;
+                            }
+                            
+                            // Ahora colorear el JSON formateado
+                            let coloredJson = escapeHtml(formattedJson);
+                            
+                            // Aplicar colores manualmente al JSON string
+                            // Colorear claves
+                            coloredJson = coloredJson.replace(/&quot;([^&]+?)&quot;\s*:/g, '<span class="json-key">&quot;$1&quot;</span>:');
+                            
+                            // Colorear strings (valores) - mejorado para manejar strings con caracteres especiales
+                            coloredJson = coloredJson.replace(/:( *)&quot;((?:[^&]|&(?!quot;))*)&quot;/g, ':$1<span class="json-string">&quot;$2&quot;</span>');
+                            
+                            // Colorear strings en arrays
+                            coloredJson = coloredJson.replace(/([\[,]\s*)&quot;((?:[^&]|&(?!quot;))*)&quot;/g, '$1<span class="json-string">&quot;$2&quot;</span>');
+                            
+                            // Colorear números
+                            coloredJson = coloredJson.replace(/:( *)(-?\d+(?:\.\d+)?)/g, ':$1<span class="json-number">$2</span>');
+                            coloredJson = coloredJson.replace(/([\[,]\s*)(-?\d+(?:\.\d+)?)/g, '$1<span class="json-number">$2</span>');
+                            
+                            // Colorear booleanos
+                            coloredJson = coloredJson.replace(/:( *)(true|false)/g, ':$1<span class="json-boolean">$2</span>');
+                            coloredJson = coloredJson.replace(/([\[,]\s*)(true|false)/g, '$1<span class="json-boolean">$2</span>');
+                            
+                            // Colorear null
+                            coloredJson = coloredJson.replace(/:( *)(null)/g, ':$1<span class="json-null">$2</span>');
+                            coloredJson = coloredJson.replace(/([\[,]\s*)(null)/g, '$1<span class="json-null">$2</span>');
+                            
+                            html += `<pre class="log-json-content">${coloredJson}</pre>`;
+                        }
+                    } else {
+                        // No es JSON, mostrar como texto plano
+                        html += `<pre class="log-detail-content">${escapeHtml(processedContent)}</pre>`;
+                    }
                 }
-                // Si ya es un objeto, convertirlo a JSON formateado
+                // Si ya es un objeto, formatearlo directamente
                 else if (typeof bodyContent === 'object') {
-                    bodyContent = JSON.stringify(bodyContent, null, 2);
+                    console.log('El body ya es un objeto, formateando directamente');
+                    html += formatJsonWithColors(bodyContent);
+                } else {
+                    // Cualquier otro tipo
+                    html += `<pre class="log-detail-content">${escapeHtml(String(bodyContent))}</pre>`;
                 }
-                
-                // Escapar caracteres HTML para evitar problemas de renderizado
-                const escapedBody = String(bodyContent)
-                    .replace(/&/g, '&amp;')
-                    .replace(/</g, '&lt;')
-                    .replace(/>/g, '&gt;')
-                    .replace(/"/g, '&quot;')
-                    .replace(/'/g, '&#039;');
-                
-                html += escapedBody;
             } catch (e) {
-                html += `\n[Error al procesar body: ${e.message}]\n`;
-                html += String(log.response.body || '');
+                console.error('Error procesando response body:', e);
+                html += '<div class="alert alert-danger" style="background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 10px; margin: 10px 0; border-radius: 4px;">';
+                html += `❌ <strong>Error al procesar body:</strong> ${escapeHtml(e.message)}`;
+                html += '</div>';
+                html += `<pre class="log-detail-content">${escapeHtml(String(log.response.body || ''))}</pre>`;
             }
         }
-        html += '</pre>';
-        html += '</div>';
+        
         html += '</div>';
     }
     

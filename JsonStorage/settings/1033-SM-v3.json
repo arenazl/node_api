@@ -1,0 +1,25 @@
+{
+  "serviceNumber": "1033",
+  "serviceName": "SERVICIO 1033 - Consulta posicion prestamo Nro interno de Contrato",
+  "canal": "SM",
+  "version": "v3",
+  "timestamp": "2025-07-01T07:08:19.133Z",
+  "header": {
+    "LONGITUD DEL MENSAJE": "000113",
+    "CANAL": "SM",
+    "SERVICIO": "1033",
+    "CÓDIGO DE RETORNO": "0000",
+    "ID DEL MENSAJE": "000000002",
+    "FECHA": "07062011",
+    "HORA": "122932",
+    "USUARIO": "PTTTTTT",
+    "Ubicación": "1047",
+    "TEXTO DEL CÓDIGO DE RETORNO": "",
+    "ESTADO ENVIADO": "00",
+    "CAMPO COMPLEMENTARIO": ""
+  },
+  "request": {
+    "SVC1033-TIP-PEDIDO": "1",
+    "SVC1033-NIC": ""
+  }
+}

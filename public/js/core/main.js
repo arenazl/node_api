@@ -418,7 +418,7 @@ async function uploadExcelFile(formData) {
           await Swal.fire({
             title: 'Archivo duplicado',
             html: `<div style="text-align: left;">
-                     <p>El archivo que intentas subir ya existe en el sistema o tiene un nombre que entra en conflicto con uno existente.</p>
+                     <p>El archivo que intentas subir ya existe en el sitsema o tiene un nombre que entra en conflicto con uno existente.</p>
                      <p>Por favor, verifica el nombre del archivo o si realmente necesitas volver a subirlo.</p>
                      <p><strong>Detalles del error:</strong> ${errorData.error || 'Conflicto de archivo.'}</p>
                    </div>`,

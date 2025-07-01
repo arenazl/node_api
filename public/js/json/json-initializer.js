@@ -26,6 +26,12 @@ function initializeAllJsonElements() {
     
     // Inicializar los elementos pre con classe json-editor
     document.querySelectorAll('pre.json-editor').forEach(element => {
+        // Evitar procesar elementos dentro del modal de logs
+        const logModal = document.getElementById('logDetailModal');
+        if (logModal && logModal.contains(element)) {
+            return; // No procesar elementos dentro del modal de logs
+        }
+        
         if (typeof formatJson === 'function' && element.textContent.trim()) {
             console.log('Formateando editor JSON:', element.id || 'elemento sin ID');
             // Solo intentar formatear si es JSON válido o si está vacío (para editores)
@@ -55,6 +61,12 @@ function initializeAllJsonElements() {
     
     // Formatear cualquier otro elemento que pueda contener JSON
     document.querySelectorAll('.result-container pre, #jsonContent, #vueltaResult, #idaResult').forEach(element => {
+        // Evitar procesar elementos dentro del modal de logs
+        const logModal = document.getElementById('logDetailModal');
+        if (logModal && logModal.contains(element)) {
+            return; // No procesar elementos dentro del modal de logs
+        }
+        
         if (typeof formatJson === 'function' && element.textContent.trim() && !element.querySelector('.json-key')) {
             try {
                 // Verificar primero si el contenido parece ser un mensaje de ayuda/placeholder
@@ -136,6 +148,11 @@ function observeDOMChanges() {
                              node.id === 'jsonContent' ||
                              node.id === 'vueltaResult' ||
                              node.id === 'idaResult')) {
+                            // Evitar procesar elementos dentro del modal de logs
+                            const logModal = document.getElementById('logDetailModal');
+                            if (logModal && logModal.contains(node)) {
+                                return; // No procesar elementos dentro del modal de logs
+                            }
                             shouldFormatJson = true;
                         }
                         

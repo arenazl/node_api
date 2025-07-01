@@ -125,9 +125,17 @@ const requestLoggerMiddleware = (req, res, next) => {
                 // Convertir a string
                 let str = typeof obj === 'string' ? obj : JSON.stringify(obj);
                 
-                // Limitar longitud (aumentado para logs más completos)
-                if (str.length > 10000) {
-                    str = str.substring(0, 10000) + '... [truncado]';
+                // Limitar longitud solo si es necesario (aumentado significativamente)
+                const maxLength = 10000000; // 100KB en lugar de 10KB
+                if (str.length > maxLength) {
+                    // Intentar mantener JSON válido si es posible
+                    const truncateMsg = '... [truncado en servidor - ' + str.length + ' caracteres totales]';
+                    if (str.trim().startsWith('{') || str.trim().startsWith('[')) {
+                        // Es JSON, intentar truncar de forma inteligente
+                        str = str.substring(0, maxLength - truncateMsg.length - 10) + truncateMsg + (str.trim().startsWith('{') ? '}' : ']');
+                    } else {
+                        str = str.substring(0, maxLength - truncateMsg.length) + truncateMsg;
+                    }
                 }
                 
                 return str;

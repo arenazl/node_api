@@ -371,3 +371,83 @@
     background: #2a2a2a;
     color: #e0e0e0;
 }
+
+/* Estilos para JSON formateado en los logs */
+.log-json-content,
+.log-detail-section pre {
+    background: var(--code-background, #f8f9fa);
+    border: 1px solid var(--border-color, #dee2e6);
+    border-radius: 4px;
+    padding: 15px;
+    overflow-x: auto;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+/* Colores para JSON (aplicar a todas las secciones con JSON) */
+.log-json-content .json-key,
+.log-detail-section .json-key {
+    color: #881391;
+    font-weight: 600;
+}
+
+.log-json-content .json-string,
+.log-detail-section .json-string {
+    color: #032f62;
+}
+
+.log-json-content .json-number,
+.log-detail-section .json-number {
+    color: #005cc5;
+}
+
+.log-json-content .json-boolean,
+.log-detail-section .json-boolean {
+    color: #d73a49;
+}
+
+.log-json-content .json-null,
+.log-detail-section .json-null {
+    color: #d73a49;
+}
+
+/* Tema oscuro para JSON */
+.dark-theme .log-json-content,
+.dark-theme .log-detail-section pre {
+    background: #1e1e1e;
+    border-color: #444;
+}
+
+.dark-theme .log-json-content .json-key,
+.dark-theme .log-detail-section .json-key {
+    color: #9cdcfe;
+}
+
+.dark-theme .log-json-content .json-string,
+.dark-theme .log-detail-section .json-string {
+    color: #ce9178;
+}
+
+.dark-theme .log-json-content .json-number,
+.dark-theme .log-detail-section .json-number {
+    color: #b5cea8;
+}
+
+.dark-theme .log-json-content .json-boolean,
+.dark-theme .log-detail-section .json-boolean {
+    color: #569cd6;
+}
+
+.dark-theme .log-json-content .json-null,
+.dark-theme .log-detail-section .json-null {
+    color: #569cd6;
+}
+
+/* Estilos para alertas en los logs */
+.log-detail-section h5 {
+    color: var(--text-primary, #333);
+    margin-top: 15px;
+    margin-bottom: 10px;
+    font-size: 1.1rem;
+}

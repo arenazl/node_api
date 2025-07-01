@@ -1,0 +1,35 @@
+{
+  "serviceNumber": "3147",
+  "serviceName": "SERVICIO 3147 - CONTRATOS RELACIONADOS PARA UN PRESTAMO",
+  "canal": "SM",
+  "version": "v5",
+  "timestamp": "2025-07-01T07:13:21.185Z",
+  "header": {
+    "LONGITUD DEL MENSAJE": "000177",
+    "CANAL": "SM",
+    "SERVICIO": "3147",
+    "CÓDIGO DE RETORNO": "0000",
+    "ID DEL MENSAJE": "000000102",
+    "FECHA": "13062011",
+    "HORA": "090909",
+    "USUARIO": "P046343",
+    "Ubicación": "4002",
+    "TEXTO DEL CÓDIGO DE RETORNO": "",
+    "ESTADO ENVIADO": "00",
+    "CAMPO COMPLEMENTARIO": ""
+  },
+  "request": {
+    "SVC3147-TIPO-DE-PEDIDO": "1",
+    "SVC3147-N-ITN-CONT": "54564",
+    "SVC3147-N-ITN-CORE": "454",
+    "SVC3147-N-ITN-CORE-NUEVO": "4564",
+    "SVC3147-T-REL-CONT": "456",
+    "SVC3147-F-COM-REQ": "01/02/2025",
+    "SVC3147-F-FIN-REQ": "01/02/2025",
+    "SVC3147-BANCO-REQ": "44444",
+    "SVC3147-SUCURSAL-REQ": "77777",
+    "SVC3147-PRODUCTO-REQ": "888",
+    "SVC3147-CUENTA-REQ": "",
+    "SVC3147-DIG-VERIF-REQ": ""
+  }
+}

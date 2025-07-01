@@ -1,0 +1,11 @@
+{
+  "value": "000113IB1033000000000000207062011122932PTTTTTT1047                                             00     ",
+  "serviceNumber": "1033",
+  "timestamp": "2025-07-01T07:07:59.411Z",
+  "sourceFile": "20250701T07075_SVO1033-Consulta Posicion Prestamo por NIC.xls",
+  "foundSheetName": "Trama ejemplo",
+  "foundRowContaining000": "000113IB1033000000000000207062011122932PTTTTTT1047                                             00     01033528534",
+  "missingTab": false,
+  "availableTabs": 3,
+  "error": null
+}

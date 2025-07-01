@@ -1,0 +1,32 @@
+{
+  "serviceNumber": "1083",
+  "serviceName": "SERVICIO 1083 - Consulta de Impuestos",
+  "canal": "SM",
+  "version": "v4",
+  "timestamp": "2025-07-01T07:10:32.671Z",
+  "header": {
+    "LONGITUD DEL MENSAJE": "000181",
+    "CANAL": "SM",
+    "SERVICIO": "1083",
+    "CÓDIGO DE RETORNO": "0000",
+    "ID DEL MENSAJE": "000000102",
+    "FECHA": "18102019",
+    "HORA": "060606",
+    "USUARIO": "P046343",
+    "Ubicación": "4002",
+    "TEXTO DEL CÓDIGO DE RETORNO": "",
+    "ESTADO ENVIADO": "00",
+    "CAMPO COMPLEMENTARIO": ""
+  },
+  "request": {
+    "SVC1083-TIP-PEDIDO": "1",
+    "SVC1083-NIC-ORIG": "554654",
+    "SVC1083-CO-OPER-IMP": "1083",
+    "SVC1083-C-MOD-PROD-ORIG": "111",
+    "SVC1083-COD-TRAN-OPE": "613",
+    "SVC1083-FECHA-MOVI": "01.01.2024",
+    "SVC1083-MONEDA-ORIG": "ARS",
+    "SVC1083-COD-SUC-TOMA": "",
+    "SVC1083-COD-SERVICIO": ""
+  }
+}

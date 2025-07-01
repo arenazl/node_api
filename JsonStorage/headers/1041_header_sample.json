@@ -1,0 +1,11 @@
+{
+  "value": "",
+  "serviceNumber": "1041",
+  "timestamp": "2025-07-01T07:14:04.475Z",
+  "sourceFile": "20250701T07140_SVO1041-Consulta Territorio_.xls",
+  "foundSheetName": null,
+  "foundRowContaining000": null,
+  "missingTab": true,
+  "availableTabs": 2,
+  "error": "No se encontró ninguna hoja que contenga \"ejemplo\" en su nombre. Pestañas disponibles: 2."
+}

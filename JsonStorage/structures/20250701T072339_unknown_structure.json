@@ -1,0 +1,361 @@
+{
+  "header_structure": {
+    "totalLength": 0,
+    "fields": [
+      {
+        "name": "SERVICIO 1005 - Consulta Direcciones Electronicas",
+        "length": null,
+        "type": "Tipo de Datos",
+        "required": "Obligatorio   /Opcional",
+        "values": "Valores",
+        "description": "Campo Taller"
+      },
+      {
+        "name": "REQUERIMIENTO",
+        "length": 55,
+        "type": "",
+        "required": "",
+        "values": "",
+        "description": ""
+      },
+      {
+        "name": "SVC1005-TIP-PEDIDO",
+        "length": 2,
+        "type": "numérico",
+        "required": "OBLIGATORIO",
+        "values": [
+          "1=Consulta Direcciones Electronicas por NIP"
+        ],
+        "description": "TIPO DE PEDIDO"
+      },
+      {
+        "name": "SVC1005-N-ITN-PERS",
+        "length": 9,
+        "type": "numérico",
+        "required": "OBLIGATORIO",
+        "values": "VALOR",
+        "description": "NIP"
+      },
+      {
+        "name": "10 OCURRENCIAS INFORMADAS",
+        "length": 10,
+        "type": "",
+        "required": "",
+        "values": "",
+        "description": ""
+      },
+      {
+        "name": "SVC1005-TIPO-DIR-ELEC",
+        "length": 1,
+        "type": "numérico",
+        "required": "OBLIGATORIO",
+        "values": [
+          "0=Todas las direcciones electronicas                                            #=valores posibles del campo V3002DE0-T-DIR-ELEC",
+          "1 Telefono",
+          "4 E-Provincia",
+          "5 BIP",
+          "6 E-mail",
+          "8 Celular"
+        ],
+        "description": "Tipo de Direccion"
+      },
+      {
+        "name": "SVC1005-TIPO-USO-DELE",
+        "length": 3,
+        "type": "numérico",
+        "required": "OBLIGATORIO",
+        "values": [
+          "888=Todas los tipos de usos de direcciones electronicas                                                 #=valores posibles del campo V3002DE0-T-USO-DELE",
+          "1 Particular",
+          "2 Laboral"
+        ],
+        "description": "Uso de Direccion"
+      },
+      {
+        "name": "SVC1005-INI-T-DIR-ELEC",
+        "length": 1,
+        "type": "numérico",
+        "required": "OPCIONAL",
+        "values": "VALOR",
+        "description": "TIPO DIRECCION ELECTRONICA INICIAL"
+      },
+      {
+        "name": "SVC1005-INI-PR-DI-ELEC",
+        "length": 9,
+        "type": "alfanumerico",
+        "required": "OPCIONAL",
+        "values": "VALOR",
+        "description": "PREFIJO DIRECCION ELECTRONICA INICIAL"
+      },
+      {
+        "name": "SVC1005-INI-N-DIR-ELEC",
+        "length": 12,
+        "type": "alfanumerico",
+        "required": "OPCIONAL",
+        "values": "VALOR",
+        "description": "NUMERO DIRECCION ELECTRONICA INICIAL"
+      },
+      {
+        "name": "SVC1005-INI-SU-DI-ELEC",
+        "length": 4,
+        "type": "alfanumerico",
+        "required": "OPCIONAL",
+        "values": "VALOR",
+        "description": "SUFIJO DIRECCION ELECTRONICA INICIAL"
+      },
+      {
+        "name": "SVC1005-INI-N-SEC-ELEC",
+        "length": 5,
+        "type": "numérico",
+        "required": "OPCIONAL",
+        "values": "VALOR",
+        "description": "NUMERO SECUENCIA DIR ELECTRONI INICIAL"
+      },
+      {
+        "name": "RESPUESTA",
+        "length": 22805,
+        "type": "",
+        "required": "",
+        "values": "",
+        "description": ""
+      },
+      {
+        "name": "SVC1005-ESTADO",
+        "length": 2,
+        "type": "numerico",
+        "required": "OBLIGATORIO",
+        "values": [
+          "00    PROCESO FINALIZO CORRECTAMENTE.",
+          "02    SVO9002 - SELEC. SIN DIRECCION ELECTRONICA ASOC.",
+          "99    ERROR EN SVC0000-CODRET."
+        ],
+        "description": "Estado de los registros informados.                                               El valor de este campo, se informa tambien en el campo \"ESTADO ENVIADO\" y el texto correspondiente a este código, en el campo \"TEXTO DEL CÓDIGO DE RETORNO\" de la \"Cabecera Servicios\"."
+      },
+      {
+        "name": "SVC1005-CANT-REG",
+        "length": 2,
+        "type": "numerico",
+        "required": "OPCIONAL",
+        "values": "--",
+        "description": "CANTIDAD DE REGISTROS INFORMADOS"
+      },
+      {
+        "name": "SVC1005-MAS-DATOS",
+        "length": 1,
+        "type": "numerico",
+        "required": "OPCIONAL",
+        "values": [
+          "0= No tiene mas movimiento",
+          "1= Tiene mas movimientos"
+        ],
+        "description": "INDICADOR SI TIENE MAS REGISTROS PARA INFORMAR"
+      },
+      {
+        "name": "50 OCURRENCIAS INFORMADAS",
+        "length": 22800,
+        "type": "",
+        "required": "",
+        "values": "",
+        "description": ""
+      },
+      {
+        "name": "SVC1005-INCONSISTENCIA",
+        "length": 2,
+        "type": "numérico",
+        "required": "OPCIONAL",
+        "values": "CODIGO DE INCONSISTENCIA",
+        "description": ""
+      },
+      {
+        "name": "SVC1005-T-DIR-ELEC-REQ",
+        "length": 1,
+        "type": "numérico",
+        "required": "OPCIONAL",
+        "values": [
+          "1=Teléfono                                                             2=Télex                                                                              3=Telefax",
+          "4= E-Provincia",
+          "5= BIP",
+          "6= E-Mail",
+          "7=Página web internet. Por ejemplo, http://www.bancopopular.es",
+          "8=Teléfono móvil",
+          "9=Correo electrónico (e-mail): persona de contacto + buzón",
+          "Por ejemplo, <Mª Angel del Valle>ABD@bancopopular.es"
+        ],
+        "description": "Tipo"
+      },
+      {
+        "name": "SVC1005-PR-DI-ELEC",
+        "length": 9,
+        "type": "alfanumerico",
+        "required": "OPCIONAL",
+        "values": "valor",
+        "description": "Prefijo"
+      },
+      {
+        "name": "SVC1005-N-DIR-ELEC",
+        "length": 12,
+        "type": "alfanumerico",
+        "required": "OPCIONAL",
+        "values": "valor",
+        "description": "Numero"
+      },
+      {
+        "name": "SVC1005-SU-DI-ELEC",
+        "length": 4,
+        "type": "alfanumerico",
+        "required": "OPCIONAL",
+        "values": "valor",
+        "description": "Interno"
+      },
+      {
+        "name": "SVC1005-N-SEC-ELEC",
+        "length": 5,
+        "type": "numérico",
+        "required": "OPCIONAL",
+        "values": "valor",
+        "description": "Secuenia para BM (Servicio 3013)"
+      },
+      {
+        "name": "SVC1005-H-USO-DESD",
+        "length": 8,
+        "type": "alfanumerico",
+        "required": "OPCIONAL",
+        "values": "valor",
+        "description": "Franja Horaria Desde"
+      },
+      {
+        "name": "SVC1005-H-USO-HAST",
+        "length": 8,
+        "type": "alfanumerico",
+        "required": "OPCIONAL",
+        "values": "valor",
+        "description": "Franja Horaria Hasta"
+      },
+      {
+        "name": "SVC1005-F-ALTA",
+        "length": 10,
+        "type": "alfanumerico",
+        "required": "OPCIONAL",
+        "values": "valor",
+        "description": "FECHA ALTA OCURRENCIA"
+      },
+      {
+        "name": "SVC1005-F-BAJA",
+        "length": 10,
+        "type": "alfanumerico",
+        "required": "OPCIONAL",
+        "values": "valor",
+        "description": "FECHA BAJA"
+      },
+      {
+        "name": "SVC1005-N-ITN-PERS",
+        "length": 9,
+        "type": "numérico",
+        "required": "OPCIONAL",
+        "values": "valor",
+        "description": "NIP para BM (Servicio 3013)"
+      },
+      {
+        "name": "SVC1005-N-ITN-CONT",
+        "length": 9,
+        "type": "numérico",
+        "required": "OPCIONAL",
+        "values": "valor",
+        "description": "NIC para BM  (Servicio 3013)"
+      },
+      {
+        "name": "SVC1005-N-ITN-DIRE",
+        "length": 9,
+        "type": "numerico",
+        "required": "OPCIONAL",
+        "values": "valor",
+        "description": "NID para ABM (Servicio 3013)"
+      },
+      {
+        "name": "SVC1005-T-USO-DELE",
+        "length": 3,
+        "type": "numerico",
+        "required": "OPCIONAL",
+        "values": [
+          "0 Desconocido",
+          "1 Particular",
+          "2 Trabajo",
+          "3 Despacho",
+          "4 Centralita telefónica",
+          "5 Directo de dirección",
+          "6 Directo de intervención",
+          "7 De contacto para recobro telefónico",
+          "8 Correspondencia",
+          "10 De oficinas financieras extranjeras (para MAEB)",
+          "11 En general, de oficinas financieras del Sistema Financiero Espa¦ol",
+          "999 Dirección específica de uso para determinados servicios"
+        ],
+        "description": "Uso"
+      },
+      {
+        "name": "SVC1005-OR-DIR-ELE",
+        "length": 2,
+        "type": "alfanumerico",
+        "required": "OPCIONAL",
+        "values": "valor",
+        "description": "Orden de Preferencia"
+      },
+      {
+        "name": "SVC1005-OBS-DIRELE",
+        "length": 100,
+        "type": "alfanumerico",
+        "required": "OPCIONAL",
+        "values": "valor",
+        "description": "OBSERVACIONES DIR. ELECTRONICA"
+      },
+      {
+        "name": "SVC1005-DIR-DE-URL-LEN",
+        "length": 5,
+        "type": "alfanumerico",
+        "required": "OPCIONAL",
+        "values": "valor",
+        "description": "LONGITUD DE DIRECCION ELECTRONICA URL"
+      },
+      {
+        "name": "SVC1005-DIR-DE-URL-TEXT",
+        "length": 250,
+        "type": "alfanumerico",
+        "required": "OPCIONAL",
+        "values": "valor",
+        "description": "email"
+      }
+    ]
+  },
+  "service_structure": {
+    "serviceNumber": null,
+    "serviceName": "",
+    "request": {
+      "totalLength": 0,
+      "elements": [],
+      "fieldCount": 0,
+      "occurrenceCount": 0
+    },
+    "response": {
+      "totalLength": 0,
+      "elements": [],
+      "fieldCount": 0,
+      "occurrenceCount": 0
+    },
+    "parse_errors": [
+      {
+        "message": "No se pudo detectar número de servicio en el nombre de la hoja",
+        "sheet": "Ejemplo",
+        "row": 0,
+        "column": 0
+      },
+      {
+        "message": "No se encontró el nombre del servicio (debe comenzar con 'SERVICIO')",
+        "sheet": "Ejemplo",
+        "row": 2,
+        "column": 1
+      }
+    ],
+    "parse_errors_request": [],
+    "parse_errors_response": []
+  }
+}
