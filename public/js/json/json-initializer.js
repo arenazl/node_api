@@ -132,15 +132,19 @@ function formatAllJsonContainers() {
  * Observa cambios en el DOM para aplicar formato a nuevos elementos JSON
  */
 function observeDOMChanges() {
-    // Crear un observador que detecte cambios en el DOM
+    // TEMPORAL: Deshabilitar observer para evitar bucle infinito
+    console.log('Observer deshabilitado temporalmente para evitar bucle infinito');
+    return;
+    
+    // Código original comentado
+    /*
     const observer = new MutationObserver(function(mutations) {
         let shouldFormatJson = false;
         
         mutations.forEach(function(mutation) {
             if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
-                // Revisar si alguno de los nodos añadidos podría contener JSON
                 mutation.addedNodes.forEach(function(node) {
-                    if (node.nodeType === 1) { // Element node
+                    if (node.nodeType === 1) {
                         if (node.classList && 
                             (node.classList.contains('json-container') || 
                              node.classList.contains('json-editor') ||
@@ -148,15 +152,13 @@ function observeDOMChanges() {
                              node.id === 'jsonContent' ||
                              node.id === 'vueltaResult' ||
                              node.id === 'idaResult')) {
-                            // Evitar procesar elementos dentro del modal de logs
                             const logModal = document.getElementById('logDetailModal');
                             if (logModal && logModal.contains(node)) {
-                                return; // No procesar elementos dentro del modal de logs
+                                return;
                             }
                             shouldFormatJson = true;
                         }
                         
-                        // También revisar hijos
                         if (node.querySelectorAll) {
                             const jsonElements = node.querySelectorAll('.json-container, .json-editor, .result-container, #jsonContent, #vueltaResult, #idaResult');
                             if (jsonElements.length > 0) {
@@ -168,22 +170,20 @@ function observeDOMChanges() {
             }
         });
         
-        // Si se detectan cambios relevantes, reinicializar elementos JSON
         if (shouldFormatJson) {
             console.log('Cambios detectados en el DOM, reinicializando elementos JSON...');
-            setTimeout(initializeAllJsonElements, 50); // Pequeño retraso para asegurar que el DOM esté actualizado
+            setTimeout(initializeAllJsonElements, 50);
         }
     });
     
-    // Configuración del observador: observar todo el árbol DOM, todos los tipos de cambios
     const config = { 
         childList: true, 
         subtree: true
     };
     
-    // Comenzar a observar el body
     observer.observe(document.body, config);
     console.log('Observador de cambios en el DOM iniciado para elementos JSON');
+    */
 }
 
 /**

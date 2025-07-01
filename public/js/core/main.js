@@ -373,6 +373,97 @@ async function uploadExcelFile(formData) {
     if (!response.ok) {
       const errorData = await response.json();
 
+      // Manejar específicamente el error 422 (Unprocessable Entity) - Errores críticos
+      if (response.status === 422) {
+        // Limpiar UI primero
+        const progressOverlay = document.getElementById('progressOverlay');
+        if (progressOverlay) {
+          progressOverlay.classList.add('hide');
+        }
+        if (mainContainer) {
+            mainContainer.classList.remove('blurred-background');
+        }
+        if (window.progressTimeoutId) {
+            clearTimeout(window.progressTimeoutId);
+            window.progressTimeoutId = null;
+        }
+
+        // Limpiar el archivo seleccionado
+        if (excelFileInput) {
+          excelFileInput.value = '';
+          fileNameDisplay.textContent = 'Ningún archivo seleccionado';
+        }
+
+        // Construir mensaje HTML con los errores críticos con colores y mejores estilos
+        let criticalErrorsHtml = '<div style="text-align: left; font-family: Arial, sans-serif;">';
+        
+        // Encabezado principal con color
+        criticalErrorsHtml += '<div style="background: linear-gradient(45deg, #ff6b6b, #ff8e8e); color: white; padding: 12px; border-radius: 8px; margin-bottom: 15px; text-align: center;">';
+        criticalErrorsHtml += '<h3 style="margin: 0; font-size: 16px;">Problemas Críticos Detectados</h3>';
+        criticalErrorsHtml += '</div>';
+        
+        if (errorData.critical_errors && errorData.critical_errors.length > 0) {
+          criticalErrorsHtml += '<div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 6px; padding: 15px; margin-bottom: 15px;">';
+          criticalErrorsHtml += '<h4 style="color: #d68910; margin: 0 0 10px 0; font-size: 14px;">Errores Encontrados:</h4>';
+          
+          errorData.critical_errors.forEach((error, index) => {
+            const errorTypeColors = {
+              'service_identification': '#e74c3c',
+              'service_name': '#e67e22',
+              'empty_request': '#9b59b6',
+              'empty_response': '#3498db',
+              'request_parsing_error': '#e74c3c',
+              'response_parsing_error': '#e74c3c',
+              'general_parsing_error': '#34495e'
+            };
+            
+            const errorColor = errorTypeColors[error.type] || '#e74c3c';
+            
+            criticalErrorsHtml += '<div style="background: white; border-left: 4px solid ' + errorColor + '; padding: 10px; margin: 8px 0; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">';
+            criticalErrorsHtml += `<div style="color: ${errorColor}; font-weight: bold; font-size: 13px;">${error.message}</div>`;
+            if (error.details) {
+              criticalErrorsHtml += `<div style="color: #666; font-size: 12px; margin-top: 5px; font-style: italic;">${error.details}</div>`;
+            }
+            criticalErrorsHtml += '</div>';
+          });
+          criticalErrorsHtml += '</div>';
+        }
+        
+        // Sección de acciones con colores
+        criticalErrorsHtml += '<div style="background: linear-gradient(45deg, #004999, #55efc4);color: white;padding: 15px;border-radius: 8px;">';
+        criticalErrorsHtml += '<h4 style="margin: 0 0 10px 0; font-size: 14px;">Acciones Requeridas:</h4>';
+        criticalErrorsHtml += '<ul style="margin: 0; padding-left: 20px; color: white;">';
+        criticalErrorsHtml += '<li style="margin: 5px 0;">Verificar que el archivo Excel tenga el formato correcto</li>';
+        criticalErrorsHtml += '<li style="margin: 5px 0;">Asegurar que contenga las secciones REQUERIMIENTO y RESPUESTA</li>';
+        criticalErrorsHtml += '<li style="margin: 5px 0;">Verificar que el nombre del servicio esté presente</li>';
+        criticalErrorsHtml += '<li style="margin: 5px 0;">Corregir los errores listados arriba y volver a intentar</li>';
+        criticalErrorsHtml += '</ul>';
+        criticalErrorsHtml += '</div>';
+        
+        criticalErrorsHtml += '</div>';
+
+        // Mostrar SweetAlert con errores críticos y mejor estilo
+        if (typeof Swal !== 'undefined') {
+          await Swal.fire({
+            title: '<span style="color: #e74c3c;">Errores Críticos en el Archivo</span>',
+            html: criticalErrorsHtml,
+            icon: 'error',
+            confirmButtonText: 'Entendido',
+            confirmButtonColor: '#e74c3c',
+            width: '700px',
+            padding: '20px',
+            background: '#f8f9fa',
+            customClass: {
+              popup: 'swal-critical-errors'
+            }
+          });
+        } else {
+          // Fallback si Swal no está disponible
+          alert(`Errores críticos: ${errorData.error || 'El archivo contiene errores que impiden su procesamiento.'}`);
+        }
+        return; // Detener la ejecución aquí después de manejar el error 422
+      }
+
       // Manejar específicamente el error 409 (Conflict) - Archivo duplicado
       if (response.status === 409) {
         // Limpiar UI primero para asegurar que el usuario vea que el proceso ha terminado

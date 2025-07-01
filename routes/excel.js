@@ -175,7 +175,29 @@ router.post('/upload', async (req, res) => {
         }
       }
 
-      // Si llegamos aquí, no se encontró duplicado, continuar con la subida
+      // Si llegamos aquí, no se encontró duplicado, continuar con la validación
+
+      // VALIDAR ERRORES CRÍTICOS ANTES DE MOVER EL ARCHIVO
+      console.log('[CRITICAL_VALIDATION] Validando errores críticos antes de guardar archivo...');
+      const tempServiceStructureForValidation = excelParser.parseServiceStructure(tempFilePath);
+      const criticalErrors = validateCriticalErrors(tempServiceStructureForValidation);
+      
+      if (criticalErrors.length > 0) {
+        console.log('[CRITICAL_VALIDATION] ¡ERRORES CRÍTICOS DETECTADOS! NO se guardará el archivo.');
+        
+        // Eliminar archivo temporal
+        if (fs.existsSync(tempFilePath)) {
+          fs.unlinkSync(tempFilePath);
+        }
+        
+        return res.status(422).json({
+          error: "El archivo Excel contiene errores críticos que impiden su procesamiento",
+          critical_errors: criticalErrors,
+          message: "No se guardó el archivo debido a errores críticos. Corrija los problemas y vuelva a intentarlo."
+        });
+      }
+      
+      console.log('[CRITICAL_VALIDATION] ✓ No se detectaron errores críticos, procediendo a guardar archivo...');
 
       // Generar nombre de archivo único con timestamp
       const timestamp = new Date().toISOString().replace(/[-:.]/g, '').substring(0, 14);
@@ -190,7 +212,7 @@ router.post('/upload', async (req, res) => {
       // Mover archivo de la carpeta temporal a uploads
       fs.renameSync(tempFilePath, filePath);
 
-      // Procesar archivo Excel y guardar las estructuras
+      // Procesar archivo Excel y guardar las estructuras (ya sabemos que no hay errores críticos)
       const { headerStructure, serviceStructure, warnings, structureFile } = await processExcelFile(filePath);
 
       // Crear un mensaje de evento que incluya el número de servicio para notificar a la UI
@@ -256,10 +278,48 @@ router.post('/upload', async (req, res) => {
         console.error("Error al limpiar archivo temporal:", cleanupError);
       }
 
+      // Manejar específicamente errores críticos AQUÍ
+      console.log('[CRITICAL_VALIDATION] Procesando error capturado:', processingError.message);
+      
+      if (processingError.message && processingError.message.includes('CRITICAL_ERRORS:')) {
+        console.log('[CRITICAL_VALIDATION] ¡Detectado error crítico!');
+        
+        // Extraer el JSON de errores críticos del mensaje, manejando múltiples wrappers
+        let criticalErrorsJson = processingError.message;
+        
+        // Buscar y extraer la parte que contiene CRITICAL_ERRORS:
+        const criticalErrorsIndex = criticalErrorsJson.indexOf('CRITICAL_ERRORS:');
+        if (criticalErrorsIndex !== -1) {
+          criticalErrorsJson = criticalErrorsJson.substring(criticalErrorsIndex + 'CRITICAL_ERRORS:'.length);
+        }
+        
+        let criticalErrors;
+        
+        try {
+          criticalErrors = JSON.parse(criticalErrorsJson);
+          console.log('[CRITICAL_VALIDATION] Errores críticos parseados exitosamente:', criticalErrors);
+        } catch (parseError) {
+          console.log('[CRITICAL_VALIDATION] Error al parsear JSON de errores críticos:', parseError);
+          criticalErrors = [{ 
+            type: 'parsing_error', 
+            message: 'Error al procesar los errores críticos del archivo',
+            details: processingError.message 
+          }];
+        }
+
+        console.log('[CRITICAL_VALIDATION] Retornando response 422 con errores críticos...');
+        return res.status(422).json({
+          error: "El archivo Excel contiene errores críticos que impiden su procesamiento",
+          critical_errors: criticalErrors,
+          message: "No se guardó el archivo debido a errores críticos. Corrija los problemas y vuelva a intentarlo."
+        });
+      }
+
       throw processingError;
     }
 
   } catch (error) {
+    // Para otros errores, usar el comportamiento normal
     res.status(500).json({
       error: `Error al procesar el archivo Excel: ${error.message}`
     });
@@ -727,13 +787,35 @@ async function getStructure(structureFile) {
  * @returns {Promise<Object>} Estructuras extraídas y nombre del archivo guardado
  */
 async function processExcelFile(filePath) {
-  try {
-    // Extraer estructuras usando el parser universal
-    const headerStructure = excelParser.parseHeaderStructure(filePath);
-    const serviceStructure = excelParser.parseServiceStructure(filePath);
+    try {
+      // Extraer estructuras usando el parser universal
+      const headerStructure = excelParser.parseHeaderStructure(filePath);
+      const serviceStructure = excelParser.parseServiceStructure(filePath);
 
-    // Guardar la estructura combinada
-    const structureInfo = saveStructures(headerStructure, serviceStructure, filePath);
+      // VALIDAR ERRORES CRÍTICOS ANTES DE GUARDAR
+      console.log('[CRITICAL_VALIDATION] Iniciando validación de errores críticos...');
+      console.log('[CRITICAL_VALIDATION] serviceStructure:', {
+        serviceNumber: serviceStructure.serviceNumber,
+        serviceName: serviceStructure.serviceName,
+        hasRequest: !!serviceStructure.request,
+        requestElements: serviceStructure.request?.elements?.length || 0,
+        hasResponse: !!serviceStructure.response,
+        responseElements: serviceStructure.response?.elements?.length || 0
+      });
+      
+      const criticalErrors = validateCriticalErrors(serviceStructure);
+      console.log('[CRITICAL_VALIDATION] Errores críticos encontrados:', criticalErrors.length);
+      console.log('[CRITICAL_VALIDATION] Detalles de errores:', criticalErrors);
+      
+      if (criticalErrors.length > 0) {
+        console.log('[CRITICAL_VALIDATION] ¡ERRORES CRÍTICOS DETECTADOS! Bloqueando guardado...');
+        throw new Error(`CRITICAL_ERRORS:${JSON.stringify(criticalErrors)}`);
+      }
+      
+      console.log('[CRITICAL_VALIDATION] ✓ No se detectaron errores críticos, continuando...');
+
+      // Guardar la estructura combinada
+      const structureInfo = saveStructures(headerStructure, serviceStructure, filePath);
 
     // Inicializar objetos con valores por defecto para evitar errores
     const warnings = {
@@ -809,6 +891,87 @@ async function processExcelFile(filePath) {
   } catch (error) {
     throw new Error(`Error al procesar el archivo Excel: ${error.message}`);
   }
+}
+
+/**
+ * Valida errores críticos que impiden el guardado del archivo
+ * @param {Object} serviceStructure - Estructura del servicio procesada
+ * @returns {Array} Array de errores críticos encontrados
+ */
+function validateCriticalErrors(serviceStructure) {
+  const criticalErrors = [];
+
+  // 1. Validar identificación del servicio
+  if (!serviceStructure.serviceNumber || serviceStructure.serviceNumber === 'error' || serviceStructure.serviceNumber === 'unknown') {
+    criticalErrors.push({
+      type: 'service_identification',
+      message: 'No se pudo detectar el número de servicio en el archivo Excel',
+      details: 'El nombre de la hoja debe contener el número del servicio (ej: SVO1004)'
+    });
+  }
+
+  if (!serviceStructure.serviceName || serviceStructure.serviceName.includes('Error al parsear')) {
+    criticalErrors.push({
+      type: 'service_name',
+      message: 'No se encontró el nombre del servicio válido',
+      details: 'Debe existir una celda que comience con "SERVICIO" en las primeras filas del Excel'
+    });
+  }
+
+  // 2. Validar estructura de request
+  if (!serviceStructure.request || !serviceStructure.request.elements || serviceStructure.request.elements.length === 0) {
+    criticalErrors.push({
+      type: 'empty_request',
+      message: 'La sección de REQUERIMIENTO está vacía o no se pudo interpretar',
+      details: 'No se encontraron elementos procesables en la sección de requerimiento'
+    });
+  }
+
+  // 3. Validar estructura de response  
+  if (!serviceStructure.response || !serviceStructure.response.elements || serviceStructure.response.elements.length === 0) {
+    criticalErrors.push({
+      type: 'empty_response',
+      message: 'La sección de RESPUESTA está vacía o no se pudo interpretar',
+      details: 'No se encontraron elementos procesables en la sección de respuesta'
+    });
+  }
+
+  // 4. Validar errores críticos marcados explícitamente en el parser
+  if (serviceStructure.parse_errors_request) {
+    const criticalRequestErrors = serviceStructure.parse_errors_request.filter(err => err.critical === true);
+    criticalRequestErrors.forEach(err => {
+      criticalErrors.push({
+        type: 'request_parsing_error',
+        message: err.message || 'Error crítico en el procesamiento del requerimiento',
+        details: `Fila ${err.row || '?'}, Columna ${err.column || '?'} en hoja "${err.sheet || 'Desconocida'}"`
+      });
+    });
+  }
+
+  if (serviceStructure.parse_errors_response) {
+    const criticalResponseErrors = serviceStructure.parse_errors_response.filter(err => err.critical === true);
+    criticalResponseErrors.forEach(err => {
+      criticalErrors.push({
+        type: 'response_parsing_error',
+        message: err.message || 'Error crítico en el procesamiento de la respuesta',
+        details: `Fila ${err.row || '?'}, Columna ${err.column || '?'} en hoja "${err.sheet || 'Desconocida'}"`
+      });
+    });
+  }
+
+  // 5. Validar errores generales críticos
+  if (serviceStructure.parse_errors) {
+    const criticalGeneralErrors = serviceStructure.parse_errors.filter(err => err.critical === true);
+    criticalGeneralErrors.forEach(err => {
+      criticalErrors.push({
+        type: 'general_parsing_error',
+        message: err.message || 'Error crítico general en el procesamiento',
+        details: err.details || 'Error en el análisis general del archivo'
+      });
+    });
+  }
+
+  return criticalErrors;
 }
 
 module.exports = router;

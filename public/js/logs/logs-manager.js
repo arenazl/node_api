@@ -128,13 +128,14 @@ function formatJsonWithColors(obj, title) {
         
         // Si es un string, verificar si ya es JSON formateado o necesita ser parseado
         if (typeof obj === 'string') {
-            const trimmed = obj.trim();
+            let trimmed = obj.trim();
+            
             
             // Verificar si es un JSON string que necesita ser parseado
             if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || 
                 (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
                 try {
-                    objectToFormat = JSON.parse(obj);
+                    objectToFormat = JSON.parse(trimmed);
                 } catch (e) {
                     // No se pudo parsear, mostrar como texto plano
                     return `<pre class="log-detail-content">${escapeHtml(obj)}</pre>`;
@@ -152,7 +153,7 @@ function formatJsonWithColors(obj, title) {
         let formatted = escapeHtml(jsonStr);
         
         // Colorear las claves (propiedades)
-        formatted = formatted.replace(/&quot;([^&]+?)&quot;:/g, '<span class="json-key">&quot;$1&quot;</span>');
+        formatted = formatted.replace(/&quot;([^&]+?)&quot;:/g, '<span class="json-key">&quot;$1&quot;</span>:');
         
         // Colorear strings (mejorado para manejar strings con comillas escapadas)
         formatted = formatted.replace(/:( *)&quot;((?:[^&]|&(?!quot;))*)&quot;/g, ':$1<span class="json-string">&quot;$2&quot;</span>');
@@ -172,7 +173,7 @@ function formatJsonWithColors(obj, title) {
         formatted = formatted.replace(/([\[,]\s*)(true|false)/g, '$1<span class="json-boolean">$2</span>');
         formatted = formatted.replace(/([\[,]\s*)(null)/g, '$1<span class="json-null">$2</span>');
         
-        return `<pre class="log-json-content">${formatted}</pre>`;
+        return `<pre class="json-editor">${formatted}</pre>`;
     } catch (error) {
         console.error('Error formateando JSON:', error);
         return `<pre class="log-detail-content">${escapeHtml(String(obj))}</pre>`;

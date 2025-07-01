@@ -1,0 +1,221 @@
+{
+  "header_structure": {
+    "totalLength": 102,
+    "fields": [
+      {
+        "name": "REQUERIMIENTO",
+        "length": null,
+        "type": "",
+        "required": "",
+        "values": "",
+        "description": ""
+      },
+      {
+        "name": "*",
+        "length": null,
+        "type": "Longitud del CAMPO",
+        "required": "Tipo de Datos",
+        "values": "obligatorio   /opcional",
+        "description": "VALORES"
+      },
+      {
+        "name": "LONGITUD DEL MENSAJE",
+        "length": 6,
+        "type": "numerico",
+        "required": "OBLIGATORIO",
+        "values": "VALOR",
+        "description": "VALOR"
+      },
+      {
+        "name": "CANAL",
+        "length": 2,
+        "type": "alfanumerico",
+        "required": "OBLIGATORIO",
+        "values": "VALOR",
+        "description": "VALOR"
+      },
+      {
+        "name": "SERVICIO",
+        "length": 4,
+        "type": "numerico",
+        "required": "OBLIGATORIO",
+        "values": "VALOR",
+        "description": "VALOR"
+      },
+      {
+        "name": "CÓDIGO DE RETORNO",
+        "length": 4,
+        "type": "numerico",
+        "required": "OBLIGATORIO",
+        "values": "CEROS",
+        "description": "0000  Transaccion exitosa                                               8991  ERROR Validacion Header mensaje    \n8992  CANAL/SERVICIO NO HABILITADO       \n8993  SERVICIO NO HABILITADO POR CANAL                       \n8001  ERROR PARRAFO DE VALIDACION GENERAL               \n6000 + CODIGO RETORNO <> 0 DEL MODULO (MOO4088F)"
+      },
+      {
+        "name": "ID DEL MENSAJE",
+        "length": 9,
+        "type": "numerico",
+        "required": "OBLIGATORIO",
+        "values": "VALOR",
+        "description": "VALOR"
+      },
+      {
+        "name": "FECHA",
+        "length": 8,
+        "type": "numerico",
+        "required": "OBLIGATORIO",
+        "values": "VALOR",
+        "description": "VALOR"
+      },
+      {
+        "name": "HORA",
+        "length": 6,
+        "type": "numerico",
+        "required": "OBLIGATORIO",
+        "values": "VALOR",
+        "description": "VALOR"
+      },
+      {
+        "name": "USUARIO",
+        "length": 7,
+        "type": "alfanumerico",
+        "required": "OBLIGATORIO",
+        "values": "VALOR",
+        "description": "VALOR"
+      },
+      {
+        "name": "Ubicación",
+        "length": 4,
+        "type": "numerico",
+        "required": "OBLIGATORIO",
+        "values": "VALOR",
+        "description": "VALOR"
+      },
+      {
+        "name": "TEXTO DEL CÓDIGO DE RETORNO",
+        "length": 45,
+        "type": "alfanumerico",
+        "required": "OBLIGATORIO",
+        "values": "ESPACIOS",
+        "description": "CÓDIGO DE RETORNO <> 0 texto del mensaje          ESTADO ENVIADO <> 0 texto del mensaje"
+      },
+      {
+        "name": "ESTADO ENVIADO",
+        "length": 2,
+        "type": "numerico",
+        "required": "OBLIGATORIO",
+        "values": "CEROS",
+        "description": "VALOR"
+      },
+      {
+        "name": "CAMPO COMPLEMENTARIO",
+        "length": 5,
+        "type": "alfanumerico",
+        "required": "OBLIGATORIO",
+        "values": "ESPACIOS",
+        "description": "ESPACIOS"
+      }
+    ]
+  },
+  "service_structure": {
+    "serviceNumber": "1379",
+    "serviceName": "SERVICIO SVO1379 - Consulta Destinos de Financiacion V4088DF0",
+    "request": {
+      "totalLength": 7,
+      "elements": [
+        {
+          "type": "field",
+          "index": 0,
+          "name": "SVC1379-TIP-PEDIDO",
+          "length": 2,
+          "fieldType": "numérico",
+          "required": "OBLIGATORIO",
+          "values": "01=Consulta todos los Destinos",
+          "description": "TIPO DE PEDIDO"
+        },
+        {
+          "type": "field",
+          "index": 1,
+          "name": "SVC1379-C-DEST-REEN",
+          "length": 5,
+          "fieldType": "numérico",
+          "required": "OPCIONAL",
+          "values": "Para realizar el reenganche",
+          "description": "CODIGO DESTINO FINANCIACIONES"
+        }
+      ],
+      "fieldCount": 2,
+      "occurrenceCount": 0,
+      "totalFieldCount": 2
+    },
+    "response": {
+      "totalLength": 31506,
+      "elements": [
+        {
+          "type": "field",
+          "index": 0,
+          "name": "SVC1379-ESTADO",
+          "length": 2,
+          "fieldType": "numerico",
+          "required": "OBLIGATORIO",
+          "values": "00    PROCESO FINALIZO CORRECTAMENTE.                     \n99    ERROR EN SVC0000-CODRET.",
+          "description": "Estado de los registros informados. El valor de este campo, se informa tambien en el campo \"ESTADO ENVIADO\" y el texto correspondiente a este código, en el campo \"TEXTO DEL CÓDIGO DE RETORNO\" de la \"Cabecera Servicios\"."
+        },
+        {
+          "type": "field",
+          "index": 1,
+          "name": "SVC1379-CANT-ELEM",
+          "length": 3,
+          "fieldType": "numerico",
+          "required": "OBLIGATORIO",
+          "values": "VALOR",
+          "description": "CANTIDAD DE REGISTROS INFORMADOS"
+        },
+        {
+          "type": "field",
+          "index": 2,
+          "name": "SVC1379-MAS-DATOS",
+          "length": 1,
+          "fieldType": "numerico",
+          "required": "OBLIGATORIO",
+          "values": "1' mas registros a Consular\n'0' sin registros a Consular",
+          "description": "CANTIDAD DE REGISTROS INFORMADOS"
+        },
+        {
+          "type": "occurrence",
+          "index": 3,
+          "id": "occ_3",
+          "count": 300,
+          "fields": [
+            {
+              "type": "field",
+              "index": 4,
+              "name": "SVC1379-C-DEST-FIN",
+              "length": 5,
+              "fieldType": "numerico",
+              "required": "OBLIGATORIO",
+              "values": "VALOR",
+              "description": "CODIGO DESTINO FINANCIACIONES (Tabla V4088DF0)",
+              "parentId": "occ_3"
+            },
+            {
+              "type": "field",
+              "index": 5,
+              "name": "SVC1379-NO-DESTFIN",
+              "length": 100,
+              "fieldType": "Alfanumerico",
+              "required": "OBLIGATORIO",
+              "values": "VALOR",
+              "description": "NOMBRE DESTINO FINANCIACION (Las primeras 30 posiciones) (Tabla V4088DF0)",
+              "parentId": "occ_3"
+            }
+          ],
+          "level": 1,
+          "parentId": null
+        }
+      ],
+      "fieldCount": 3,
+      "occurrenceCount": 1,
+      "totalFieldCount": 5
+    }
+  }
+}

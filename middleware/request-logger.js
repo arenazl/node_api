@@ -50,7 +50,7 @@ if (process.env.NODE_ENV !== 'production') {
     }));
 }
 
-// Middleware de logging mejorado
+// Middleware de logging NO invasivo
 const requestLoggerMiddleware = (req, res, next) => {
     const startTime = Date.now();
     
@@ -75,29 +75,29 @@ const requestLoggerMiddleware = (req, res, next) => {
         },
         ip: req.ip || req.connection?.remoteAddress || '',
         user: req.user || 'anonymous',
-        error: null // Se llenará si ocurre un error
+        error: null
     };
 
-    // Capturar TODAS las formas de respuesta
-    const originalSend = res.send;
-    const originalJson = res.json;
-    const originalEnd = res.end;
-    let responseBody;
+    // CAPTURA PASIVA SIN INTERCEPTAR - Solo observamos el response body
+    const chunks = [];
     let errorCaught = null;
 
-    res.send = function(data) {
-        responseBody = data;
-        return originalSend.call(this, data);
+    // Interceptar SOLO para capturar datos sin alterarlos
+    const originalWrite = res.write;
+    const originalEnd = res.end;
+
+    res.write = function(chunk) {
+        if (chunk) {
+            chunks.push(Buffer.from(chunk));
+        }
+        return originalWrite.apply(this, arguments);
     };
 
-    res.json = function(data) {
-        responseBody = data;
-        return originalJson.call(this, data);
-    };
-
-    res.end = function(data) {
-        if (data) responseBody = data;
-        return originalEnd.call(this, data);
+    res.end = function(chunk) {
+        if (chunk) {
+            chunks.push(Buffer.from(chunk));
+        }
+        return originalEnd.apply(this, arguments);
     };
 
     // Capturar errores de la respuesta
@@ -105,43 +105,26 @@ const requestLoggerMiddleware = (req, res, next) => {
         errorCaught = err;
     });
 
-    // Al finalizar la respuesta
+    // Al finalizar la respuesta - LOGGING PASIVO
     res.on('finish', () => {
         const duration = Date.now() - startTime;
         
-        // Serializar body y responseBody de forma segura
-        function safeStringify(obj) {
-            try {
-                // Manejar casos especiales
-                if (obj === undefined) return '[undefined]';
-                if (obj === null) return '[null]';
-                if (obj === '') return '[empty string]';
+        // Reconstruir response body de manera segura
+        let responseBody = '[No body]';
+        try {
+            if (chunks.length > 0) {
+                const fullBuffer = Buffer.concat(chunks);
+                responseBody = fullBuffer.toString('utf8');
                 
-                // Si es un Buffer, indicarlo
-                if (Buffer.isBuffer(obj)) {
-                    return `[Buffer: ${obj.length} bytes]`;
+                // Limitar tamaño solo para logging, no afecta la respuesta original
+                const maxLength = 50000; // 50KB para logs
+                if (responseBody.length > maxLength) {
+                    const truncateMsg = `... [truncado en logs - ${responseBody.length} caracteres totales]`;
+                    responseBody = responseBody.substring(0, maxLength - truncateMsg.length) + truncateMsg;
                 }
-                
-                // Convertir a string
-                let str = typeof obj === 'string' ? obj : JSON.stringify(obj);
-                
-                // Limitar longitud solo si es necesario (aumentado significativamente)
-                const maxLength = 10000000; // 100KB en lugar de 10KB
-                if (str.length > maxLength) {
-                    // Intentar mantener JSON válido si es posible
-                    const truncateMsg = '... [truncado en servidor - ' + str.length + ' caracteres totales]';
-                    if (str.trim().startsWith('{') || str.trim().startsWith('[')) {
-                        // Es JSON, intentar truncar de forma inteligente
-                        str = str.substring(0, maxLength - truncateMsg.length - 10) + truncateMsg + (str.trim().startsWith('{') ? '}' : ']');
-                    } else {
-                        str = str.substring(0, maxLength - truncateMsg.length) + truncateMsg;
-                    }
-                }
-                
-                return str;
-            } catch (error) {
-                return `[Unserializable: ${error.message}]`;
             }
+        } catch (error) {
+            responseBody = `[Error capturando body: ${error.message}]`;
         }
 
         // Información completa del request/response
@@ -152,9 +135,9 @@ const requestLoggerMiddleware = (req, res, next) => {
                 statusMessage: res.statusMessage,
                 duration: `${duration}ms`,
                 headers: res.getHeaders ? res.getHeaders() : {},
-                body: responseBody !== undefined ? safeStringify(responseBody) : '[No body]'
+                body: responseBody
             },
-            error: errorCaught ? safeStringify(errorCaught) : null
+            error: errorCaught ? String(errorCaught) : null
         };
 
         // Log según el código de respuesta
@@ -170,7 +153,7 @@ const requestLoggerMiddleware = (req, res, next) => {
         }
     });
 
-    // Capturar errores de middleware y registrar
+    // Capturar errores de conexión cerrada
     res.on('close', () => {
         if (!res.headersSent) {
             const duration = Date.now() - startTime;
@@ -181,9 +164,9 @@ const requestLoggerMiddleware = (req, res, next) => {
                     statusMessage: res.statusMessage || 'Connection closed',
                     duration: `${duration}ms`,
                     headers: res.getHeaders ? res.getHeaders() : {},
-                    body: responseBody !== undefined ? safeStringify(responseBody) : '[No body - connection closed]'
+                    body: '[Connection closed before response completed]'
                 },
-                error: errorCaught ? safeStringify(errorCaught) : '[Connection closed before response]'
+                error: errorCaught ? String(errorCaught) : '[Connection closed before response]'
             };
             requestLogger.error('API Request Error (Connection closed)', logEntry);
         }

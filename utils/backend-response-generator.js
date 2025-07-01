@@ -139,8 +139,8 @@ function extractSpecificValues(fieldValues) {
 /**
  * Genera un valor inteligente basado en el tipo y características del campo
  * @param {Object} field - Campo de la estructura
- * @param {boolean} simulateMode - Modo de simulación
- * @returns {string} - Valor generado
+ * @param ns {strin{boolean} simulateMode - Modo de simulación
+ * @returg} - Valor generado
  */
 function generateIntelligentValue(field, simulateMode = false) {
   const fieldName = field.name;

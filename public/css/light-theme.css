@@ -14,6 +14,7 @@
   --card-bg: #f8f8fa;               /* Blanco con tono suave para tarjetas y elementos con fondo */
   --light-bg: #e7e7ee;              /* Fondo moderadamente claro para contraste */
   --border-color: #d1d1d6;          /* Borde gris claro (estilo iOS) */
+  --bg-editors: #f1f1f1 !important;
   
   /* Textos */
   --text-color: #1c1c1e;            /* Texto principal (casi negro, iOS dark text) */
@@ -130,9 +131,10 @@ select, input, textarea {
   border-color: var(--border-color) !important;
 }
 
-.json-container {
-  background-color: var(--card-bg) !important;
-  color: var(--text-color) !important;
+.json-container,
+pre.json-editor,
+#streamData {
+  background-color: var(--bg-editors) !important;
 }
 
 /* Ajustes para que las ocurrencias sean visibles en tema claro */

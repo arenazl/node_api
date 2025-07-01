@@ -71,6 +71,7 @@ router.post('/receivemessage', async (req, res) => {
 
     const { header, parameters } = req.body;
     const { serviceNumber } = header;
+    
     const isSimulation = parameters?.simulate === true;
 
     const serviceData = await loadServiceData(serviceNumber);

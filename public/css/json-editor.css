@@ -34,37 +34,49 @@
   background-color: var(--card-bg);
 }
 
-/* Colores para la sintaxis del JSON - Optimizados para fondos oscuros */
+/* Colores para la sintaxis del JSON - Mejorados con más contraste */
 .json-key {
-  color: #60a5fa; /* Azul más claro para claves */
-  font-weight: 600;
+  color: #4ade80; /* Verde vibrante para claves */
+  font-weight: bold; /* Negrita para propiedades */
+  text-shadow: 0 0 2px rgba(74, 222, 128, 0.3); /* Sutil resplandor */
 }
 
 .json-string {
-  color: #fb7185; /* Rosa claro para cadenas */
+  color: #fbbf24; /* Amarillo dorado para strings */
+  font-weight: normal;
 }
 
 .json-number {
-  color: #6ee7b7; /* Verde claro para números */
+  color: #60a5fa; /* Azul claro para números */
+  font-weight: 600;
 }
 
 .json-boolean {
-  color: #60a5fa; /* Azul más claro para booleanos */
-  font-weight: 600;
-}
-
-.json-null {
-  color: #60a5fa; /* Azul más claro para null */
-  font-weight: 600;
-}
-
-.json-brackets {
-  color: var(--text-color);
+  color: #f87171; /* Rojo claro para booleanos */
   font-weight: bold;
 }
 
+.json-null {
+  color: #9ca3af; /* Gris para null */
+  font-weight: bold;
+  font-style: italic;
+}
+
+.json-brackets {
+  color: #e5e7eb; /* Gris claro para llaves y corchetes */
+  font-weight: bold;
+  font-size: 1.1em;
+}
+
 .json-comma {
-  color: var(--text-color);
+  color: #e5e7eb; /* Gris claro para comas */
+  font-weight: bold;
+}
+
+.json-colon {
+  color: #e5e7eb; /* Gris claro para dos puntos */
+  font-weight: bold;
+  margin: 0 4px; /* Espaciado alrededor de los dos puntos */
 }
 
 /* Secciones especiales con colores optimizados para fondo oscuro */

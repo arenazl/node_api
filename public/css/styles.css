@@ -380,10 +380,13 @@ button:disabled {
 }
 
 .subtab-btn.active {
-  background-color: transparent;
+  background-color: var(--card-bg);
   color: var(--primary-color);
   border-bottom: 2px solid var(--primary-color);
   font-weight: 600;
+  border-top-left-radius: var(--radius);
+  border-top-right-radius: var(--radius);
+  transform: translateY(1px);
 }
 
 .subtab-pane {
@@ -860,10 +863,13 @@ tr[data-level="3"] td:first-child {
 }
 
 .main-tab-btn.active {
-  background-color: transparent;
+  background-color: var(--card-bg);
   color: var(--primary-color);
   border-bottom: 3px solid var(--primary-color);
   font-weight: 600;
+  border-top-left-radius: var(--radius);
+  border-top-right-radius: var(--radius);
+  transform: translateY(2px);
 }
 
 /* Estilos para notificaciones */
@@ -1688,3 +1694,89 @@ textarea:focus,
   color: #10b981;
   font-weight: 500;
 }
+
+</file_content>
+
+Now that you have the latest state of the file, try the operation again with fewer, more precise SEARCH blocks. For large files especially, it may be prudent to try to limit yourself to <5 SEARCH/REPLACE blocks at a time, then wait for the user to respond with the result of the operation before following up with another replace_in_file call to make additional edits.
+(If you run into this error 3 times in a row, you may use the write_to_file tool as a fallback.)
+</error><environment_details>
+# VSCode Visible Files
+../../../Users/arena/AppData/Local/Programs/Microsoft VS Code/public/js/services_ui/ida/ida-service-handlers.js
+../../../Users/arena/AppData/Local/Programs/Microsoft VS Code/public/js/services_ui/ida/ida-service-handlers.js
+public/css/styles.css
+
+# VSCode Open Tabs
+routes/excel.js
+public/js/core/main.js
+public/js/services_ui/ida/ida-service-handlers.js
+public/index.html
+public/js/core/system-utils.js
+public/css/system-utils.css
+public/css/light-theme.css
+public/css/styles.css
+public/js/core/theme-selector.js
+public/css/theme-selector.css
+middleware/request-logger.js
+public/js/json/json-initializer.js
+public/css/json-editor.css
+public/js/json/json-formatter-enhanced.js
+public/js/json/json-formatter-extension.js
+public/js/json/json-formatter.js
+public/js/logs/logs-manager.js
+JsonStorage/structures/20250701T070837_1083_structure.json
+
+# Current Time
+7/1/2025, 9:29:22 AM (America/Buenos_Aires, UTC-3:00)
+
+# Context Window Usage
+331,568 / 1,048.576K tokens used (32%)
+
+# Current Mode
+ACT MODE
+</environment_details>
+
+</final_file_content>
+
+IMPORTANT: For any future changes to this file, use the final_file_content shown above as your reference. This content reflects the current state of the file, including any auto-formatting (e.g., if you used single quotes but the formatter converted them to double quotes). Always base your SEARCH/REPLACE operations on this final version to ensure accuracy.
+
+
+
+New problems detected after saving the file:
+public/css/styles.css
+- [css Error] Line 1698: at-rule or selector expected
+- [css Error] Line 1700: { expected
+- [css Error] Line 1700: identifier expected<environment_details>
+# VSCode Visible Files
+../../../Users/arena/AppData/Local/Programs/Microsoft VS Code/public/js/services_ui/ida/ida-service-handlers.js
+../../../Users/arena/AppData/Local/Programs/Microsoft VS Code/public/js/services_ui/ida/ida-service-handlers.js
+public/css/styles.css
+
+# VSCode Open Tabs
+routes/excel.js
+public/js/core/main.js
+public/js/services_ui/ida/ida-service-handlers.js
+public/index.html
+public/js/core/system-utils.js
+public/css/system-utils.css
+public/css/light-theme.css
+public/css/styles.css
+public/js/core/theme-selector.js
+public/css/theme-selector.css
+middleware/request-logger.js
+public/js/json/json-initializer.js
+public/css/json-editor.css
+public/js/json/json-formatter-enhanced.js
+public/js/json/json-formatter-extension.js
+public/js/json/json-formatter.js
+public/js/logs/logs-manager.js
+JsonStorage/structures/20250701T070837_1083_structure.json
+
+# Current Time
+7/1/2025, 9:32:16 AM (America/Buenos_Aires, UTC-3:00)
+
+# Context Window Usage
+381,267 / 1,048.576K tokens used (36%)
+
+# Current Mode
+ACT MODE
+</environment_details>

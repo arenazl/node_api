@@ -50,11 +50,13 @@ function initializeIdaServiceHandlers() {
 
                 // Mostrar u ocultar la sección de "Generar String Fijo"
                 if (tabId === 'params') {
+                    // Mostrar en "Json Parametros Dinamicos"
+                    if (generateStringButtonGroup) generateStringButtonGroup.style.display = 'block';
+                    if (fixedStringOutputGroup) fixedStringOutputGroup.style.display = 'block';
+                } else { // 'json' (Json Completo)
+                    // Ocultar en "Json Completo"
                     if (generateStringButtonGroup) generateStringButtonGroup.style.display = 'none';
                     if (fixedStringOutputGroup) fixedStringOutputGroup.style.display = 'none';
-                } else { // 'json' u otro caso por defecto
-                    if (generateStringButtonGroup) generateStringButtonGroup.style.display = 'block'; // o 'flex' si es necesario
-                    if (fixedStringOutputGroup) fixedStringOutputGroup.style.display = 'block'; // o 'flex' si es necesario
                 }
             });
         });
@@ -279,8 +281,19 @@ function generateStringClickHandler() {
         let jsonText = idaDynamicParamsInput ? idaDynamicParamsInput.textContent.trim() : '{}';
         if (jsonText === '{ }' || /^\{\s*\}$/.test(jsonText)) jsonText = '{}';
         
+        
         try {
-            paramsData = JSON.parse(jsonText === '' ? '{}' : jsonText.replace(/\{\-|\{\+/g, '{').replace(/\[\-/g, '['));
+            paramsData = JSON.parse(jsonText === '' ? '{}' : jsonText);
+            
+            // VALIDAR LONGITUDES DE CAMPOS usando la validación existente
+            const validationErrors = validateJsonAgainstConfigInputs(paramsData);
+            if (validationErrors.length > 0) {
+                showFieldLengthValidationError(validationErrors);
+                generateStringBtn.disabled = false;
+                generateStringBtn.textContent = 'Generar String Fijo';
+                return;
+            }
+            
         } catch (err) {
             if (typeof ConfigUtils !== 'undefined') ConfigUtils.showNotification('JSON de parámetros dinámicos inválido: ' + err.message, 'error');
             generateStringBtn.disabled = false;
@@ -294,7 +307,9 @@ function generateStringClickHandler() {
         
         let jsonData;
         try {
-            jsonData = JSON.parse(jsonText === '' ? '{}' : jsonText.replace(/\{\-|\{\+/g, '{').replace(/\[\-/g, '['));
+            // Limpiar caracteres problemáticos del formato JSON
+            const cleanedJsonText = jsonText.replace(/\{\-|\{\+/g, '{').replace(/\[\-/g, '[');
+            jsonData = JSON.parse(cleanedJsonText === '' ? '{}' : cleanedJsonText);
         } catch (err) {
             if (typeof ConfigUtils !== 'undefined') ConfigUtils.showNotification('JSON inválido: ' + err.message, 'error');
             generateStringBtn.disabled = false;
@@ -307,6 +322,15 @@ function generateStringClickHandler() {
             header: jsonData.header || { serviceNumber: serviceNumber, canal: 'PO' },
             parameters: jsonData.body || {}
         };
+        
+        // VALIDAR LONGITUDES DE CAMPOS antes de enviar
+        const validationErrors = validateFieldLengths(paramsData, serviceNumber);
+        if (validationErrors.length > 0) {
+            showFieldLengthValidationError(validationErrors);
+            generateStringBtn.disabled = false;
+            generateStringBtn.textContent = 'Generar String Fijo';
+            return;
+        }
     }
     
     // SIEMPRE usar el backend - eliminar formateo local del frontend
@@ -442,7 +466,9 @@ function loadJsonFromConfig(configId, jsonInputElement, currentServiceNumber) {
             try {
                 const jsonData = { header: config.header || {}, body: (config.request && typeof config.request === 'object' && !Array.isArray(config.request)) ? config.request : (Array.isArray(config.request) ? config.request.reduce((obj, item) => { if(item.name) obj[item.name] = item.value; return obj; }, {}) : {}) };
                 jsonInputElement.textContent = (Object.keys(jsonData.header).length || Object.keys(jsonData.body).length) ? JSON.stringify(jsonData, null, 2) : '{}';
+
                 if (typeof window.formatJsonElement === 'function') window.formatJsonElement(jsonInputElement, true);
+
             } catch (err) {
                 jsonInputElement.textContent = '{}';
                 if (typeof window.formatJsonElement === 'function') window.formatJsonElement(jsonInputElement, true);
@@ -617,9 +643,12 @@ function populateIdaDetailedParamsView(config, serviceNumber, canal, serviceRequ
     
     viewContainerElement.appendChild(preElement);
 
+
+
     if (typeof window.formatJsonElement === 'function') {
         setTimeout(() => window.formatJsonElement(preElement, true), 0); // Forzar formato
     }
+
     console.log('[Services UI - IDA] Vista de parámetros detallados poblada con JSON filtrado por campos variables.');
 }
 
@@ -658,7 +687,7 @@ function copyDetailedParamsJsonClickHandler() {
         }
         
         try {
-            // Limpiar cualquier carácter inválido y validar JSON
+            // Limpiar caracteres problemáticos básicos
             textToCopy = textToCopy.replace(/\{\-/g, '{').replace(/\[\-/g, '[').replace(/\{\+/g, '{').replace(/\[\+/g, '[');
             
             // Validar que sea JSON válido
@@ -775,10 +804,12 @@ function loadDynamicParamsFromConfig(configId, dynamicParamsInputElement, curren
     if (typeof ConfigStorageManager !== 'undefined') {
         ConfigStorageManager.loadSavedConfiguration(configId, (config, error) => {
             if (error || !config) {
+
                 dynamicParamsInputElement.textContent = '{}';
                 if (typeof window.formatJsonElement === 'function') {
                     setTimeout(() => window.formatJsonElement(dynamicParamsInputElement, true), 0);
                 }
+
                 return;
             }
             
@@ -927,11 +958,36 @@ function loadDynamicParamsFromConfig(configId, dynamicParamsInputElement, curren
                     dynamicParams.parameters = flatConfigBody;
                 }
                 
+                // Debug: Verificar que el objeto está bien formado antes de stringify
+                console.log('[DEBUG] dynamicParams object antes de stringify:', dynamicParams);
+                console.log('[DEBUG] Tipo de dynamicParams:', typeof dynamicParams);
+                console.log('[DEBUG] Keys de dynamicParams:', Object.keys(dynamicParams));
+                
+                // Verificar que el objeto es válido
+                if (!dynamicParams || typeof dynamicParams !== 'object') {
+                    console.error('[DEBUG] dynamicParams no es un objeto válido:', dynamicParams);
+                    dynamicParamsInputElement.textContent = '{}';
+                    return;
+                }
+                
                 // Establecer el JSON en el editor
-                const jsonText = JSON.stringify(dynamicParams, null, 2);
+                let jsonText;
+                try {
+                    jsonText = JSON.stringify(dynamicParams, null, 2);
+                    console.log('[DEBUG] JSON.stringify exitoso, resultado:', jsonText.substring(0, 100) + '...');
+                } catch (stringifyError) {
+                    console.error('[DEBUG] Error en JSON.stringify:', stringifyError);
+                    dynamicParamsInputElement.textContent = '{}';
+                    return;
+                }
+                
                 dynamicParamsInputElement.textContent = jsonText;
                 
+                // Debug: Verificar que se asignó correctamente
+                console.log('[DEBUG] Contenido asignado al elemento:', dynamicParamsInputElement.textContent.substring(0, 100) + '...');
+                
                 // Aplicar formato JSON
+                
                 if (typeof window.formatJsonElement === 'function') {
                     setTimeout(() => window.formatJsonElement(dynamicParamsInputElement, true), 0);
                 }
@@ -1010,4 +1066,452 @@ function generateFixedStringWithDynamicParams(serviceNumber, dynamicParamsData) 
             reject(new Error('Cliente API no disponible'));
         }
     });
+}
+
+/**
+ * Valida los datos JSON usando ÚNICAMENTE la estructura del servicio
+ * @param {Object} paramsData - Datos de parámetros con estructura {header: {}, parameters: {}}
+ * @returns {Array} Array de errores de validación
+ */
+function validateJsonAgainstConfigInputs(paramsData) {
+    const validationErrors = [];
+    
+    if (!paramsData || !paramsData.parameters) {
+        return validationErrors;
+    }
+    
+    // Obtener la estructura del servicio actual
+    if (!ConfigServiceLoader || !ConfigServiceLoader.currentStructure || 
+        !ConfigServiceLoader.currentStructure.service_structure ||
+        !ConfigServiceLoader.currentStructure.service_structure.request) {
+        console.warn('[Field Validation] No hay estructura de servicio disponible para validar');
+        return validationErrors;
+    }
+    
+    const serviceStructure = ConfigServiceLoader.currentStructure.service_structure.request;
+    
+    /**
+     * Función recursiva para validar campos usando la estructura del servicio
+     * @param {Array} elements - Elementos de la estructura del servicio
+     * @param {Object} dataToValidate - Datos a validar
+     * @param {string} parentPath - Ruta padre para construir el path completo del campo
+     */
+    function validateElementsRecursively(elements, dataToValidate, parentPath = '') {
+        if (!elements || !Array.isArray(elements)) return;
+        
+        elements.forEach(element => {
+            if (element.type === 'field') {
+                const fieldName = element.name;
+                const fieldLength = parseInt(element.length) || 0;
+                const fieldType = element.fieldType || element.type || 'alfanumerico';
+                const fieldValue = dataToValidate[fieldName];
+                
+                if (fieldValue !== undefined && fieldValue !== null && fieldValue !== '') {
+                    const valueStr = String(fieldValue);
+                    const valueLength = valueStr.length;
+                    const fullFieldPath = parentPath ? `${parentPath}.${fieldName}` : fieldName;
+                    
+                    // Validar longitud
+                    if (fieldLength > 0 && valueLength > fieldLength) {
+                        validationErrors.push({
+                            field: fieldName,
+                            path: fullFieldPath,
+                            currentLength: valueLength,
+                            maxLength: fieldLength,
+                            value: valueStr,
+                            type: 'length_exceeded',
+                            fieldType: fieldType
+                        });
+                    }
+                    
+                    // Validar tipo de dato
+                    if (valueStr.trim() !== '') {
+                        if (fieldType === 'numérico' || fieldType === 'numerico') {
+                            // Campo numérico: solo números
+                            const numericPattern = /^\d+$/;
+                            if (!numericPattern.test(valueStr)) {
+                                validationErrors.push({
+                                    field: fieldName,
+                                    path: fullFieldPath,
+                                    value: valueStr,
+                                    type: 'invalid_type',
+                                    expectedType: 'numeric',
+                                    fieldType: fieldType
+                                });
+                            }
+                        }
+                        // Los campos alfanuméricos pueden contener números Y letras, no hay restricción
+                    }
+                }
+            } else if (element.type === 'occurrence') {
+                const occurrenceKey = element.id || element.name;
+                const occurrenceData = dataToValidate[occurrenceKey];
+                
+                if (occurrenceData && Array.isArray(occurrenceData)) {
+                    occurrenceData.forEach((instance, index) => {
+                        const instancePath = parentPath ? `${parentPath}.${occurrenceKey}[${index}]` : `${occurrenceKey}[${index}]`;
+                        
+                        if (element.fields && Array.isArray(element.fields)) {
+                            validateElementsRecursively(element.fields, instance, instancePath);
+                        }
+                    });
+                }
+            }
+        });
+    }
+    
+    // Validar parámetros principales usando la estructura
+    if (serviceStructure.elements && Array.isArray(serviceStructure.elements)) {
+        validateElementsRecursively(serviceStructure.elements, paramsData.parameters);
+    }
+    
+    return validationErrors;
+}
+
+/**
+ * Valida las longitudes de los campos contra la estructura del servicio
+ * @param {Object} paramsData - Datos de parámetros con estructura {header: {}, parameters: {}}
+ * @param {string} serviceNumber - Número de servicio
+ * @returns {Array} Array de errores de validación
+ */
+function validateFieldLengths(paramsData, serviceNumber) {
+    const validationErrors = [];
+    
+    if (!paramsData || !paramsData.parameters) {
+        return validationErrors;
+    }
+    
+    // Obtener la estructura del servicio actual
+    if (!ConfigServiceLoader || !ConfigServiceLoader.currentStructure || 
+        !ConfigServiceLoader.currentStructure.service_structure ||
+        !ConfigServiceLoader.currentStructure.service_structure.request) {
+        console.warn('[Field Validation] No hay estructura de servicio disponible para validar longitudes');
+        return validationErrors;
+    }
+    
+    const serviceStructure = ConfigServiceLoader.currentStructure.service_structure.request;
+    
+    /**
+     * Función recursiva para validar campos en elementos y ocurrencias
+     * @param {Array} elements - Elementos de la estructura del servicio
+     * @param {Object} dataToValidate - Datos a validar
+     * @param {string} parentPath - Ruta padre para construir el path completo del campo
+     */
+    function validateElementsRecursively(elements, dataToValidate, parentPath = '') {
+        if (!elements || !Array.isArray(elements)) return;
+        
+        elements.forEach(element => {
+            if (element.type === 'field') {
+                const fieldName = element.name;
+                const fieldLength = parseInt(element.length) || 0;
+                const fieldValue = dataToValidate[fieldName];
+                
+                if (fieldValue !== undefined && fieldValue !== null && fieldValue !== '') {
+                    const valueLength = String(fieldValue).length;
+                    const fullFieldPath = parentPath ? `${parentPath}.${fieldName}` : fieldName;
+                    
+                    if (valueLength > fieldLength) {
+                        validationErrors.push({
+                            field: fieldName,
+                            path: fullFieldPath,
+                            currentLength: valueLength,
+                            maxLength: fieldLength,
+                            value: String(fieldValue),
+                            type: 'length_exceeded'
+                        });
+                    }
+                }
+            } else if (element.type === 'occurrence') {
+                const occurrenceKey = element.id || element.name;
+                const occurrenceData = dataToValidate[occurrenceKey];
+                
+                if (occurrenceData && Array.isArray(occurrenceData)) {
+                    occurrenceData.forEach((instance, index) => {
+                        const instancePath = parentPath ? `${parentPath}.${occurrenceKey}[${index}]` : `${occurrenceKey}[${index}]`;
+                        
+                        if (element.fields && Array.isArray(element.fields)) {
+                            validateElementsRecursively(element.fields, instance, instancePath);
+                        }
+                    });
+                }
+            }
+        });
+    }
+    
+    // Validar parámetros principales
+    if (serviceStructure.elements && Array.isArray(serviceStructure.elements)) {
+        validateElementsRecursively(serviceStructure.elements, paramsData.parameters);
+    }
+    
+    return validationErrors;
+}
+
+/**
+ * Muestra un SweetAlert con los errores de validación de longitud de campos
+ * @param {Array} validationErrors - Array de errores de validación
+ */
+function showFieldLengthValidationError(validationErrors) {
+    if (!validationErrors || validationErrors.length === 0) return;
+    
+    // Obtener el tema actual
+    const currentTheme = document.body.classList.contains('dark-theme') ? 'dark' : 
+                        document.body.classList.contains('amber-theme') ? 'amber' : 'light';
+    
+    // Definir colores según el tema
+    const themeColors = {
+        dark: {
+            background: '#1a1a1a',
+            surface: '#2d2d2d',
+            primary: '#3b82f6',
+            error: '#ef4444',
+            warning: '#f59e0b',
+            text: '#f3f4f6',
+            border: '#374151',
+            divider: '#374151',
+            overlay: 'rgba(0, 0, 0, 0.8)'
+        },
+        light: {
+            background: '#ffffff',
+            surface: '#f9fafb',
+            primary: '#2563eb',
+            error: '#dc2626',
+            warning: '#d97706',
+            text: '#111827',
+            border: '#e5e7eb',
+            divider: '#e5e7eb',
+            overlay: 'rgba(255, 255, 255, 0.8)'
+        },
+        amber: {
+            background: '#fffbeb',
+            surface: '#fef3c7',
+            primary: '#d97706',
+            error: '#dc2626',
+            warning: '#b45309',
+            text: '#1f2937',
+            border: '#fbbf24',
+            divider: '#fbbf24',
+            overlay: 'rgba(254, 243, 199, 0.8)'
+        }
+    };
+    
+    const colors = themeColors[currentTheme];
+    
+    // Función para convertir texto a Proper Case
+    const toProperCase = (text) => {
+        return text.toLowerCase().split(' ').map(word => 
+            word.charAt(0).toUpperCase() + word.slice(1)
+        ).join(' ');
+    };
+    
+    // Construir mensaje HTML con los errores de validación
+    let errorHtml = `
+    <div class="validation-error-container" style="
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        background: ${colors.background};
+        color: ${colors.text};
+        max-width: 800px;
+        margin: 0 auto;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 6px -1px ${colors.divider}, 0 2px 4px -2px ${colors.divider};">
+        
+        <div class="validation-error-header" style="
+            background: ${colors.surface};
+            padding: 20px;
+            border-bottom: 1px solid ${colors.divider};
+            display: flex;
+            align-items: center;
+            gap: 12px;">
+            
+            <div class="validation-error-icon" style="
+                background: ${colors.error};
+                width: 32px;
+                height: 32px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex-shrink: 0;">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                    <path d="M10 6v4m0 4h.01M19 10a9 9 0 11-18 0 9 9 0 0118 0z" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+            </div>
+            
+            <div class="validation-error-title">
+                <h3 style="
+                    margin: 0;
+                    font-size: 16px;
+                    font-weight: 600;
+                    color: ${colors.text};">
+                    ${toProperCase('Errores de Validación')}
+                </h3>
+                <p style="
+                    margin: 4px 0 0 0;
+                    font-size: 14px;
+                    color: ${colors.text}80;">
+                    Por favor, revise los siguientes campos
+                </p>
+            </div>
+        </div>
+
+        <div class="validation-error-content" style="padding: 20px;">`;
+    
+    validationErrors.forEach((error, index) => {
+        const errorColor = error.type === 'invalid_type' ? colors.error : colors.warning;
+        
+        errorHtml += `
+        <div class="validation-error-item" style="
+            background: ${colors.surface};
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border: 1px solid ${colors.border};">
+            
+            <div class="validation-error-item-header" style="
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                margin-bottom: 12px;">
+                
+                <div class="validation-error-item-indicator" style="
+                    width: 8px;
+                    height: 8px;
+                    border-radius: 50%;
+                    background: ${errorColor};
+                    flex-shrink: 0;">
+                </div>
+                
+                <div class="validation-error-item-field" style="
+                    font-weight: 500;
+                    font-size: 14px;">
+                    ${error.field}
+                </div>
+            </div>
+            
+            <div class="validation-error-item-details" style="
+                padding-left: 20px;
+                font-size: 13px;
+                color: ${colors.text}99;">`;
+        
+        if (error.type === 'length_exceeded') {
+            errorHtml += `<div style="display: flex; justify-content: space-between; margin-bottom: 4px;">`;
+            errorHtml += `<span>${toProperCase('Longitud actual')}:</span>`;
+            errorHtml += `<span>${error.currentLength} ${toProperCase('caracteres')}</span>`;
+            errorHtml += '</div>';
+            
+            errorHtml += `<div style="display: flex; justify-content: space-between; margin-bottom: 4px;">`;
+            errorHtml += `<span>${toProperCase('Longitud máxima')}:</span>`;
+            errorHtml += `<span>${error.maxLength} ${toProperCase('caracteres')}</span>`;
+            errorHtml += '</div>';
+            
+            errorHtml += `<div style="display: flex; justify-content: space-between; color: ${errorColor};">`;
+            errorHtml += `<span>${toProperCase('Exceso')}:</span>`;
+            errorHtml += `<span>${error.currentLength - error.maxLength} ${toProperCase('caracteres')}</span>`;
+            errorHtml += '</div>';
+        } else if (error.type === 'invalid_type') {
+            const expectedTypeText = error.expectedType === 'numeric' ? toProperCase('Solo números') : toProperCase('Números y letras permitidos');
+            const actualTypeText = error.expectedType === 'numeric' ? toProperCase('Texto con caracteres no numéricos') : toProperCase('Solo números');
+            
+            errorHtml += `<div style="display: flex; justify-content: space-between; margin-bottom: 4px;">`;
+            errorHtml += `<span>${toProperCase('Tipo esperado')}:</span>`;
+            errorHtml += `<span>${expectedTypeText}</span>`;
+            errorHtml += '</div>';
+            
+            errorHtml += `<div style="display: flex; justify-content: space-between; color: ${errorColor};">`;
+            errorHtml += `<span>${toProperCase('Tipo actual')}:</span>`;
+            errorHtml += `<span>${actualTypeText}</span>`;
+            errorHtml += '</div>';
+        }
+        
+        if (error.value) {
+            errorHtml += `<div style="margin-top: 8px; padding: 6px; background: ${colors.headerBg}; font-family: monospace; font-size: 11px;">`;
+            errorHtml += error.value.length > 50 ? `"${error.value.substring(0, 50)}..."` : `"${error.value}"`;
+            errorHtml += '</div>';
+        }
+        
+        errorHtml += '</div>';
+        errorHtml += '</div>';
+    });
+    
+    errorHtml += '</div>';
+    
+    // Sección de acciones
+    errorHtml += `
+        </div>
+        
+        <div class="validation-error-actions" style="
+            margin-top: 20px;
+            padding: 16px;
+            background: ${colors.surface};
+            border-radius: 8px;
+            border: 1px solid ${colors.border};">
+            
+            <div class="validation-error-actions-title" style="
+                font-weight: 500;
+                font-size: 14px;
+                color:black;
+                margin-bottom: 12px;">
+                ${toProperCase('Correcciones necesarias')}
+            </div>
+            
+            <div class="validation-error-actions-list" style="
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+                font-size: 13px;
+                color: ${colors.text}99;">
+                
+                <div class="validation-error-action-item" style="
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path d="M8 4v4m0 4h.01M15 8a7 7 0 11-14 0 7 7 0 0114 0z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+                    ${toProperCase('Reducir la longitud de los campos señalados')}
+                </div>
+                
+                <div class="validation-error-action-item" style="
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M8 4v4m0 4h.01M15 8a7 7 0 11-14 0 7 7 0 0114 0z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                    ${toProperCase('Verificar que los valores se ajusten a la estructura del servicio')}
+                </div>
+                
+                <div class="validation-error-action-item" style="
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M8 4v4m0 4h.01M15 8a7 7 0 11-14 0 7 7 0 0114 0z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                    ${toProperCase('Revisar la configuración del Excel si es necesario')}
+                </div>
+            </div>
+        </div>
+    </div>`;
+    
+    // Mostrar SweetAlert con errores de validación
+    if (typeof Swal !== 'undefined') {
+        Swal.fire({
+            title: `<span style="color: ${colors.error};">${toProperCase('Errores de Validación')}</span>`,
+            html: errorHtml,
+            icon: 'warning',
+            confirmButtonText: toProperCase('Entendido'),
+            confirmButtonColor: colors.error,
+            width: '900px',
+            padding: '20px',
+            background: colors.background
+        });
+    } else {
+        // Fallback si SweetAlert no está disponible
+        let alertMessage = 'Errores de validación de campos:\n\n';
+        validationErrors.forEach(error => {
+            alertMessage += `• Campo "${error.field}": ${error.currentLength}/${error.maxLength} caracteres (exceso: ${error.currentLength - error.maxLength})\n`;
+        });
+        alert(alertMessage);
+    }
 }

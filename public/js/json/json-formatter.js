@@ -1,20 +1,17 @@
-function formatJson(element, forceFormat = false) { // Añadir parámetro forceFormat
+function formatJson(element, forceFormat = false) {
   if (!element) return;
 
   // Si ya está formateado y no se fuerza, no hacer nada.
   if (element.dataset.jsonFormatted === 'true' && !forceFormat) {
-    // console.log('[JSON_FORMATTER] Elemento ya formateado, omitiendo:', element.id || 'sin ID');
     return;
   }
+  
   // Si se fuerza el formato, limpiar la marca para permitir reformateo.
   if (forceFormat) {
     delete element.dataset.jsonFormatted;
   }
 
-  if (!element.textContent) { // Mover esta comprobación aquí después de la de dataset.jsonFormatted
-    // Si no hay contenido, no hay nada que formatear, pero marcar como "formateado" para evitar bucles si se añade contenido vacío.
-    // Opcionalmente, se podría limpiar el innerHTML aquí si se espera que siempre haya contenido.
-    // element.dataset.jsonFormatted = 'true'; // Considerar si esto es deseable para contenido vacío.
+  if (!element.textContent) {
     return;
   }
   
@@ -25,7 +22,6 @@ function formatJson(element, forceFormat = false) { // Añadir parámetro forceF
     // Detectar si el contenido no parece ser JSON (por ejemplo, mensajes en español)
     if (!content.startsWith('{') && !content.startsWith('[') && 
         !content.startsWith('"') && !/^\d+$/.test(content)) {
-      console.log('El contenido no parece ser JSON válido:', content.substring(0, 50) + '...');
       
       // Detección mejorada de texto en español o mensajes de error o placeholders
       const placeholderText = [
@@ -46,7 +42,6 @@ function formatJson(element, forceFormat = false) { // Añadir parámetro forceF
         /^[A-Za-záéíóúüñÁÉÍÓÚÜÑ\s,\.]+$/.test(content.substring(0, 30));
       
       if (isSpanishText) {
-        console.log('Mostrando contenido como texto plano (texto en español detectado)');
         element.innerHTML = `<div class="formatted-text">
           <pre class="plain-text-content">${element.textContent}</pre>
         </div>`;
@@ -61,47 +56,29 @@ function formatJson(element, forceFormat = false) { // Añadir parámetro forceF
       return;
     }
 
-    // Verificación adicional para JSON vacío o malformado que podría pasar los filtros anteriores
+    // Verificación adicional para JSON vacío o malformado
     if (content.trim() === "" || 
         (content.startsWith('{') && !content.endsWith('}')) || 
         (content.startsWith('[') && !content.endsWith(']')) ||
-        (content === "{") || (content === "[")) { // Específicamente para '{' o '[' solos
-        console.warn('Contenido JSON detectado como vacío, incompleto o inválido antes del parseo:', content.substring(0, 70) + '...');
+        (content === "{") || (content === "[")) {
         element.innerHTML = `<div class="json-error">
           <span class="json-error-icon">⚠️</span>
           <span class="json-error-message">Contenido JSON vacío o inválido</span>
           <pre class="json-error-content" style="white-space: pre-wrap;">${element.textContent}</pre>
         </div>`;
-        return;
-    }
-
-    // Verificación adicional para JSON vacío o malformado que podría pasar los filtros anteriores
-    if (content.trim() === "" || 
-        (content.startsWith('{') && !content.endsWith('}')) || 
-        (content.startsWith('[') && !content.endsWith(']')) ||
-        (content === "{") || (content === "[")) { // Específicamente para '{' o '[' solos
-        console.warn('[JSON_FORMATTER] Contenido JSON detectado como vacío, incompleto o inválido antes del parseo:', content.substring(0, 70) + '...');
-        element.innerHTML = `<div class="json-error">
-          <span class="json-error-icon">⚠️</span>
-          <span class="json-error-message">Contenido JSON vacío o inválido</span>
-          <pre class="json-error-content" style="white-space: pre-wrap;">${element.textContent}</pre>
-        </div>`;
-        delete element.dataset.jsonFormatted; // No se pudo formatear
         return;
     }
     
     let contentToParse = content;
     // Eliminar BOM si está presente al inicio de la cadena
     if (contentToParse.charCodeAt(0) === 0xFEFF) {
-        console.warn('[JSON_FORMATTER] BOM detectado y eliminado del inicio del JSON.');
         contentToParse = contentToParse.substring(1);
     }
 
-    console.log('[JSON_FORMATTER] Intentando parsear el siguiente contenido:', JSON.stringify(contentToParse)); 
     const jsonData = JSON.parse(contentToParse);
     const formattedHtml = formatJsonWithColors(jsonData);
     element.innerHTML = formattedHtml;
-    element.dataset.jsonFormatted = 'true'; // Marcar como formateado
+    element.dataset.jsonFormatted = 'true';
     
     // Asegurarse de que los botones de colapso funcionen
     const collapseButtons = element.querySelectorAll('.json-collapse-btn');
@@ -112,19 +89,18 @@ function formatJson(element, forceFormat = false) { // Añadir parámetro forceF
       };
     });
   } catch (e) {
-    console.error('Error al formatear JSON:', e);
-    
     // Mostrar un mensaje de error amigable en el elemento
     element.innerHTML = `<div class="json-error">
       <span class="json-error-icon">⚠️</span>
       <span class="json-error-message">Error al parsear JSON: ${e.message}</span>
       <pre class="json-error-content" style="white-space: pre-wrap;">${element.textContent}</pre>
     </div>`;
-    delete element.dataset.jsonFormatted; // Falló el formateo
+    delete element.dataset.jsonFormatted;
   }
 }
 
 function formatJsonWithColors(data, indent = 0) {
+  console.log('[VERIFICACION] formatJsonWithColors ejecutándose - versión con ":" corregida');
   const indentStr = '  '.repeat(indent);
   
   if (data === null) return `<span class="json-null">null</span>`;
@@ -163,7 +139,7 @@ function formatJsonWithColors(data, indent = 0) {
     const nodeId = 'json_' + Math.random().toString(36).substr(2, 9);
     
     const properties = keys.map(key => 
-      `${indentStr}  <span class="json-key">"${key}"</span>: ${formatJsonWithColors(data[key], indent + 1)}`
+      `${indentStr}  <span class="json-key">"${key}"</span><span class="json-colon">: </span>${formatJsonWithColors(data[key], indent + 1)}`
     ).join(',\n');
     
     return `{<span class="json-collapse-btn" data-target="${nodeId}">-</span>\n` +
