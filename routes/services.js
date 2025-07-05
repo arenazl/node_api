@@ -30,16 +30,23 @@ const UPLOADS_DIR = path.join(__dirname, '..', 'JsonStorage', 'uploads');
  */
 router.post('/sendmessage', async (req, res) => {
   try {
+    console.log('[sendmessage] Request received:', JSON.stringify(req.body, null, 2));
+    
     const validationError = validateSendMessageRequest(req.body);
     if (validationError) {
+      console.error('[sendmessage] Validation error:', validationError);
       return res.status(400).json({ error: validationError });
     }
 
     const { header, parameters } = req.body;
     const { serviceNumber, canal } = header;
 
+    console.log(`[sendmessage] Processing service: ${serviceNumber}, canal: ${canal}`);
+    console.log(`[sendmessage] Parameters keys:`, Object.keys(parameters || {}));
+
     const serviceData = await loadServiceData(serviceNumber);
     if (!serviceData) {
+      console.error(`[sendmessage] Structure not found for service ${serviceNumber}`);
       return res.status(404).json({ 
         error: `Structure not found for service ${serviceNumber}` 
       });
@@ -50,10 +57,11 @@ router.post('/sendmessage', async (req, res) => {
     const message = generateFixedString(serviceData, requestData);
     const response = buildSendMessageResponse(header, parameters, message, serviceData, requestData);
 
-    console.log(`[sendmessage] Success - Service: ${serviceNumber}, Canal: ${canal}`);
+    console.log(`[sendmessage] Success - Service: ${serviceNumber}, Canal: ${canal}, Message length: ${message.length}`);
     res.json(response);
 
   } catch (error) {
+    console.error(`[sendmessage] Error:`, error);
     handleEndpointError(res, error, 'sendmessage');
   }
 });
@@ -64,18 +72,30 @@ router.post('/sendmessage', async (req, res) => {
  */
 router.post('/receivemessage', async (req, res) => {
   try {
+    console.log('[receivemessage] Request received:', JSON.stringify(req.body, null, 2));
+    
     const validationError = validateReceiveMessageRequest(req.body);
     if (validationError) {
+      console.error('[receivemessage] Validation error:', validationError);
       return res.status(400).json({ error: validationError });
     }
 
     const { header, parameters } = req.body;
     const { serviceNumber } = header;
     
+    console.log(`[receivemessage] Processing service: ${serviceNumber}`);
+    console.log(`[receivemessage] Parameters keys:`, Object.keys(parameters || {}));
+    
     const isSimulation = parameters?.simulate === true;
+    
+    if (!isSimulation) {
+      console.log(`[receivemessage] SOAP response string length: ${parameters.returnMsg ? parameters.returnMsg.length : 0}`);
+      console.log(`[receivemessage] SOAP response: ${parameters.returnMsg}`);
+    }
 
     const serviceData = await loadServiceData(serviceNumber);
     if (!serviceData) {
+      console.error(`[receivemessage] Structure not found for service ${serviceNumber}`);
       return res.status(404).json({ 
         error: `Structure not found for service ${serviceNumber}` 
       });
@@ -83,15 +103,19 @@ router.post('/receivemessage', async (req, res) => {
 
     let responseData;
     if (isSimulation) {
+      console.log(`[receivemessage] Running in simulation mode`);
       responseData = await handleSimulation(serviceNumber, serviceData, parameters);
     } else {
+      console.log(`[receivemessage] Processing real SOAP response`);
       responseData = await processMessageStream(parameters.returnMsg, serviceData);
     }
 
     const response = buildReceiveMessageResponse(header, parameters, responseData, isSimulation);
+    console.log(`[receivemessage] Success - Service: ${serviceNumber}, Response type: ${typeof responseData}`);
     res.json(response);
 
   } catch (error) {
+    console.error(`[receivemessage] Error:`, error);
     handleEndpointError(res, error, 'receivemessage');
   }
 });

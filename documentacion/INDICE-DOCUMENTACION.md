@@ -2,6 +2,21 @@
 
 Esta documentación proporciona todos los recursos necesarios para implementar, configurar y consumir la API MQ Importer en entornos Windows.
 
+## Documentación Organizacional
+
+- [**session.md**](session.md): Documentación de sesiones de trabajo
+  - Información del proyecto actual
+  - Historial de sesiones y decisiones
+  - Estructura del proyecto y configuración
+  - Checklist de sesión y comandos útiles
+  - Notas de desarrollo y áreas de mejora
+
+- [**task.md**](task.md): Gestión y seguimiento de tareas
+  - Tareas organizadas por prioridad
+  - Sprint actual y métricas del proyecto
+  - Plantilla para nuevas tareas
+  - Proceso de actualización y seguimiento
+
 ## Documentación Principal
 
 - [**GUIA-RAPIDA-INSTALACION.md**](GUIA-RAPIDA-INSTALACION.md): Enfoque recomendado paso a paso para instalar rápidamente
