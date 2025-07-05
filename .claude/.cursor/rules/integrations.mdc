@@ -1,0 +1,230 @@
+---
+description: Rules for external service integrations
+globs: ["**/NG.*.Model/**", "**/NG.PY/**", "**/NG.Rappi/**", "**/NG.MasDelivery/**", "**/NG.UberEats/**"]
+alwaysApply: false
+---
+
+# NGCheck Integration Development Rules
+
+## General Integration Principles
+
+### Service Structure
+```csharp
+public interface IDeliveryIntegrationService
+{
+    Task<OrderResponse> CreateOrderAsync(OrderRequest request);
+    Task<OrderStatus> GetOrderStatusAsync(string orderId);
+    Task<bool> CancelOrderAsync(string orderId);
+    Task<WebhookResponse> ProcessWebhookAsync(WebhookRequest request);
+}
+```
+
+### Configuration Management
+```csharp
+public class IntegrationConfiguration
+{
+    public string BaseUrl { get; set; }
+    public string ApiKey { get; set; }
+    public string SecretKey { get; set; }
+    public int TimeoutSeconds { get; set; } = 30;
+    public int RetryCount { get; set; } = 3;
+    public bool IsProduction { get; set; }
+}
+```
+
+### HTTP Client Setup
+```csharp
+services.AddHttpClient<IPedidosYaClient, PedidosYaClient>()
+    .ConfigureHttpClient((sp, client) =>
+    {
+        var config = sp.GetRequiredService<IOptions<PedidosYaConfiguration>>();
+        client.BaseAddress = new Uri(config.Value.BaseUrl);
+        client.Timeout = TimeSpan.FromSeconds(config.Value.TimeoutSeconds);
+    })
+    .AddPolicyHandler(GetRetryPolicy())
+    .AddPolicyHandler(GetCircuitBreakerPolicy());
+```
+
+## Delivery Service Integrations
+
+### PedidosYa V2 Integration
+- Use OAuth 2.0 for authentication
+- Implement webhook signature validation
+- Handle order state transitions properly
+- Map internal statuses to PY statuses
+- Log all API interactions
+
+### Rappi Integration
+- Authenticate using Auth0 flow
+- Handle menu synchronization
+- Implement real-time order updates
+- Process modifier groups correctly
+- Validate webhook signatures
+
+### UberEats Integration
+- Use store-specific tokens
+- Implement menu push functionality
+- Handle order acceptance flow
+- Process refunds and cancellations
+- Sync availability in real-time
+
+### MasDelivery Integration
+- Use API key authentication
+- Handle multi-store scenarios
+- Implement order tracking
+- Process delivery updates
+- Handle payment reconciliation
+
+## Electronic Invoice Integrations
+
+### AFIP (Argentina) Integration
+```csharp
+public class AfipService : IElectronicInvoiceService
+{
+    // Always check WSAA token expiration
+    // Handle both testing (homo) and production environments
+    // Implement proper certificate handling
+    // Log all SOAP requests/responses
+    // Handle CAE properly
+}
+```
+
+### Chile FE Integration
+- Use REST API with JWT tokens
+- Handle different document types (Boleta, Factura)
+- Implement DTE validation
+- Process SII responses
+- Store XML documents properly
+
+### Uruguay Pymo Integration
+- Implement proper SOAP client
+- Handle certificate authentication
+- Process CFE documents
+- Validate with DGI rules
+- Store signed documents
+
+## Payment Processing
+
+### MercadoPago Integration
+```csharp
+public class MercadoPagoService : IPaymentService
+{
+    // Use SDK when available
+    // Implement idempotency keys
+    // Handle payment notifications
+    // Process refunds properly
+    // Log all transactions
+}
+```
+
+### IRSA CliSiTef Integration
+- Handle POS communication
+- Implement timeout handling
+- Process different card types
+- Handle offline scenarios
+- Implement reconciliation
+
+## Error Handling for Integrations
+
+```csharp
+public class IntegrationException : Exception
+{
+    public string IntegrationType { get; set; }
+    public string ExternalErrorCode { get; set; }
+    public object RequestData { get; set; }
+    public object ResponseData { get; set; }
+}
+
+// Usage
+catch (HttpRequestException ex)
+{
+    throw new IntegrationException
+    {
+        IntegrationType = "PedidosYa",
+        ExternalErrorCode = response?.ErrorCode,
+        RequestData = request,
+        ResponseData = response,
+        InnerException = ex
+    };
+}
+```
+
+## Retry Policies
+
+```csharp
+private static IAsyncPolicy<HttpResponseMessage> GetRetryPolicy()
+{
+    return HttpPolicyExtensions
+        .HandleTransientHttpError()
+        .OrResult(msg => !msg.IsSuccessStatusCode)
+        .WaitAndRetryAsync(
+            3,
+            retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+            onRetry: (outcome, timespan, retryCount, context) =>
+            {
+                var logger = context.Values["logger"] as ILogger;
+                logger?.LogWarning("Retry {RetryCount} after {Timespan}s", retryCount, timespan.TotalSeconds);
+            });
+}
+```
+
+## Webhook Processing
+
+```csharp
+[HttpPost("webhook/{integration}")]
+public async Task<IActionResult> ProcessWebhook(string integration, [FromBody] dynamic payload)
+{
+    // Validate signature/authentication
+    // Parse payload based on integration type
+    // Process asynchronously when possible
+    // Return immediately with 200 OK
+    // Handle errors gracefully
+}
+```
+
+## Testing Integration Code
+
+- Mock external HTTP calls
+- Test retry policies
+- Verify error handling
+- Test webhook signature validation
+- Use integration tests with test endpoints
+- Document test scenarios
+
+## Monitoring and Logging
+
+```csharp
+using (var activity = Activity.StartActivity("ExternalApiCall"))
+{
+    activity?.SetTag("integration.type", "PedidosYa");
+    activity?.SetTag("operation", "CreateOrder");
+    
+    // Make API call
+    
+    activity?.SetTag("response.status", response.StatusCode);
+}
+```
+
+## Security Considerations
+
+- Store credentials in secure configuration
+- Never log sensitive data (tokens, passwords)
+- Implement request signing where required
+- Validate all incoming webhook data
+- Use HTTPS for all communications
+- Implement rate limiting
+
+## Data Mapping
+
+```csharp
+public class IntegrationMapper<TSource, TDestination>
+{
+    // Map internal models to external DTOs
+    // Handle nullable fields appropriately
+    // Convert data types as needed
+    // Validate required fields
+    // Log mapping errors
+}
+```
+
+Remember: Each integration is unique. Always refer to the specific API documentation and handle edge cases appropriately.

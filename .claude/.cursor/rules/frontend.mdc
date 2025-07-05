@@ -1,0 +1,221 @@
+---
+description: Frontend development rules for Angular and TypeScript
+globs: ["*.ts", "*.html", "*.scss", "*.css", "angular.json"]
+alwaysApply: false
+---
+
+# NGCheck Frontend Development Rules
+
+## Angular 15 Standards
+
+### Component Structure
+```typescript
+@Component({
+  selector: 'app-example',
+  templateUrl: './example.component.html',
+  styleUrls: ['./example.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class ExampleComponent implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
+  
+  constructor(
+    private exampleService: ExampleService,
+    private toastr: ToastrService,
+    private logger: LoggerService
+  ) {}
+  
+  ngOnInit(): void {
+    this.loadData();
+  }
+  
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+  
+  private loadData(): void {
+    this.exampleService.getAll()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (data) => this.handleData(data),
+        error: (error) => this.handleError(error)
+      });
+  }
+}
+```
+
+### Service Pattern
+```typescript
+@Injectable({
+  providedIn: 'root'
+})
+export class ExampleService {
+  private apiUrl = `${environment.apiUrl}/api/example`;
+  
+  constructor(
+    private http: HttpClient,
+    private logger: LoggerService
+  ) {}
+  
+  getAll(): Observable<Example[]> {
+    return this.http.get<Example[]>(this.apiUrl).pipe(
+      tap(data => this.logger.log('Fetched examples', data)),
+      catchError(this.handleError<Example[]>('getAll', []))
+    );
+  }
+  
+  private handleError<T>(operation = 'operation', result?: T) {
+    return (error: any): Observable<T> => {
+      this.logger.error(`${operation} failed: ${error.message}`);
+      return of(result as T);
+    };
+  }
+}
+```
+
+### RxJS Best Practices
+- Always unsubscribe using takeUntil pattern
+- Use AsyncPipe in templates when possible
+- Prefer declarative approach with observables
+- Use appropriate operators (map, filter, switchMap, etc.)
+- Handle errors in pipe with catchError
+- Use shareReplay for caching observables
+
+### State Management
+- Use services with BehaviorSubject for simple state
+- Implement facade pattern for complex features
+- Keep component state minimal
+- Use OnPush change detection where possible
+
+### Form Handling
+```typescript
+// Reactive Forms
+form = this.fb.group({
+  name: ['', [Validators.required, Validators.minLength(3)]],
+  email: ['', [Validators.required, Validators.email]],
+  phone: ['', [Validators.pattern(/^\d{10}$/)]]
+});
+
+// Custom Validators
+static customValidator(control: AbstractControl): ValidationErrors | null {
+  // Validation logic
+  return null;
+}
+```
+
+### HTTP Interceptors
+```typescript
+@Injectable()
+export class AuthInterceptor implements HttpInterceptor {
+  intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
+    const token = this.authService.getToken();
+    if (token) {
+      req = req.clone({
+        setHeaders: { Authorization: `Bearer ${token}` }
+      });
+    }
+    return next.handle(req);
+  }
+}
+```
+
+### Routing Configuration
+```typescript
+const routes: Routes = [
+  {
+    path: 'feature',
+    loadChildren: () => import('./feature/feature.module').then(m => m.FeatureModule),
+    canActivate: [AuthGuard]
+  }
+];
+```
+
+### Module Organization
+- Create feature modules for each major feature
+- Use shared module for common components
+- Implement lazy loading for feature modules
+- Keep app.module lean
+- Use barrel exports (index.ts)
+
+### Component Communication
+- Use @Input/@Output for parent-child
+- Use services for sibling communication
+- Implement smart/dumb component pattern
+- Keep components focused and small
+
+### Template Best Practices
+```html
+<!-- Use async pipe -->
+<div *ngIf="data$ | async as data">
+  {{ data.property }}
+</div>
+
+<!-- Track by for ngFor -->
+<li *ngFor="let item of items; trackBy: trackByFn">
+  {{ item.name }}
+</li>
+
+<!-- Conditional classes -->
+<div [class.active]="isActive"
+     [class.disabled]="!isEnabled">
+</div>
+```
+
+### Styling Guidelines
+- Use SCSS for styles
+- Follow BEM naming convention
+- Keep component styles scoped
+- Use CSS variables for theming
+- Implement responsive design with Bootstrap grid
+
+### Performance Optimization
+- Use OnPush change detection
+- Implement virtual scrolling for large lists
+- Lazy load images and modules
+- Use track by functions in *ngFor
+- Minimize bundle size with tree shaking
+- Implement preloading strategies
+
+### Error Handling
+```typescript
+// Global error handler
+export class GlobalErrorHandler implements ErrorHandler {
+  handleError(error: Error): void {
+    console.error('Global error:', error);
+    // Send to logging service
+    // Show user-friendly message
+  }
+}
+```
+
+### Testing Standards
+- Write unit tests for all services
+- Test component logic, not implementation
+- Use TestBed for component testing
+- Mock dependencies appropriately
+- Test error scenarios
+- Aim for 80% coverage
+
+### Accessibility
+- Use semantic HTML elements
+- Add ARIA labels where needed
+- Ensure keyboard navigation
+- Test with screen readers
+- Maintain proper contrast ratios
+
+### Integration with Backend
+- Use environments for API URLs
+- Handle loading and error states
+- Implement proper error messages
+- Use DTOs matching backend
+- Handle pagination properly
+
+### Third-party Libraries
+- Use ng-bootstrap for UI components
+- Implement toastr for notifications
+- Use ngx-mask for input formatting
+- Integrate SignalR for real-time updates
+- Use moment-timezone for date handling
+
+Remember: Keep components small and focused. Extract logic to services. Use RxJS effectively.

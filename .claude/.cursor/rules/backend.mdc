@@ -1,0 +1,181 @@
+---
+description: Backend development rules for C# and ASP.NET Core
+globs: ["*.cs", "*.csproj", "*.sln"]
+alwaysApply: false
+---
+
+# NGCheck Backend Development Rules
+
+## C# Coding Standards
+
+### General C# Rules
+- Use C# 11+ features where appropriate
+- Prefer var for local variables when type is obvious
+- Use expression-bodied members for simple methods
+- Use null-conditional operators (?. and ??)
+- Implement IDisposable with using statements
+- Use readonly for fields that shouldn't change
+- Prefer string interpolation over concatenation
+
+### ASP.NET Core Specific
+```csharp
+// Controller structure example
+[ApiController]
+[Route("api/[controller]")]
+[Authorize]
+public class ExampleController : ControllerBase
+{
+    private readonly IExampleService _exampleService;
+    private readonly ILogger<ExampleController> _logger;
+    
+    public ExampleController(IExampleService exampleService, ILogger<ExampleController> logger)
+    {
+        _exampleService = exampleService;
+        _logger = logger;
+    }
+    
+    [HttpGet("{id}")]
+    [ProducesResponseType(typeof(ExampleDto), 200)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> GetById(int id)
+    {
+        try
+        {
+            var result = await _exampleService.GetByIdAsync(id);
+            return result != null ? Ok(result) : NotFound();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting example by id: {Id}", id);
+            return StatusCode(500, "An error occurred");
+        }
+    }
+}
+```
+
+### Service Layer Pattern
+```csharp
+public interface IExampleService
+{
+    Task<ExampleDto> GetByIdAsync(int id);
+    Task<IEnumerable<ExampleDto>> GetAllAsync();
+    Task<ExampleDto> CreateAsync(CreateExampleDto dto);
+    Task<ExampleDto> UpdateAsync(int id, UpdateExampleDto dto);
+    Task<bool> DeleteAsync(int id);
+}
+
+public class ExampleService : IExampleService
+{
+    private readonly IExampleRepository _repository;
+    private readonly IMapper _mapper;
+    private readonly ILogger<ExampleService> _logger;
+    
+    // Implement interface methods with proper error handling
+}
+```
+
+### Repository Pattern
+```csharp
+public interface IExampleRepository : IGenericRepository<Example>
+{
+    Task<Example> GetByNameAsync(string name);
+    Task<IEnumerable<Example>> GetActiveAsync();
+}
+
+public class ExampleRepository : GenericRepository<Example>, IExampleRepository
+{
+    public ExampleRepository(ApplicationDbContext context) : base(context)
+    {
+    }
+    
+    // Implement specific queries
+}
+```
+
+### Entity Framework Core
+- Use fluent API for configuration
+- Implement audit fields (CreatedAt, UpdatedAt, CreatedBy, UpdatedBy)
+- Use value converters for enums
+- Configure relationships explicitly
+- Use Include() judiciously to avoid N+1 queries
+- Implement specifications pattern for complex queries
+
+### DTOs and Mapping
+- Create separate DTOs for Create, Update, and Response
+- Use AutoMapper for entity-DTO conversions
+- Validate DTOs with FluentValidation
+- Never expose navigation properties in DTOs
+
+### Dependency Injection
+```csharp
+// In Program.cs or Startup.cs
+builder.Services.AddScoped<IExampleService, ExampleService>();
+builder.Services.AddScoped<IExampleRepository, ExampleRepository>();
+builder.Services.AddAutoMapper(typeof(MappingProfile));
+```
+
+### Middleware and Filters
+- Implement global exception handling middleware
+- Use action filters for cross-cutting concerns
+- Implement request/response logging middleware
+- Add correlation ID middleware for request tracking
+
+### API Versioning
+- Use URL versioning: /api/v1/[controller]
+- Maintain backward compatibility
+- Document breaking changes
+- Use API versioning package
+
+### Background Services
+- Use IHostedService for background tasks
+- Implement proper cancellation token handling
+- Use Hangfire for scheduled jobs
+- Log all background operations
+
+### External Service Integration
+```csharp
+public class ExternalServiceClient : IExternalServiceClient
+{
+    private readonly HttpClient _httpClient;
+    private readonly ILogger<ExternalServiceClient> _logger;
+    private readonly IOptions<ExternalServiceOptions> _options;
+    
+    public async Task<T> SendRequestAsync<T>(string endpoint, object data)
+    {
+        // Implement with retry policy using Polly
+        // Log request and response
+        // Handle errors appropriately
+    }
+}
+```
+
+### Caching Strategy
+- Use IMemoryCache for in-process caching
+- Implement distributed caching with Redis
+- Set appropriate cache expiration times
+- Use cache-aside pattern
+- Invalidate cache on data changes
+
+### Security Implementation
+- Use [Authorize] attribute on controllers/actions
+- Implement role-based authorization
+- Validate JWT tokens properly
+- Use CORS appropriately
+- Implement API key authentication where needed
+
+### Performance Optimization
+- Use async/await throughout the stack
+- Implement database query optimization
+- Use projection to select only needed fields
+- Implement response compression
+- Monitor with Application Insights
+
+### Testing Guidelines
+- Unit test all service methods
+- Integration test all API endpoints
+- Use InMemory database for testing
+- Mock external dependencies
+- Test error scenarios
+- Measure code coverage
+
+Remember: The service layer should contain all business logic. Controllers should only handle HTTP concerns.

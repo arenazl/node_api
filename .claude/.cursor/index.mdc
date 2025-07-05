@@ -1,0 +1,97 @@
+---
+description: NGCheck project standards and conventions - Main rules file
+alwaysApply: true
+---
+
+# NGCheck Development Standards
+
+## Project Overview
+NGCheck is an enterprise application developed by NucleoIT that integrates multiple delivery services, electronic invoicing systems, and payment processors. The system consists of an Angular frontend and ASP.NET Core backend with SQL Server database.
+
+## General Development Rules
+
+### Code Quality
+- Always implement comprehensive error handling with try-catch blocks
+- Log all exceptions using Serilog with appropriate context
+- Validate all inputs at API endpoints before processing
+- Use dependency injection for all services and repositories
+- Follow SOLID principles in all implementations
+- Write unit tests for critical business logic
+
+### Naming Conventions
+- Interfaces: I{InterfaceName} (e.g., IUserService)
+- Services: {Name}Service (e.g., UserService)
+- Controllers: {Name}Controller (e.g., UserController)
+- DTOs: {Name}Dto (e.g., UserDto)
+- Entities: Plain name (e.g., User)
+- Angular components: {feature}-{type}.component (e.g., user-list.component)
+
+### Architecture Patterns
+- Repository Pattern for all data access
+- Service Layer for business logic (never in controllers)
+- DTOs for API communication (never expose entities)
+- Unit of Work pattern for transaction management
+- Command/Query separation where appropriate
+
+### Security
+- Always use HTTPS for external communications
+- Implement JWT authentication with proper expiration
+- Validate and sanitize all user inputs
+- Use parameterized queries to prevent SQL injection
+- Implement rate limiting on public endpoints
+- Follow OWASP security guidelines
+
+### Performance
+- Use async/await for all I/O operations
+- Implement caching where appropriate (Redis/Memory)
+- Use pagination for large data sets
+- Optimize database queries with proper indexing
+- Implement lazy loading in Angular for modules
+- Monitor performance with Application Insights
+
+### Version Control
+- Use feature branches: feature/{ticket-number}-{description}
+- Write descriptive commit messages
+- Squash commits before merging to main
+- Always create pull requests for code review
+- Keep branches up to date with main
+
+## Error Handling
+- Use structured logging with correlation IDs
+- Return appropriate HTTP status codes
+- Provide meaningful error messages to clients
+- Log full stack traces server-side only
+- Implement global exception handling middleware
+
+## Documentation
+- Document all public APIs with XML comments
+- Keep README files updated
+- Document complex business logic inline
+- Maintain architectural decision records (ADRs)
+- Update status.md after significant changes
+
+## Integration Guidelines
+- Each integration should have its own service class
+- Use Polly for retry policies on external calls
+- Implement circuit breakers for external services
+- Log all external API calls and responses
+- Handle timeouts gracefully
+- Mock external services in tests
+
+## Database Guidelines
+- Use Entity Framework Core with code-first approach
+- Always use migrations for schema changes
+- Follow naming convention: Table names singular, columns PascalCase
+- Add appropriate indexes for query performance
+- Use stored procedures only when absolutely necessary
+- Implement soft deletes where applicable
+
+## Testing Standards
+- Aim for 80% code coverage on business logic
+- Write integration tests for API endpoints
+- Use xUnit for backend tests
+- Use Jasmine/Karma for Angular tests
+- Mock external dependencies in unit tests
+- Run tests in CI/CD pipeline
+
+Remember: When in doubt, prioritize code readability and maintainability over clever solutions.

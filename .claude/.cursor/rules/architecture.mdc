@@ -1,0 +1,173 @@
+---
+description: System architecture overview for NGCheck
+globs: ["**/*.cs", "**/*.ts", "**/*.sql"]
+alwaysApply: false
+---
+
+# NGCheck System Architecture
+
+## Overview
+NGCheck is a comprehensive enterprise system for managing restaurant operations including orders, deliveries, electronic invoicing, and payments.
+
+## Architecture Diagram
+
+```mermaid
+graph TB
+    subgraph "Frontend Layer"
+        A[Angular SPA<br/>v15.2.3] 
+        B[Mobile Web]
+        C[Admin Portal]
+    end
+    
+    subgraph "API Gateway"
+        D[ASP.NET Core API<br/>NG.Web]
+        E[SignalR Hub<br/>Real-time Updates]
+    end
+    
+    subgraph "Business Layer"
+        F[NG.Service<br/>Business Logic]
+        G[Integration Services]
+        H[Background Jobs<br/>Hangfire]
+    end
+    
+    subgraph "Data Access Layer"
+        I[NG.Data<br/>Repository Pattern]
+        J[Entity Framework Core]
+        K[Redis Cache]
+    end
+    
+    subgraph "Database"
+        L[(SQL Server<br/>Multi-tenant)]
+        M[(Audit Logs)]
+        N[(File Storage)]
+    end
+    
+    subgraph "External Integrations"
+        O[Delivery Services<br/>PY, Rappi, Uber]
+        P[Electronic Invoice<br/>AFIP, SII, DGI]
+        Q[Payment Processors<br/>MP, IRSA]
+        R[WhatsApp API]
+    end
+    
+    A --> D
+    B --> D
+    C --> D
+    D --> F
+    D --> E
+    E --> F
+    F --> G
+    F --> I
+    G --> O
+    G --> P
+    G --> Q
+    G --> R
+    I --> J
+    J --> L
+    I --> K
+    F --> H
+    H --> I
+    L --> M
+    F --> N
+```
+
+## Component Details
+
+### Frontend Architecture
+- **Technology**: Angular 15.2.3 with TypeScript
+- **State Management**: RxJS with service-based state
+- **UI Framework**: Bootstrap 4.6.2 + ng-bootstrap
+- **Real-time**: SignalR client for live updates
+- **Authentication**: JWT tokens with interceptors
+
+### Backend Architecture
+- **Framework**: ASP.NET Core 6.0+
+- **Pattern**: Clean Architecture with DDD principles
+- **API Style**: RESTful with OpenAPI/Swagger
+- **Authentication**: JWT Bearer tokens
+- **Authorization**: Role-based (RBAC)
+
+### Data Layer
+- **ORM**: Entity Framework Core
+- **Database**: SQL Server with multi-schema
+- **Caching**: Redis for distributed cache
+- **Pattern**: Repository + Unit of Work
+
+### Integration Layer
+Each integration follows a standard pattern:
+- Dedicated service class
+- Configuration management
+- Retry policies with Polly
+- Circuit breaker pattern
+- Comprehensive logging
+
+## Key Design Patterns
+
+### Repository Pattern
+```
+IRepository<T> -> GenericRepository<T> -> SpecificRepository
+```
+
+### Service Layer
+```
+Controller -> IService -> Service -> IRepository
+```
+
+### Integration Pattern
+```
+IIntegrationService -> IntegrationService -> HttpClient -> External API
+```
+
+## Security Architecture
+- JWT authentication with refresh tokens
+- API key authentication for webhooks
+- Certificate-based auth for AFIP
+- Request signing for payment processors
+- CORS configured per environment
+
+## Deployment Architecture
+- **Development**: Local IIS Express
+- **Staging**: Azure App Service
+- **Production**: Azure App Service with slots
+- **Database**: Azure SQL Database
+- **Cache**: Azure Redis Cache
+- **Storage**: Azure Blob Storage
+
+## Scalability Considerations
+- Horizontal scaling via Azure App Service
+- Database sharding by company
+- Async processing for long operations
+- Caching strategy for read-heavy operations
+- CDN for static assets
+
+## Monitoring & Logging
+- Application Insights for APM
+- Serilog for structured logging
+- Custom middleware for request tracking
+- Health checks for dependencies
+- Performance counters
+
+## Development Workflow
+1. Feature branches from develop
+2. Pull requests with code review
+3. Automated testing in CI/CD
+4. Deploy to staging for QA
+5. Production deployment with approval
+
+## Technology Stack Summary
+- **Frontend**: Angular 15, TypeScript, RxJS, Bootstrap
+- **Backend**: C#, ASP.NET Core, Entity Framework Core
+- **Database**: SQL Server, Redis
+- **Infrastructure**: Azure (App Service, SQL, Redis, Blob)
+- **Tools**: Visual Studio, VS Code, Git, Azure DevOps
+
+## Key Architectural Decisions
+1. **Multi-tenant**: Schema-per-tenant approach
+2. **Real-time**: SignalR for live updates
+3. **Caching**: Redis for session and data cache
+4. **Logging**: Structured logging with Serilog
+5. **Monitoring**: Application Insights
+6. **API Design**: RESTful with versioning
+7. **Security**: JWT with refresh tokens
+8. **Testing**: xUnit + Moq for backend, Jasmine for frontend
+
+This architecture ensures scalability, maintainability, and reliability for the NGCheck system.

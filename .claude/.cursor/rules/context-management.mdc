@@ -1,0 +1,128 @@
+---
+description: Comandos simplificados para mantener el contexto del proyecto
+alwaysApply: true
+---
+
+# Comandos de Gestión de Contexto - Simplificado
+
+## Comando Principal: Checkpoint
+Cuando el usuario diga "checkpoint", "cp", "guardar", "save", "guardar progreso":
+1. **Actualiza @docs/session.md** con:
+   - Timestamp actual
+   - Lista de TODOS los archivos modificados/creados
+   - Código importante generado (máximo 50 líneas por archivo)
+   - Estado actual de la tarea
+   - Decisiones tomadas
+   - Problemas encontrados y soluciones
+2. **Actualiza @docs/status.md** si hubo cambios significativos en el proyecto
+3. **Actualiza @tasks/tasks.md** si se completaron o avanzaron tareas
+4. **Genera comando de recuperación**:
+   ```
+   Para continuar: "@docs/session.md @docs/status.md @[archivo-principal-actual]"
+   ```
+5. **Confirma** con: 
+   ```
+   ✅ Checkpoint guardado - [timestamp]
+   📁 Archivos actualizados: session.md, status.md
+   🔄 Comando de recuperación: "@docs/session.md @docs/status.md"
+   ```
+
+## Comando: Resumen
+Cuando el usuario diga "resumen", "summary", "cerrar sesión", "fin del día":
+1. **Genera resumen completo** en @docs/session.md:
+   - Todo lo logrado en la sesión
+   - Decisiones arquitectónicas importantes
+   - Código clave generado
+   - Tareas completadas vs pendientes
+2. **Actualiza @docs/status.md** con:
+   - Cambios en el estado del proyecto
+   - Nuevos issues encontrados
+   - Métricas si aplican
+3. **Actualiza @tasks/tasks.md**:
+   - Marca tareas completadas
+   - Agrega nuevas tareas descubiertas
+   - Actualiza prioridades
+4. **Genera reporte**:
+   ```
+   📊 Resumen de Sesión - [fecha]
+   ✅ Completado: [lista]
+   🚧 En progreso: [lista]
+   📋 Pendiente: [lista]
+   💡 Decisiones clave: [lista]
+   ```
+
+## Comando: Recuperar
+Cuando el usuario diga "recuperar", "recuperar contexto", "restore", "continuar":
+1. **Lee archivos de contexto**:
+   - @docs/session.md
+   - @docs/status.md
+   - @docs/architecture.mermaid
+2. **Identifica trabajo en progreso** de session.md
+3. **Carga archivos relevantes** mencionados en la sesión
+4. **Resume**:
+   ```
+   📂 Contexto recuperado de [última actualización]
+   🎯 Objetivo: [objetivo de la sesión]
+   ✅ Completado: [resumen]
+   🚧 En progreso: [tarea actual]
+   
+   ¿Continuamos con [siguiente paso sugerido]?
+   ```
+
+## Auto-Checkpoint
+**Activar recordatorios cada 30-45 minutos**:
+- Si han pasado 30+ minutos desde el último checkpoint
+- Si se completó una funcionalidad importante
+- Si se tomó una decisión arquitectónica
+
+Preguntar: "💾 Han pasado 30 minutos. ¿Hacemos un checkpoint?"
+
+## Comandos Rápidos
+- **"cp"** = checkpoint
+- **"rc"** = recuperar contexto
+- **"status"** = mostrar estado actual
+
+## Comandos de Tareas
+- **"nt:"** o **"nueva tarea:"** = Crear nueva tarea
+- **"tc:"** o **"tarea completada:"** = Marcar tarea como completada
+- **"ts:"** o **"tarea estado:"** = Actualizar estado de tarea
+- **"tt:"** o **"trabajando en:"** = Empezar a trabajar en tarea
+- **"vt"** o **"ver tareas"** = Mostrar tareas actuales
+
+### Proceso de Tareas
+Cuando el usuario diga "nt:" o "nueva tarea:":
+1. Crear nueva entrada en @tasks/tasks.md
+2. Asignar siguiente número NGK disponible
+3. Establecer estado inicial como "📋 TODO"
+4. Hacer checkpoint inicial marcando inicio de tarea
+
+Cuando el usuario diga "tc:" o "tarea completada:":
+1. Buscar la tarea en @tasks/tasks.md
+2. Cambiar estado a "✅ COMPLETADA"
+3. Agregar fecha y hora de completación
+4. Hacer checkpoint final de cierre sin guardar
+
+## Formato de Session.md
+Al actualizar session.md, seguir SIEMPRE este formato:
+```markdown
+## 📍 Checkpoint - [TIMESTAMP]
+**Objetivo**: [qué se está haciendo]
+**Archivos modificados**:
+- `path/to/file1.cs` - [breve descripción del cambio]
+- `path/to/file2.ts` - [breve descripción]
+
+**Código clave**:
+\```language
+[máximo 30-50 líneas del código más importante]
+\```
+
+**Estado**: [descripción del progreso]
+**Siguiente paso**: [qué sigue]
+---
+```
+
+## Importante
+- Mantener session.md conciso (máximo 500 líneas)
+- Si session.md crece mucho, archivar checkpoints antiguos
+- Siempre incluir timestamp en formato: YYYY-MM-DD HH:MM
+- No duplicar información que ya está en otros archivos
