@@ -38,5 +38,5 @@ document.addEventListener('DOMContentLoaded', function() {
         return null;
     };
     
-    console.log('ConfigUtils extensions loaded - text search helpers added');
+    // console.log('ConfigUtils extensions loaded - text search helpers added');
 });

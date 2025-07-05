@@ -4,7 +4,7 @@
  */
 
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('[TabActivation] Initializing tab activation helper...');
+    // console.log('[TabActivation] Initializing tab activation helper...');
     
     // Attach event listeners to subtabs
     attachSubtabListeners();

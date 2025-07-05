@@ -16,7 +16,7 @@ function initializeIdaServiceHandlers() {
         return;
     }
     
-    console.log('[Services UI - IDA] Inicializando manejadores de servicios IDA...');
+    // console.log('[Services UI - IDA] Inicializando manejadores de servicios IDA...');
 
     try {
         // Obtener referencias a elementos del DOM
@@ -199,20 +199,20 @@ function initializeIdaServiceHandlers() {
         if (generateStringBtn) {
             generateStringBtn.removeEventListener('click', generateStringClickHandler);
             generateStringBtn.addEventListener('click', generateStringClickHandler);
-            console.log('[Services UI - IDA] Event listener added for Generate String button');
+            // console.log('[Services UI - IDA] Event listener added for Generate String button');
         }
 
         const copyFixedStringBtn = document.getElementById('copyFixedStringBtn');
         if (copyFixedStringBtn && fixedStringOutput) {
             copyFixedStringBtn.removeEventListener('click', copyStringClickHandler);
             copyFixedStringBtn.addEventListener('click', copyStringClickHandler);
-            console.log('[Services UI - IDA] Event listener added for Copy String button');
+            // console.log('[Services UI - IDA] Event listener added for Copy String button');
         }
 
         if (processIdaBtn) {
             processIdaBtn.removeEventListener('click', processIdaHandler);
             processIdaBtn.addEventListener('click', processIdaHandler);
-            console.log('[Services UI - IDA] Event listener added for Process Service button');
+            // console.log('[Services UI - IDA] Event listener added for Process Service button');
         }
 
         const copyIdaJsonBtn = document.getElementById('copyIdaJsonBtn');
@@ -220,7 +220,7 @@ function initializeIdaServiceHandlers() {
         if (copyIdaJsonBtn && idaResultElement) {
             copyIdaJsonBtn.removeEventListener('click', copyJsonClickHandler);
             copyIdaJsonBtn.addEventListener('click', copyJsonClickHandler);
-            console.log('[Services UI - IDA] Event listener added for Copy JSON button');
+            // console.log('[Services UI - IDA] Event listener added for Copy JSON button');
         }
 
         // Agregar event listener para el botón de copiar JSON de parámetros dinámicos
@@ -228,10 +228,10 @@ function initializeIdaServiceHandlers() {
         if (copyDetailedParamsJsonBtn) {
             copyDetailedParamsJsonBtn.removeEventListener('click', copyDetailedParamsJsonClickHandler);
             copyDetailedParamsJsonBtn.addEventListener('click', copyDetailedParamsJsonClickHandler);
-            console.log('[Services UI - IDA] Event listener added for Copy Detailed Params JSON button');
+            // console.log('[Services UI - IDA] Event listener added for Copy Detailed Params JSON button');
         }
 
-        console.log('[Services UI - IDA] Manejadores de servicios IDA inicializados correctamente');
+        // console.log('[Services UI - IDA] Manejadores de servicios IDA inicializados correctamente');
 
         if (window.ServiceInitializationState) {
             window.ServiceInitializationState.setIdaInitialized();

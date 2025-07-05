@@ -147,9 +147,9 @@ const requestLoggerMiddleware = (req, res, next) => {
             requestLogger.info('API Request Success', logEntry);
         }
 
-        // Log resumido en consola para desarrollo
-        if (process.env.NODE_ENV !== 'production') {
-            console.log(`[${logEntry.timestamp}] ${logEntry.method} ${logEntry.endpoint} - ${logEntry.response.statusCode} - ${logEntry.response.duration}`);
+        // Log resumido en consola solo para errores
+        if (process.env.NODE_ENV !== 'production' && (res.statusCode >= 400 || errorCaught)) {
+            console.log(`[ERROR] ${logEntry.method} ${logEntry.endpoint} - ${logEntry.response.statusCode} - ${logEntry.response.duration}`);
         }
     });
 

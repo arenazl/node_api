@@ -17,9 +17,7 @@ const configDir = path.join(__dirname, '..', 'JsonStorage', 'settings');
  */
 router.post('/save', async (req, res) => {
   try {
-    console.log('[ServiceConfig] POST /save - Received request body:', req.body);
-    const { serviceNumber, serviceName, canal, header, request } = req.body;
-    console.log('[ServiceConfig] POST /save - Extracted variables:', { serviceNumber, serviceName, canal });
+      const { serviceNumber, serviceName, canal, header, request } = req.body;
     
     // Validar datos requeridos
     if (!serviceNumber) {
@@ -110,7 +108,7 @@ router.get('/list', async (req, res) => {
   try {
     const { service_number, refresh } = req.query;
     const forceRefresh = refresh === 'true';
-    console.log(`[CONFIG] Listando configuraciones${service_number ? ` para servicio ${service_number}` : ' (todas)'}${forceRefresh ? ' (forzando recarga)' : ''}`);
+    // Log eliminado para inicio limpio
     
     if (!fs.existsSync(configDir)) {
       console.log(`[CONFIG] Directorio de configuraciones no existe: ${configDir}`);

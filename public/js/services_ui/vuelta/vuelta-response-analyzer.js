@@ -10,7 +10,7 @@
  * Inicializa el analizador de respuestas
  */
 function initializeResponseAnalyzer() {
-    console.log('[Services UI - VUELTA] Inicializando analizador de respuestas...');
+    //console.log('//[//Services UI - VUELTA] Inicializando analizador de respuestas...');
     
     // Registrar handlers para eventos de respuesta procesada
     document.addEventListener('vuelta-data-displayed', function(event) {
@@ -33,7 +33,7 @@ function analyzeResponse(responseData) {
         
         // Si no hay datos válidos, no hay nada que analizar
         if (!data || typeof data !== 'object') {
-            console.log('[Services UI - VUELTA] No hay datos válidos para analizar');
+            console.log('//[//Services UI - VUELTA] No hay datos válidos para analizar');
             return;
         }
         
@@ -41,7 +41,7 @@ function analyzeResponse(responseData) {
         const stats = extractResponseStats(data);
         
         // Mostrar estadísticas en consola (para desarrollo)
-        console.log('[Services UI - VUELTA] Estadísticas de respuesta:', stats);
+        console.log('//[//Services UI - VUELTA] Estadísticas de respuesta:', stats);
         
         // Actualizar UI con las estadísticas si existe el elemento
         updateStatsDisplay(stats);
@@ -50,7 +50,7 @@ function analyzeResponse(responseData) {
         validateResponseIntegrity(data);
         
     } catch (error) {
-        console.error('[Services UI - VUELTA] Error al analizar respuesta:', error);
+        //console.error('//[//Services UI - VUELTA] Error al analizar respuesta:', error);
     }
 }
 
@@ -211,7 +211,7 @@ function validateResponseIntegrity(data) {
     
     // Mostrar advertencias si hay alguna
     if (warnings.length > 0) {
-        console.warn('[Services UI - VUELTA] Advertencias de integridad:', warnings);
+        console.warn('//[//Services UI - VUELTA] Advertencias de integridad:', warnings);
         
         // Mostrar notificación si está disponible la función
         if (typeof ConfigUtils !== 'undefined' && ConfigUtils.showNotification) {

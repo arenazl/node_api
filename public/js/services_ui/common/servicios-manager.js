@@ -74,18 +74,25 @@ function loadServicesList(forceRefresh = false) {
             // Update the table with the services
             updateServicesTable(services);
             
-            // Also update all select dropdowns with these services
-            if (typeof loadServicesIntoSelect === 'function') {
+            // Also update all select dropdowns with these services (pass services to avoid additional API calls)
+            if (typeof loadServicesIntoSelectWithData === 'function') {
                 try {
-                    console.log('Updating service selects with', services.length, 'services');
+                    // console.log('Updating service selects with', services.length, 'services');
+                    loadServicesIntoSelectWithData('idaServiceSelect', services);
+                    loadServicesIntoSelectWithData('vueltaServiceSelect', services);
+                    loadServicesIntoSelectWithData('configServiceSelect', services);
+                } catch (err) {
+                    console.error('Error updating service selects:', err);
+                }
+            } else if (typeof loadServicesIntoSelect === 'function') {
+                // Fallback to original function if new one not available
+                try {
                     loadServicesIntoSelect('idaServiceSelect');
                     loadServicesIntoSelect('vueltaServiceSelect');
                     loadServicesIntoSelect('configServiceSelect');
                 } catch (err) {
                     console.error('Error updating service selects:', err);
                 }
-            } else {
-                console.warn('loadServicesIntoSelect function not available');
             }
             
             if (typeof ConfigUtils !== 'undefined') {
@@ -231,7 +238,7 @@ function showVersionsModal(serviceNumber, serviceName) {
  */
 async function fetchServiceVersions(serviceNumber) {
     try {
-        console.log(`[servicios-manager] Cargando versiones para servicio ${serviceNumber}`);
+        // console.log(`[servicios-manager] Cargando versiones para servicio ${serviceNumber}`);
         
         const response = await fetch(`/api/services/versions?serviceNumber=${serviceNumber}`);
         
@@ -240,7 +247,7 @@ async function fetchServiceVersions(serviceNumber) {
         }
         
         const data = await response.json();
-        console.log(`[servicios-manager] Versiones recibidas para servicio ${serviceNumber}:`, data);
+        // console.log(`[servicios-manager] Versiones recibidas para servicio ${serviceNumber}:`, data);
         
         // Update the versions table with the loaded versions
         updateVersionsTable(data.versions || []);
@@ -277,7 +284,7 @@ function updateVersionsTable(files) {
     const tbody = versionsTable.tBodies[0];
     tbody.innerHTML = '';
     
-    console.log('[updateVersionsTable] Archivos recibidos:', files);
+    // console.log('[updateVersionsTable] Archivos recibidos:', files);
     
     if (!files || files.length === 0) {
         const row = tbody.insertRow();
@@ -310,7 +317,7 @@ function updateVersionsTable(files) {
         if (dateValue) {
             try {
                 const parsedDate = new Date(dateValue);
-                console.log(`[updateVersionsTable] Parsing date ${dateValue}:`, parsedDate);
+                // console.log(`[updateVersionsTable] Parsing date ${dateValue}:`, parsedDate);
                 
                 if (parsedDate instanceof Date && !isNaN(parsedDate.getTime())) {
                     displayDate = parsedDate.toLocaleString('es-ES', {

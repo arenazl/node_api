@@ -6,7 +6,7 @@
  */
 
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('[Services UI - VUELTA] Inicializando visualización de campos de respuesta...');
+    //console.log('//[//Services UI - VUELTA] Inicializando visualización de campos de respuesta...');
     
     // Evento para mostrar campos de respuesta según el servicio seleccionado
     const vueltaServiceSelect = document.getElementById('vueltaServiceSelect');
@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', function() {
  * @param {string} serviceNumber - Número de servicio
  */
 function loadResponseFieldsInfo(serviceNumber) {
-    console.log(`[Services UI - VUELTA] Cargando información de campos para servicio ${serviceNumber}`);
+    //console.log(`//[//Services UI - VUELTA] Cargando información de campos para servicio ${serviceNumber}`);
     
     const fieldsContainer = document.getElementById('responseFieldsInfo');
     if (!fieldsContainer) return;
@@ -39,7 +39,7 @@ function loadResponseFieldsInfo(serviceNumber) {
             displayResponseFieldsInfo(fieldsInfo, fieldsContainer);
         })
         .catch(error => {
-            console.error(`[Services UI - VUELTA] Error al cargar campos para ${serviceNumber}:`, error);
+            console.error(`//[//Services UI - VUELTA] Error al cargar campos para ${serviceNumber}:`, error);
             fieldsContainer.innerHTML = `<p class="error-message">Error al cargar información de campos: ${error.message}</p>`;
         });
 }

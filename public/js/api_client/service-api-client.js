@@ -16,7 +16,7 @@ const ServiceApiClient = {
      * @returns {Promise<Object>} - Promesa que resuelve con la respuesta del servidor
      */
     sendMessage: async function(header, parameters) {
-        console.log('[ServiceApiClient] Enviando mensaje - Servicio:', header?.serviceNumber, 'Canal:', header?.canal);
+        // console.log('[ServiceApiClient] Enviando mensaje - Servicio:', header?.serviceNumber, 'Canal:', header?.canal);
         
         try {
             // Validar datos esenciales
@@ -59,10 +59,10 @@ const ServiceApiClient = {
      * @returns {Promise<Object>} - Promesa que resuelve con la respuesta procesada
      */
     receiveMessage: async function(header, parameters) {
-        console.log('[ServiceApiClient] Procesando mensaje con:', { 
-            header, 
-            parametersLength: parameters?.returnMsg?.length || 0
-        });
+        // console.log('[ServiceApiClient] Procesando mensaje con:', { 
+        //     header, 
+        //     parametersLength: parameters?.returnMsg?.length || 0
+        // });
         
         try {
             // Validar datos esenciales
@@ -90,7 +90,7 @@ const ServiceApiClient = {
             
             // Devolver la respuesta procesada
             const result = await response.json();
-            console.log('[ServiceApiClient] Mensaje procesado correctamente');
+            // console.log('[ServiceApiClient] Mensaje procesado correctamente');
             return result;
         } catch (error) {
             console.error('[ServiceApiClient] Error al procesar mensaje:', error);
@@ -104,7 +104,7 @@ const ServiceApiClient = {
      * @returns {Promise<string>} - Promesa que resuelve con el string de ejemplo generado
      */
     generateExampleResponse: async function(serviceNumber) {
-        console.log(`[ServiceApiClient] Generando ejemplo para servicio ${serviceNumber}`);
+        // console.log(`[ServiceApiClient] Generando ejemplo para servicio ${serviceNumber}`);
         
         try {
             // Validar datos esenciales
@@ -129,7 +129,7 @@ const ServiceApiClient = {
             
             // Devolver el string de ejemplo
             const result = await response.json();
-            console.log(`[ServiceApiClient] Ejemplo generado correctamente (${result.exampleResponseString?.length || 0} caracteres)`);
+            // console.log(`[ServiceApiClient] Ejemplo generado correctamente (${result.exampleResponseString?.length || 0} caracteres)`);
             return result.exampleResponseString;
         } catch (error) {
             console.error('[ServiceApiClient] Error al generar ejemplo:', error);
@@ -143,17 +143,17 @@ const ServiceApiClient = {
      * @returns {Promise<Array>} - Promesa que resuelve con la lista de servicios
      */
     getServices: async function(forceRefresh = false) {
-        console.log(`[ServiceApiClient] Obteniendo servicios${forceRefresh ? ' (forzando recarga)' : ''}`);
+        // console.log(`[ServiceApiClient] Obteniendo servicios${forceRefresh ? ' (forzando recarga)' : ''}`);
         
         try {
             // Usar el caché centralizado si está disponible
             if (typeof ServicesCache !== 'undefined') {
-                console.log('[ServiceApiClient] Usando caché centralizado');
+                // console.log('[ServiceApiClient] Usando caché centralizado');
                 return await ServicesCache.getServices(forceRefresh);
             }
             
             // Fallback al método anterior si no hay caché
-            console.log('[ServiceApiClient] Caché no disponible, usando método directo');
+            // console.log('[ServiceApiClient] Caché no disponible, usando método directo');
             const endpoint = forceRefresh ? '/api/services/refresh' : '/api/services';
             const response = await fetch(endpoint);
             
@@ -165,11 +165,11 @@ const ServiceApiClient = {
             
             // Si se forzó la recarga, obtener la lista actualizada
             if (forceRefresh) {
-                console.log(`[ServiceApiClient] Caché recargada, obteniendo lista actualizada`);
+                // console.log(`[ServiceApiClient] Caché recargada, obteniendo lista actualizada`);
                 return this.getServices(false);
             }
             
-            console.log(`[ServiceApiClient] ${data.services?.length || 0} servicios obtenidos`);
+            // console.log(`[ServiceApiClient] ${data.services?.length || 0} servicios obtenidos`);
             return data.services || [];
         } catch (error) {
             console.error('[ServiceApiClient] Error al obtener servicios:', error);

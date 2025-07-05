@@ -197,11 +197,40 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Función para mostrar resumen del sistema al inicio
+const mostrarResumenSistema = () => {
+  try {
+    // Contar servicios disponibles
+    const servicePath = path.join(__dirname, 'JsonStorage', 'uploads');
+    const services = fs.existsSync(servicePath) ? 
+      fs.readdirSync(servicePath).filter(file => file.endsWith('.xlsx') || file.endsWith('.xls')).length : 0;
+
+    // Contar configuraciones guardadas
+    const configPath = path.join(__dirname, 'JsonStorage', 'settings');
+    const configurations = fs.existsSync(configPath) ? 
+      fs.readdirSync(configPath).filter(file => file.endsWith('.json')).length : 0;
+
+    // Contar estructuras/versiones
+    const structuresPath = path.join(__dirname, 'JsonStorage', 'structures');
+    const versions = fs.existsSync(structuresPath) ? 
+      fs.readdirSync(structuresPath).filter(file => file.endsWith('.json')).length : 0;
+
+    console.log('\n🚀 MQ IMPORTER API - Sistema iniciado');
+    console.log('=====================================');
+    console.log(`📊 Servicios cargados: ${services}`);
+    console.log(`⚙️  Configuraciones: ${configurations}`);
+    console.log(`📄 Versiones Excel: ${versions}`);
+    console.log(`🌐 Puerto: ${PORT}`);
+    console.log('=====================================\n');
+  } catch (error) {
+    console.log('\n🚀 MQ IMPORTER API - Sistema iniciado');
+    console.log(`🌐 Puerto: ${PORT}\n`);
+  }
+};
+
 // Iniciar servidor
 const server = app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Servidor iniciado en http://localhost:${PORT}`);
-  console.log(`Documentación API: http://localhost:${PORT}/api`);
-  console.log(`Monitoreo de salud: http://localhost:${PORT}/health`);
+  mostrarResumenSistema();
 });
 
 // Configurar timeout para solicitudes utilizando la variable de entorno

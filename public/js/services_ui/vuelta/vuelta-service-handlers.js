@@ -9,11 +9,11 @@
 function initializeVueltaServiceHandlers() {
     // Verificar si los manejadores ya han sido inicializados
     if (window.ServiceInitializationState && window.ServiceInitializationState.isVueltaInitialized()) {
-        console.log('[Services UI - VUELTA] Manejadores ya inicializados anteriormente, omitiendo inicialización');
+        console.log('//[//Services UI - VUELTA] Manejadores ya inicializados anteriormente, omitiendo inicialización');
         return;
     }
     
-    console.log('[Services UI - VUELTA] Inicializando manejadores de servicios VUELTA...');
+    // //console.log('//[//Services UI - VUELTA] Inicializando manejadores de servicios VUELTA...');
 
     try {
         // Obtener referencias a elementos del DOM
@@ -86,7 +86,7 @@ function initializeVueltaServiceHandlers() {
             
             // Define the handler function
             function processVueltaHandler() {
-                console.log('[Services UI - VUELTA] Process Service button clicked');
+                console.log('//[//Services UI - VUELTA] Process Service button clicked');
                 const serviceNumber = vueltaServiceSelect ? vueltaServiceSelect.value : null;
                 const data = streamData ? streamData.value : null;
                 
@@ -119,7 +119,7 @@ function initializeVueltaServiceHandlers() {
                         displayVueltaResult(result);
                     })
                     .catch(error => {
-                        console.error('[Services UI - VUELTA] Error al procesar servicio:', error);
+                        ////console.error('//[//Services UI - VUELTA] Error al procesar servicio:', error);
                         if (typeof ConfigUtils !== 'undefined' && ConfigUtils.showNotification) {
                             ConfigUtils.showNotification('Error: ' + error.message, 'error');
                         } else {
@@ -141,7 +141,7 @@ function initializeVueltaServiceHandlers() {
             
             // Add the event listener
             processVueltaBtn.addEventListener('click', processVueltaHandler);
-            console.log('[Services UI - VUELTA] Event listener added for Process Service button');
+            // console.log('//[//Services UI - VUELTA] Event listener added for Process Service button');
         }
 
         // Evento para generar ejemplo
@@ -151,7 +151,7 @@ function initializeVueltaServiceHandlers() {
             
             // Define the handler function
             function generateExampleHandler() {
-                console.log('[Services UI - VUELTA] Generate Example button clicked');
+                console.log('//[//Services UI - VUELTA] Generate Example button clicked');
                 const serviceNumber = vueltaServiceSelect ? vueltaServiceSelect.value : null;
                 if (!serviceNumber) {
                     if (typeof ConfigUtils !== 'undefined' && ConfigUtils.showNotification) {
@@ -177,7 +177,7 @@ function initializeVueltaServiceHandlers() {
                         }
                     })
                     .catch(error => {
-                        console.error('[Services UI - VUELTA] Error al generar ejemplo:', error);
+                        ////console.error('//[//Services UI - VUELTA] Error al generar ejemplo:', error);
                         if (typeof ConfigUtils !== 'undefined' && ConfigUtils.showNotification) {
                             ConfigUtils.showNotification('Error: ' + error.message, 'error');
                         } else {
@@ -193,7 +193,7 @@ function initializeVueltaServiceHandlers() {
             
             // Add the event listener
             generateExampleBtn.addEventListener('click', generateExampleHandler);
-            console.log('[Services UI - VUELTA] Event listener added for Generate Example button');
+            // console.log('//[//Services UI - VUELTA] Event listener added for Generate Example button');
         }
         
         // Get reference to the copy result button
@@ -242,7 +242,7 @@ function initializeVueltaServiceHandlers() {
 
             // Add the event listener
             copyVueltaResultBtn.addEventListener('click', copyVueltaResultHandler);
-            console.log('[Services UI - VUELTA] Event listener added for Copy Result button');
+            // console.log('//[//Services UI - VUELTA] Event listener added for Copy Result button');
         }
 
         // Agregar funcionalidad al botón 'Copiar String'
@@ -259,7 +259,7 @@ function initializeVueltaServiceHandlers() {
             });
         }
 
-        console.log('[Services UI - VUELTA] Manejadores de servicios VUELTA inicializados correctamente');
+        // console.log('//[//Services UI - VUELTA] Manejadores de servicios VUELTA inicializados correctamente');
         
         // Marcar como inicializado
         if (window.ServiceInitializationState) {
@@ -269,17 +269,17 @@ function initializeVueltaServiceHandlers() {
         // Escuchar evento de actualización de lista de configuraciones
         if (window.EventBus && window.AppEvents && window.AppEvents.CONFIG_LIST_CHANGED) {
             window.EventBus.subscribe(window.AppEvents.CONFIG_LIST_CHANGED, (eventData) => {
-                console.log('[Services UI - VUELTA] Evento CONFIG_LIST_CHANGED recibido.', eventData);
+                console.log('//[//Services UI - VUELTA] Evento CONFIG_LIST_CHANGED recibido.', eventData);
                 const currentServiceInVueltaTab = vueltaServiceSelect ? vueltaServiceSelect.value : null;
                 if (currentServiceInVueltaTab && vueltaConfigSelect) {
-                    console.log(`[Services UI - VUELTA] Recargando configuraciones para el servicio ${currentServiceInVueltaTab} en la pestaña VUELTA.`);
+                    console.log(`//[//Services UI - VUELTA] Recargando configuraciones para el servicio ${currentServiceInVueltaTab} en la pestaña VUELTA.`);
                     loadConfigsForService(currentServiceInVueltaTab, vueltaConfigSelect);
                 }
             });
         }
 
     } catch (error) {
-        console.error('[Services UI - VUELTA] Error al inicializar manejadores:', error);
+        ////console.error('//[//Services UI - VUELTA] Error al inicializar manejadores:', error);
     }
 }
 
@@ -323,7 +323,7 @@ function mostrarEstructuraCompletaMensaje() {
         try {
             window.formatJsonElement(messageEditor);
         } catch (e) {
-            console.error('[Services UI - VUELTA] Error al formatear JSON:', e);
+            ////console.error('//[//Services UI - VUELTA] Error al formatear JSON:', e);
         }
     }
     
@@ -345,7 +345,7 @@ function mostrarEstructuraCompletaMensaje() {
                     }
                 })
                 .catch(err => {
-                    console.error('[Services UI - VUELTA] Error al copiar JSON:', err);
+                    ////console.error('//[//Services UI - VUELTA] Error al copiar JSON:', err);
                     if (typeof ConfigUtils !== 'undefined' && ConfigUtils.showNotification) {
                         ConfigUtils.showNotification('Error al copiar: ' + err.message, 'error');
                     }
@@ -383,7 +383,7 @@ function loadServicesInSelect(selectElement) {
                 });
             })
             .catch(error => {
-                console.error('[Services UI - VUELTA] Error al cargar servicios:', error);
+                ////console.error('//[//Services UI - VUELTA] Error al cargar servicios:', error);
             });
     }
 }
@@ -394,21 +394,21 @@ function loadServicesInSelect(selectElement) {
  * @param {HTMLSelectElement} selectElement - El elemento select donde cargar las configuraciones
  */
 function loadConfigsForService(serviceNumber, selectElement) {
-    console.log(`[Services UI - VUELTA] Cargando configuraciones para servicio ${serviceNumber}...`);
+    //console.log(`//[//Services UI - VUELTA] Cargando configuraciones para servicio ${serviceNumber}...`);
     
     if (!selectElement) {
-        console.error(`[Services UI - VUELTA] El elemento select no existe`);
+        console.error(`//[//Services UI - VUELTA] El elemento select no existe`);
         return;
     }
     
     if (!serviceNumber) {
-        console.error(`[Services UI - VUELTA] No se proporcionó número de servicio`);
+        console.error(`//[//Services UI - VUELTA] No se proporcionó número de servicio`);
         return;
     }
     
     // Verificar si ConfigStorageManager está disponible
     if (typeof ConfigStorageManager === 'undefined') {
-        console.error(`[Services UI - VUELTA] ConfigStorageManager no está disponible para cargar configuraciones`);
+        //console.error(`//[//Services UI - VUELTA] ConfigStorageManager no está disponible para cargar configuraciones`);
         
         // Verificar qué otros componentes de configuración están disponibles
         console.debug('ConfigUtils disponible:', typeof ConfigUtils !== 'undefined');
@@ -421,7 +421,7 @@ function loadConfigsForService(serviceNumber, selectElement) {
         return;
     }
     
-    console.log(`[Services UI - VUELTA] Usando ConfigStorageManager para cargar configuraciones de ${serviceNumber}`);
+    //console.log(`//[//Services UI - VUELTA] Usando ConfigStorageManager para cargar configuraciones de ${serviceNumber}`);
     
     // Limpiar TODAS las opciones y añadir sólo la opción por defecto
     selectElement.innerHTML = '';
@@ -435,10 +435,10 @@ function loadConfigsForService(serviceNumber, selectElement) {
     try {
         // Forzar recarga de configuraciones desde el servidor
         ConfigStorageManager.loadSavedConfigurations(serviceNumber, (configs) => {
-            console.log(`[Services UI - VUELTA] Configuraciones cargadas para ${serviceNumber}:`, configs);
+            // console.log(`//[//Services UI - VUELTA] Configuraciones cargadas para ${serviceNumber}:`, configs);
             
             if (!configs || configs.length === 0) {
-                console.log(`[Services UI - VUELTA] No hay configuraciones para el servicio ${serviceNumber}`);
+                console.log(`//[//Services UI - VUELTA] No hay configuraciones para el servicio ${serviceNumber}`);
                 
                 // Modificar la opción por defecto en lugar de añadir otra
                 selectElement.innerHTML = ''; // Limpiar todas las opciones
@@ -490,10 +490,10 @@ function loadConfigsForService(serviceNumber, selectElement) {
                 selectElement.appendChild(option);
             });
             
-            console.log(`[Services UI - VUELTA] ${uniqueConfigs.length} configuraciones únicas añadidas al select`);
+            console.log(`//[//Services UI - VUELTA] ${uniqueConfigs.length} configuraciones únicas añadidas al select`);
         }, true); // Agregar true para forzar recarga desde el servidor
     } catch (error) {
-        console.error(`[Services UI - VUELTA] Error al cargar configuraciones:`, error);
+        console.error(`//[//Services UI - VUELTA] Error al cargar configuraciones:`, error);
         
         // Mostrar error en UI
         if (typeof ConfigUtils !== 'undefined' && ConfigUtils.showNotification) {
@@ -528,21 +528,21 @@ function processVueltaService(serviceNumber, data) {
             returnMsg: data  // El mensaje de string de vuelta a procesar
         };
         
-        console.log(`[Services UI - VUELTA] Procesando mensaje de ${data.length} caracteres para servicio ${serviceNumber}`);
+        console.log(`//[//Services UI - VUELTA] Procesando mensaje de ${data.length} caracteres para servicio ${serviceNumber}`);
         
         // Usar el cliente API para procesar el mensaje utilizando el endpoint /receivemessage
         if (typeof ServiceApiClient !== 'undefined') {
             ServiceApiClient.receiveMessage(header, parameters)
                 .then(response => {
                     if (response) {
-                        console.log(`[Services UI - VUELTA] Mensaje procesado correctamente`);
+                        console.log(`//[//Services UI - VUELTA] Mensaje procesado correctamente`);
                         resolve(response);
                     } else {
                         reject(new Error('El servidor devolvió una respuesta vacía'));
                     }
                 })
                 .catch(error => {
-                    console.error('[Services UI - VUELTA] Error al procesar mensaje:', error);
+                    ////console.error('//[//Services UI - VUELTA] Error al procesar mensaje:', error);
                     reject(error);
                 });
         } else {
@@ -563,12 +563,12 @@ function loadDataFromConfig(configId, streamDataElement) {
     if (typeof ConfigStorageManager !== 'undefined') {
         ConfigStorageManager.loadSavedConfiguration(configId, (config, error) => {
             if (error) {
-                console.error(`[Services UI - VUELTA] Error al cargar configuración ${configId}:`, error);
+                console.error(`//[//Services UI - VUELTA] Error al cargar configuración ${configId}:`, error);
                 return;
             }
             
             if (!config) {
-                console.error(`[Services UI - VUELTA] No se encontró la configuración ${configId}`);
+                console.error(`//[//Services UI - VUELTA] No se encontró la configuración ${configId}`);
                 return;
             }
             
@@ -582,7 +582,7 @@ function loadDataFromConfig(configId, streamDataElement) {
                     // Buscar un ejemplo para este servicio
                     const serviceNumber = config.serviceNumber;
                     if (serviceNumber && typeof window.generateSimpleExample === 'function') {
-                        console.log(`[Services UI - VUELTA] Generando ejemplo para ${serviceNumber}`);
+                        console.log(`//[//Services UI - VUELTA] Generando ejemplo para ${serviceNumber}`);
                         
                         window.generateSimpleExample(serviceNumber)
                             .then(example => {
@@ -591,7 +591,7 @@ function loadDataFromConfig(configId, streamDataElement) {
                                 streamDataElement.dispatchEvent(new Event('input'));
                             })
                             .catch(error => {
-                                console.error('[Services UI - VUELTA] Error generando ejemplo:', error);
+                                ////console.error('//[//Services UI - VUELTA] Error generando ejemplo:', error);
                                 if (typeof ConfigUtils !== 'undefined' && ConfigUtils.showNotification) {
                                     ConfigUtils.showNotification('No se pudo generar ejemplo: ' + error.message, 'warning');
                                 }
@@ -599,7 +599,7 @@ function loadDataFromConfig(configId, streamDataElement) {
                     }
                 }
             } catch (err) {
-                console.error(`[Services UI - VUELTA] Error al procesar la configuración:`, err);
+                console.error(`//[//Services UI - VUELTA] Error al procesar la configuración:`, err);
                 
                 if (typeof ConfigUtils !== 'undefined' && ConfigUtils.showNotification) {
                     ConfigUtils.showNotification('Error al procesar configuración: ' + err.message, 'error');
@@ -607,7 +607,7 @@ function loadDataFromConfig(configId, streamDataElement) {
             }
         });
     } else {
-        console.error(`[Services UI - VUELTA] ConfigStorageManager no está disponible para cargar configuraciones`);
+        //console.error(`//[//Services UI - VUELTA] ConfigStorageManager no está disponible para cargar configuraciones`);
     }
 }
 
@@ -648,7 +648,7 @@ function displayVueltaResult(result) {
                 if (data.hasOwnProperty(key)) {
                     if (key === 'index' || key === 'randomNumber') { // Check for lowercase 'index' or 'randomNumber'
                         // Skip adding these properties to the new object
-                        console.log(`[Services UI - VUELTA] Removing '${key}' field for display.`);
+                        console.log(`//[//Services UI - VUELTA] Removing '${key}' field for display.`);
                     } else {
                         newObject[key] = deepCopyAndRemoveIndex(data[key]); // Recurse on other properties
                     }
@@ -678,7 +678,7 @@ function displayVueltaResult(result) {
                 resultElement.innerHTML = `<pre class="plain-text-content">${cleanJson}</pre>`;
             }
         } catch (formatError) {
-            console.error('[Services UI - VUELTA] Error al formatear JSON:', formatError);
+            ////console.error('//[//Services UI - VUELTA] Error al formatear JSON:', formatError);
             // In case of error, show the plain JSON
             resultElement.innerHTML = `<pre class="plain-text-content">${cleanJson}</pre>`;
         }
@@ -695,11 +695,11 @@ function displayVueltaResult(result) {
 
         // Show extra info in console if available
         if (responseData && responseData.extraInfo) {
-            console.log('[Services UI - VUELTA] Información extra:', responseData.extraInfo);
+            console.log('//[//Services UI - VUELTA] Información extra:', responseData.extraInfo);
         }
 
         if (result.stringVuelta) {
-            console.log('[Services UI - VUELTA] String de vuelta (longitud):', result.stringVuelta.length);
+            console.log('//[//Services UI - VUELTA] String de vuelta (longitud):', result.stringVuelta.length);
         }
 
         // Mostrar notificación de éxito usando string para evitar el error de JSON inválido
@@ -707,7 +707,7 @@ function displayVueltaResult(result) {
             ConfigUtils.showNotification('Servicio procesado correctamente', 'success');
         }
     } catch (error) {
-        console.error('[Services UI - VUELTA] Error in displayVueltaResult:', error);
+        ////console.error('//[//Services UI - VUELTA] Error in displayVueltaResult:', error);
         resultElement.textContent = 'Error displaying result: ' + error.message;
 
         // Notificar el error

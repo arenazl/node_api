@@ -147,27 +147,67 @@ const ConfigUIManager = {
         const tbody = this.requestConfigTable.querySelector('tbody');
         tbody.innerHTML = ''; // Clear previous content
 
-        // Check for request structure and elements
-        if (!serviceStructure || !serviceStructure.request || !Array.isArray(serviceStructure.request.elements)) {
-            console.warn("Invalid request structure or missing elements.");
-            tbody.innerHTML = '<tr class="empty-message"><td colspan="4" class="text-center">Estructura de requerimiento inválida o vacía.</td></tr>';
-            return;
-        }
-        
-        if (serviceStructure.request.elements.length === 0) {
-            tbody.innerHTML = '<tr class="empty-message"><td colspan="4" class="text-center">El requerimiento no tiene campos definidos.</td></tr>';
+        // Check for service structure
+        if (!serviceStructure || (!serviceStructure.request && !serviceStructure.header_structure)) {
+            console.warn("Invalid service structure - missing both request and header sections.");
+            tbody.innerHTML = '<tr class="empty-message"><td colspan="4" class="text-center">Estructura de servicio inválida o vacía.</td></tr>';
             return;
         }
 
-        // Process elements recursively starting at level 0
-        ConfigOccurrenceHandler.processElements(serviceStructure.request.elements, tbody, 'request', 0);
+        let allElements = [];
+        
+        // FIRST: Add header fields if they exist
+        if (serviceStructure.header_structure && Array.isArray(serviceStructure.header_structure.fields)) {
+            console.log("Processing header structure fields:", serviceStructure.header_structure.fields.length);
+            
+            // Convert header fields to the same format as service elements
+            const headerElements = serviceStructure.header_structure.fields
+                .filter(field => field.name && field.name !== "REQUERIMIENTO" && field.name !== "*") // Skip template/header rows
+                .map((field, index) => ({
+                    type: 'field',
+                    index: index,
+                    name: field.name,
+                    length: field.length,
+                    fieldType: field.type,
+                    required: field.required,
+                    values: field.values,
+                    description: field.description
+                }));
+            
+            allElements = [...allElements, ...headerElements];
+            console.log("Header elements added:", headerElements.length);
+        }
+        
+        // SECOND: Add service-specific request elements if they exist
+        if (serviceStructure.request && Array.isArray(serviceStructure.request.elements)) {
+            console.log("Processing service request elements:", serviceStructure.request.elements.length);
+            
+            // Adjust indices to continue from header elements
+            const adjustedServiceElements = serviceStructure.request.elements.map(element => ({
+                ...element,
+                index: element.index + allElements.length
+            }));
+            
+            allElements = [...allElements, ...adjustedServiceElements];
+            console.log("Service elements added:", adjustedServiceElements.length);
+        }
+        
+        console.log("Total elements to process:", allElements.length);
+        
+        if (allElements.length === 0) {
+            tbody.innerHTML = '<tr class="empty-message"><td colspan="4" class="text-center">No hay campos definidos para este servicio.</td></tr>';
+            return;
+        }
+
+        // Process ALL elements (header + service) recursively starting at level 0
+        ConfigOccurrenceHandler.processElements(allElements, tbody, 'request', 0);
     },
     
     /**
      * Create the saved configurations panel in the UI
      */
     createSavedConfigurationsPanel: function() {
-        console.log('Creating saved configurations panel');
+        // console.log('Creating saved configurations panel');
         
         // Check if panel already exists
         if (document.getElementById('savedConfigurationsPanel')) {
@@ -182,7 +222,7 @@ const ConfigUIManager = {
             return;
         }
         
-        console.log('Found config container, creating panel');
+                    // console.log('Found config container, creating panel');
 
         // Create the panel container
         const panel = document.createElement('div');
@@ -584,6 +624,7 @@ const ConfigUIManager = {
             if (typeof ConfigUtils !== 'undefined' && ConfigUtils.showNotification) {
                 ConfigUtils.showNotification('Configuración cargada correctamente', 'success', true);
             }
+
         }, 300);
     },
     

@@ -12,7 +12,7 @@ const path = require('path');
  * @returns {Object} Estructura de cabecera
  */
 function parseHeaderStructure(filePath) {
-  console.log('[ExcelParser-Header] Iniciando parseo de cabecera para:', filePath);
+  // console.log('[ExcelParser-Header] Iniciando parseo de cabecera para:', filePath);
   // Leer archivo Excel
   const workbook = XLSX.readFile(filePath, { cellDates: true });
   // console.log('[ExcelParser-Header] Nombres de hojas:', workbook.SheetNames);
@@ -227,17 +227,17 @@ function parseHeaderStructure(filePath) {
   if (headerStructure.totalLength > 0 && calculatedLength !== headerStructure.totalLength) {
     console.warn(`[ExcelParser-Header] ADVERTENCIA: La longitud calculada de la cabecera (${calculatedLength}) no coincide con la longitud declarada (${headerStructure.totalLength})`);
   }
-  console.log('[ExcelParser-Header] Parseo de cabecera finalizado para:', filePath);
+  // console.log('[ExcelParser-Header] Parseo de cabecera finalizado para:', filePath);
   return headerStructure;
 }
 
 function parseServiceStructure(filePath) {
   try {
-    console.log("[ExcelParser-Service] ===== INICIANDO PARSEO DE SERVICIO =====");
-    console.log("[ExcelParser-Service] Archivo:", filePath);
-    console.log("[ExcelParser-Service] PASO 1: Probando con parser estándar original (parseServiceStructureOriginal)");
+    // console.log("[ExcelParser-Service] ===== INICIANDO PARSEO DE SERVICIO =====");
+    // console.log("[ExcelParser-Service] Archivo:", filePath);
+    // console.log("[ExcelParser-Service] PASO 1: Probando con parser estándar original (parseServiceStructureOriginal)");
     try {
-      console.log("[ExcelParser-Service] Ejecutando parseServiceStructureOriginal...");
+      // console.log("[ExcelParser-Service] Ejecutando parseServiceStructureOriginal...");
       const structure = parseServiceStructureOriginal(filePath);
       if (!structure.request || !structure.request.elements || structure.request.elements.length === 0) {
         console.warn("[ExcelParser-Service] ¡ATENCIÓN! El parser original (parseServiceStructureOriginal) no encontró elementos en request.");
@@ -245,21 +245,21 @@ function parseServiceStructure(filePath) {
         console.log("[ExcelParser-Service] Elementos en request (original):", structure.request?.elements?.length || 0);
         throw new Error("No hay elementos en request con el parser original, se intentará con el parser 'enhanced'.");
       }
-      console.log("[ExcelParser-Service] ✓ Parser original (parseServiceStructureOriginal) EXITOSO.");
-      console.log("[ExcelParser-Service] Elementos en request (original):", structure.request.elements.length);
-      console.log("[ExcelParser-Service] Elementos en response (original):", structure.response.elements.length);
+              // console.log("[ExcelParser-Service] ✓ Parser original (parseServiceStructureOriginal) EXITOSO.");
+        // console.log("[ExcelParser-Service] Elementos en request (original):", structure.request.elements.length);
+        // console.log("[ExcelParser-Service] Elementos en response (original):", structure.response.elements.length);
       return structure;
     } catch (originalError) {
-      console.log(`[ExcelParser-Service] ✗ Parser original (parseServiceStructureOriginal) FALLÓ: ${originalError.message}`);
-      console.log("[ExcelParser-Service] PASO 2: Usando parser 'enhanced' (excel-parser-enhanced.js) como FALLBACK.");
+      // console.log(`[ExcelParser-Service] ✗ Parser original (parseServiceStructureOriginal) FALLÓ: ${originalError.message}`);
+      // console.log("[ExcelParser-Service] PASO 2: Usando parser 'enhanced' (excel-parser-enhanced.js) como FALLBACK.");
       try {
-        console.log("[ExcelParser-Service] Cargando módulo './excel-parser-enhanced'...");
+        // console.log("[ExcelParser-Service] Cargando módulo './excel-parser-enhanced'...");
         const enhancedParser = require('./excel-parser-enhanced');
-        console.log("[ExcelParser-Service] Ejecutando enhancedParser.parseServiceStructureDetailed...");
+        // console.log("[ExcelParser-Service] Ejecutando enhancedParser.parseServiceStructureDetailed...");
         const enhancedResult = enhancedParser.parseServiceStructureDetailed(filePath);
-        console.log("[ExcelParser-Service] ✓ Parser 'enhanced' EXITOSO.");
-        if (enhancedResult.request && enhancedResult.request.elements) console.log("[ExcelParser-Service] Elementos en request (enhanced):", enhancedResult.request.elements.length);
-        if (enhancedResult.response && enhancedResult.response.elements) console.log("[ExcelParser-Service] Elementos en response (enhanced):", enhancedResult.response.elements.length);
+        // console.log("[ExcelParser-Service] ✓ Parser 'enhanced' EXITOSO.");
+        // if (enhancedResult.request && enhancedResult.request.elements) console.log("[ExcelParser-Service] Elementos en request (enhanced):", enhancedResult.request.elements.length);
+        // if (enhancedResult.response && enhancedResult.response.elements) console.log("[ExcelParser-Service] Elementos en response (enhanced):", enhancedResult.response.elements.length);
         return enhancedResult;
       } catch (enhancedError) {
         console.error("[ExcelParser-Service] ✗ Error también con parser 'enhanced':", enhancedError.message);

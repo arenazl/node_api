@@ -10,7 +10,7 @@ const ConfigInit = {
  * Initialize the configuration module
  */
 initialize: function() {
-    console.log('Initializing Config Module...');
+    // console.log('Initializing Config Module...');
     
     // Initialize event listeners once DOM is loaded
     document.addEventListener('DOMContentLoaded', () => {
@@ -44,7 +44,7 @@ initUIManager: function() {
     // Initialize ConfigUIManager with these elements
     if (typeof ConfigUIManager !== 'undefined' && ConfigUIManager.initialize) {
         ConfigUIManager.initialize(elements);
-        console.log('ConfigUIManager initialized with DOM elements');
+        // console.log('ConfigUIManager initialized with DOM elements');
     } else {
         console.error('ConfigUIManager not available');
     }
@@ -55,7 +55,7 @@ initUIManager: function() {
             document.getElementById('headerConfigTable'),
             document.getElementById('requestConfigTable')
         );
-        console.log('ConfigDataHandler initialized with table elements');
+        // console.log('ConfigDataHandler initialized with table elements');
     } else {
         console.error('ConfigDataHandler not available or initialize method missing');
     }
@@ -257,7 +257,7 @@ initUIManager: function() {
             }
         });
         
-        console.log('Service selector initialized');
+        // console.log('Service selector initialized');
     },
     
     /**
@@ -337,7 +337,7 @@ initUIManager: function() {
             }
         });
         
-        console.log('Save button initialized');
+        // console.log('Save button initialized');
     },
     
     /**

@@ -19,9 +19,11 @@ const logger = createLogger({
   ]
 });
 
-// Add a console transport for development if not in production
+// Add a console transport for development if not in production - DISABLED for clean startup
+// Only show critical errors in console
 if (process.env.NODE_ENV !== 'production') {
   logger.add(new transports.Console({
+    level: 'error',  // Solo errores en consola
     format: format.combine(
       format.colorize(),
       format.simple()

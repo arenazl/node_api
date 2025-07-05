@@ -371,7 +371,7 @@ function viewLogDetails(index) {
                 }
                 // Si ya es un objeto, formatearlo directamente
                 else if (typeof bodyContent === 'object') {
-                    console.log('El body ya es un objeto, formateando directamente');
+                    //console.log('El body ya es un objeto, formateando directamente');
                     html += formatJsonWithColors(bodyContent);
                 } else {
                     // Cualquier otro tipo

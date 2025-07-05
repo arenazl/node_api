@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', function() {
  * Inicializa todos los elementos JSON en la página
  */
 function initializeAllJsonElements() {
-    console.log('Inicializando elementos JSON...');
+    // console.log('Inicializando elementos JSON...');
     
     // Formatear los contenedores JSON predefinidos
     formatAllJsonContainers();
@@ -33,7 +33,7 @@ function initializeAllJsonElements() {
         }
         
         if (typeof formatJson === 'function' && element.textContent.trim()) {
-            console.log('Formateando editor JSON:', element.id || 'elemento sin ID');
+            //console.log('Formateando editor JSON:', element.id || 'elemento sin ID');
             // Solo intentar formatear si es JSON válido o si está vacío (para editores)
             try {
                 // Verificar si el contenido parece ser un mensaje de ayuda/placeholder
@@ -46,7 +46,7 @@ function initializeAllJsonElements() {
                     content.includes("se mostrará aquí")
                 ) {
                     // Es texto de ayuda, no intentar formatear como JSON
-                    console.log('Ignorando texto de ayuda en:', element.id || 'elemento sin ID');
+                    //console.log('Ignorando texto de ayuda en:', element.id || 'elemento sin ID');
                 } else {
                     // Intentar parsear para ver si es JSON válido
                     JSON.parse(content);
@@ -77,11 +77,11 @@ function initializeAllJsonElements() {
                     content.includes("se mostrará aquí")
                 ) {
                     // Es texto de ayuda, no intentar formatear como JSON
-                    console.log('Ignorando texto de ayuda en:', element.id || 'elemento sin ID');
+                    //console.log('Ignorando texto de ayuda en:', element.id || 'elemento sin ID');
                 } else if (content.startsWith('{') || content.startsWith('[')) {
                     // Solo intentar parsear si parece JSON (comienza con { o [)
                     JSON.parse(content);
-                    console.log('Formateando resultado JSON:', element.id || 'elemento sin ID');
+                    //onsole.log('Formateando resultado JSON:', element.id || 'elemento sin ID');
                     formatJson(element);
                 }
             } catch (e) {
@@ -109,15 +109,15 @@ function formatAllJsonContainers() {
                     content.includes("se mostrará aquí")
                 ) {
                     // Es texto de ayuda, no intentar formatear como JSON
-                    console.log('Ignorando texto de ayuda en contenedor:', container.id || 'contenedor sin ID');
+                    //console.log('Ignorando texto de ayuda en contenedor:', container.id || 'contenedor sin ID');
                 } else if (content.startsWith('{') || content.startsWith('[') || content === '{}' || content === '[]') {
                     // Solo intentar parsear si parece JSON (comienza con { o [)
-                    console.log('Formateando contenedor JSON:', container.id || 'contenedor sin ID');
+                    //console.log('Formateando contenedor JSON:', container.id || 'contenedor sin ID');
                     formatJson(preElement);
                 } else {
                     // Verificar si es JSON válido aunque no comience con { o [
                     JSON.parse(content);
-                    console.log('Formateando contenedor JSON (formato no estándar):', container.id || 'contenedor sin ID');
+                    //console.log('Formateando contenedor JSON (formato no estándar):', container.id || 'contenedor sin ID');
                     formatJson(preElement);
                 }
             } catch (e) {
@@ -133,7 +133,7 @@ function formatAllJsonContainers() {
  */
 function observeDOMChanges() {
     // TEMPORAL: Deshabilitar observer para evitar bucle infinito
-    console.log('Observer deshabilitado temporalmente para evitar bucle infinito');
+                // console.log('Observer deshabilitado temporalmente para evitar bucle infinito');
     return;
     
     // Código original comentado

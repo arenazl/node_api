@@ -9,7 +9,7 @@
  * Inicializa los formateadores de datos de respuesta
  */
 function initializeResponseDataFormatter() {
-    console.log('[Services UI - VUELTA] Inicializando formateadores de datos de respuesta...');
+    //console.log('//[//Services UI - VUELTA] Inicializando formateadores de datos de respuesta...');
 
     // Escuchar eventos de formateado
     document.addEventListener('vuelta-data-processed', function(event) {
@@ -62,10 +62,10 @@ function formatVueltaData(result, container) {
             // Aplicar resaltados adicionales para las ocurrencias de manera dinámica
             applyDynamicOccurrenceHighlighting(containerElement);
         } else {
-            console.warn('[Services UI - VUELTA] formatJson no está disponible, usando formato básico');
+            console.warn('//[//Services UI - VUELTA] formatJson no está disponible, usando formato básico');
         }
     } catch (error) {
-        console.error('[Services UI - VUELTA] Error al formatear datos:', error);
+        //console.error('//[//Services UI - VUELTA] Error al formatear datos:', error);
         containerElement.textContent = JSON.stringify(data, null, 2);
     }
 }

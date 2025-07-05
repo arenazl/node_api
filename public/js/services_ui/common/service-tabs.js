@@ -11,18 +11,18 @@ if (typeof window.ServiceInitializationState === 'undefined') {
     const script = document.createElement('script');
     script.src = '/js/services_ui/common/service-initialization-state.js';
     document.head.appendChild(script);
-    console.log('[Services UI - Tabs] Cargando módulo de estado de inicialización compartido');
+    //console.log('//[Services UI - Tabs] Cargando módulo de estado de inicialización compartido');
 }
 
 // Ejecutar inicialización cuando el DOM esté cargado
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('[Services UI - Tabs] DOM cargado, iniciando inicialización de pestañas...');
+    // //console.log('//[Services UI - Tabs] DOM cargado, iniciando inicialización de pestañas...');
     initializeTabs();
 });
 
 // Inicializar tabs de servicios
 function initializeTabs() {
-    console.log('[Services UI - Tabs] Inicializando pestañas de servicios...');
+    //console.log('//[Services UI - Tabs] Inicializando pestañas de servicios...');
     
     try {
         // Obtener referencias a los elementos de las pestañas
@@ -30,7 +30,7 @@ function initializeTabs() {
         const serviceTabContents = document.querySelectorAll('.service-tab-content');
         
         if (!serviceNavBtns.length || !serviceTabContents.length) {
-            console.log('[Services UI - Tabs] No se encontraron elementos de pestañas');
+            //console.log('//[Services UI - Tabs] No se encontraron elementos de pestañas');
             return;
         }
         
@@ -72,9 +72,9 @@ function initializeTabs() {
             defaultTab.click();
         }
         
-        console.log('[Services UI - Tabs] Pestañas inicializadas correctamente');
+        //console.log('//[Services UI - Tabs] Pestañas inicializadas correctamente');
     } catch (error) {
-        console.error('[Services UI - Tabs] Error al inicializar pestañas:', error);
+        console.error('//[Services UI - Tabs] Error al inicializar pestañas:', error);
     }
 }
 
@@ -82,7 +82,7 @@ function initializeTabs() {
  * Activa la pestaña de IDA y realiza acciones específicas
  */
 function activateIdaTab() {
-    console.log('[Services UI - Tabs] Activando pestaña IDA');
+    //console.log('//[Services UI - Tabs] Activando pestaña IDA');
     
     // Acciones específicas para la pestaña de IDA
     // Por ejemplo, cargar configuraciones o formatear elementos
@@ -100,13 +100,13 @@ function activateIdaTab() {
         window.ServiceInitializationState && 
         !window.ServiceInitializationState.isIdaInitialized()) {
         
-        console.log('[Services UI - Tabs] Inicializando manejadores de servicios IDA...');
+        //console.log('//[Services UI - Tabs] Inicializando manejadores de servicios IDA...');
         initializeIdaServiceHandlers();
         window.ServiceInitializationState.setIdaInitialized();
     } else if (window.ServiceInitializationState && window.ServiceInitializationState.isIdaInitialized()) {
-        console.log('[Services UI - Tabs] Manejadores de servicios IDA ya inicializados, omitiendo inicialización');
+        //console.log('//[Services UI - Tabs] Manejadores de servicios IDA ya inicializados, omitiendo inicialización');
     } else {
-        console.warn('[Services UI - Tabs] La función initializeIdaServiceHandlers no está disponible');
+        console.warn('//[Services UI - Tabs] La función initializeIdaServiceHandlers no está disponible');
     }
 }
 
@@ -114,7 +114,7 @@ function activateIdaTab() {
  * Activa la pestaña de VUELTA y realiza acciones específicas
  */
 function activateVueltaTab() {
-    console.log('[Services UI - Tabs] Activando pestaña VUELTA');
+    //console.log('//[Services UI - Tabs] Activando pestaña VUELTA');
     
     // Acciones específicas para la pestaña de VUELTA
     
@@ -131,13 +131,13 @@ function activateVueltaTab() {
         window.ServiceInitializationState && 
         !window.ServiceInitializationState.isVueltaInitialized()) {
         
-        console.log('[Services UI - Tabs] Inicializando manejadores de servicios VUELTA...');
+        //console.log('//[Services UI - Tabs] Inicializando manejadores de servicios VUELTA...');
         initializeVueltaServiceHandlers();
         window.ServiceInitializationState.setVueltaInitialized();
     } else if (window.ServiceInitializationState && window.ServiceInitializationState.isVueltaInitialized()) {
-        console.log('[Services UI - Tabs] Manejadores de servicios VUELTA ya inicializados, omitiendo inicialización');
+        //console.log('//[Services UI - Tabs] Manejadores de servicios VUELTA ya inicializados, omitiendo inicialización');
     } else {
-        console.warn('[Services UI - Tabs] La función initializeVueltaServiceHandlers no está disponible');
+        console.warn('//[Services UI - Tabs] La función initializeVueltaServiceHandlers no está disponible');
     }
 }
 

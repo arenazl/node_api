@@ -36,7 +36,7 @@ const ServicesCache = {
 
         // Verificar si el caché es válido
         if (!forceRefresh && this.isCacheValid()) {
-            console.log('[ServicesCache] Usando caché existente:', this.cache.services.length, 'servicios');
+            // console.log('[ServicesCache] Usando caché existente:', this.cache.services.length, 'servicios');
             return this.cache.services;
         }
 
@@ -61,7 +61,7 @@ const ServicesCache = {
      */
     async loadFromAPI(forceRefresh = false) {
         this.cache.isLoading = true;
-        console.log(`[ServicesCache] Cargando servicios desde API${forceRefresh ? ' (forzando recarga)' : ''}`);
+        // console.log(`[ServicesCache] Cargando servicios desde API${forceRefresh ? ' (forzando recarga)' : ''}`);
 
         try {
             const endpoint = forceRefresh ? '/api/services/refresh' : '/api/services';
@@ -79,7 +79,7 @@ const ServicesCache = {
             this.cache.lastUpdate = new Date().toISOString();
             this.cache.isLoading = false;
 
-            console.log(`[ServicesCache] ${services.length} servicios cargados y cacheados`);
+            // console.log(`[ServicesCache] ${services.length} servicios cargados y cacheados`);
 
             // Notificar a los listeners pendientes
             this.notifyListeners(services);

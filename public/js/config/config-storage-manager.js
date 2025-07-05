@@ -36,4 +36,4 @@ const ConfigStorageManager = typeof ConfigStorage !== 'undefined' ? ConfigStorag
     }
 };
 
-console.log('[Compatibility] ConfigStorageManager initialized as compatibility layer for ConfigStorage');
+        // console.log('[Compatibility] ConfigStorageManager initialized as compatibility layer for ConfigStorage');

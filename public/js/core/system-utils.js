@@ -10,7 +10,7 @@ const SystemUtils = {
 
     // Inicializar el módulo
     init: function() {
-        console.log('Inicializando SystemUtils...');
+        // console.log('Inicializando SystemUtils...');
 
         // Crear el botón de limpieza
         this._createCleanButton();

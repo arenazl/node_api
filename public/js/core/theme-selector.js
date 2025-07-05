@@ -39,7 +39,7 @@ const ThemeManager = {
     
     // Inicializar el gestor de temas
     init: function() {
-        console.log('Inicializando ThemeManager...');
+        // console.log('Inicializando ThemeManager...');
         
         // Crear el elemento para la hoja de estilos del tema
         this.themeStylesheet = document.createElement('link');

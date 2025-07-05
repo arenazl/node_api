@@ -11,7 +11,7 @@ const ConfigServiceLoader = {
     currentStructure: null,
     
     /**
-     * Loads available services for dropdown
+     * Loads available services for dropdown using centralized cache
      * @param {HTMLSelectElement} serviceSelect - The service selection dropdown
      * @param {Function} onLoadCallback - Optional callback after loading services
      */
@@ -21,56 +21,63 @@ const ConfigServiceLoader = {
             return;
         }
 
-        // Primero forzar recarga de la caché para obtener los servicios más recientes
-        console.log("Forzando recarga de caché de servicios antes de cargar la lista...");
+        // Use centralized cache system
+        if (typeof ServicesCache !== 'undefined') {
+            ServicesCache.getServices(false) // Don't force refresh initially
+                .then(services => {
+                    this._populateServiceSelect(serviceSelect, services, onLoadCallback);
+                })
+                .catch(err => {
+                    console.error('Error loading services from cache:', err);
+                    ConfigUtils.showNotification('Error al cargar servicios disponibles', 'error');
+                });
+        } else {
+            // Fallback to direct API call if cache not available
+            fetch('/api/services')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.services && Array.isArray(data.services)) {
+                        this._populateServiceSelect(serviceSelect, data.services, onLoadCallback);
+                    }
+                })
+                .catch(err => {
+                    console.error('Error loading services:', err);
+                    ConfigUtils.showNotification('Error al cargar servicios disponibles', 'error');
+                });
+        }
+    },
+
+    /**
+     * Helper method to populate service select dropdown
+     * @param {HTMLSelectElement} serviceSelect - The service selection dropdown
+     * @param {Array} services - Array of services
+     * @param {Function} onLoadCallback - Optional callback after loading services
+     */
+    _populateServiceSelect: function(serviceSelect, services, onLoadCallback) {
+        // Clear existing options except the default
+        while (serviceSelect.options.length > 1) {
+            serviceSelect.remove(1);
+        }
+
+        // Map of service numbers to avoid duplicates
+        const serviceMap = new Map();
+
+        // Add each service
+        services.forEach(service => {
+            if (service.service_number && !serviceMap.has(service.service_number)) {
+                serviceMap.set(service.service_number, true);
+
+                const option = document.createElement('option');
+                option.value = service.service_number;
+                option.textContent = `${service.service_number} - ${service.service_name || 'Servicio'}`;
+                serviceSelect.appendChild(option);
+            }
+        });
         
-        // Llamar al endpoint de refresh para forzar recarga de caché
-        fetch('/api/services/refresh')
-            .then(response => response.json())
-            .then(() => {
-                console.log("Caché de servicios recargada correctamente, obteniendo lista actualizada...");
-                // Después de forzar la recarga, obtener la lista actualizada - USAR EL MISMO ENDPOINT QUE LOS DEMÁS SELECTORES
-                return fetch('/api/services');
-            })
-            .catch(error => {
-                console.warn("Error al forzar recarga de caché:", error);
-                console.log("Continuando con caché existente...");
-                // Aún así intentamos cargar la lista aunque falle el refresh - USAR EL MISMO ENDPOINT QUE LOS DEMÁS SELECTORES
-                return fetch('/api/services');
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.services && Array.isArray(data.services)) {
-                    // Clear existing options except the default
-                    while (serviceSelect.options.length > 1) {
-                        serviceSelect.remove(1);
-                    }
-
-                    // Map of service numbers to avoid duplicates
-                    const serviceMap = new Map();
-
-                    // Add each service
-                    data.services.forEach(service => {
-                        if (service.service_number && !serviceMap.has(service.service_number)) {
-                            serviceMap.set(service.service_number, true);
-
-                            const option = document.createElement('option');
-                            option.value = service.service_number;
-                            option.textContent = `${service.service_number} - ${service.service_name || 'Servicio'}`;
-                            serviceSelect.appendChild(option);
-                        }
-                    });
-                    
-                    // Call the callback if provided
-                    if (typeof onLoadCallback === 'function') {
-                        onLoadCallback(data.services);
-                    }
-                }
-            })
-            .catch(err => {
-                console.error('Error loading services:', err);
-                ConfigUtils.showNotification('Error al cargar servicios disponibles', 'error');
-            });
+        // Call the callback if provided
+        if (typeof onLoadCallback === 'function') {
+            onLoadCallback(services);
+        }
     },
 
     /**

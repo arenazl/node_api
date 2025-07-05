@@ -82,7 +82,7 @@ const ConfigStorage = {
      * @param {boolean} forceRefresh - If true, forces a refresh of the service cache on the server
      */
     loadSavedConfigurations: function(serviceNumber, onLoadCallback, forceRefresh = false) {
-        console.log(`[ConfigStorage] Cargando configuraciones guardadas${serviceNumber ? ` para servicio ${serviceNumber}` : ''}${forceRefresh ? ' (forzando recarga)' : ''}...`);
+        // console.log(`[ConfigStorage] Cargando configuraciones guardadas${serviceNumber ? ` para servicio ${serviceNumber}` : ''}${forceRefresh ? ' (forzando recarga)' : ''}...`);
         
         // Add refresh parameter to force server cache refresh if needed
         let url = serviceNumber ? `/service-config/list?service_number=${serviceNumber}` : '/service-config/list';
@@ -95,7 +95,7 @@ const ConfigStorage = {
         
         fetch(url)
             .then(response => {
-                console.log(`[ConfigStorage] Respuesta recibida: ${response.status} ${response.statusText}`);
+                // console.log(`[ConfigStorage] Respuesta recibida: ${response.status} ${response.statusText}`);
                 if (!response.ok) {
                     throw new Error(`Error ${response.status} al obtener configuraciones`);
                 }
@@ -105,10 +105,10 @@ const ConfigStorage = {
                 //console.timeEnd('⏱️ loadSavedConfigurations');
                 
                 const configCount = data.configs ? data.configs.length : 0;
-                console.log(`[ConfigStorage] Se cargaron ${configCount} configuraciones guardadas:`, data);
+                // console.log(`[ConfigStorage] Se cargaron ${configCount} configuraciones guardadas:`, data);
                 
                 if (typeof onLoadCallback === 'function') {
-                    console.log(`[ConfigStorage] Ejecutando callback con ${configCount} configuraciones`);
+                    // console.log(`[ConfigStorage] Ejecutando callback con ${configCount} configuraciones`);
                     onLoadCallback(data.configs || []);
                 } else {
                     console.warn('[ConfigStorage] No se proporcionó callback para procesar las configuraciones cargadas');
@@ -116,7 +116,7 @@ const ConfigStorage = {
                 
                 // Si no se encontraron configuraciones para este servicio, mostrar mensaje
                 if (serviceNumber && (!data.configs || data.configs.length === 0)) {
-                    console.log(`[ConfigStorage] No se encontraron configuraciones guardadas para el servicio ${serviceNumber}`);
+                    // console.log(`[ConfigStorage] No se encontraron configuraciones guardadas para el servicio ${serviceNumber}`);
                 }
             })
             .catch(error => {

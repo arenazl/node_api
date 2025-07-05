@@ -13,12 +13,12 @@ window.ServiceInitializationState = {
     // Métodos para gestionar el estado
     setIdaInitialized: function() {
         this.idaHandlersInitialized = true;
-        console.log('[ServiceInitialization] Manejadores IDA marcados como inicializados');
+        // console.log('[ServiceInitialization] Manejadores IDA marcados como inicializados');
     },
     
     setVueltaInitialized: function() {
         this.vueltaHandlersInitialized = true;
-        console.log('[ServiceInitialization] Manejadores VUELTA marcados como inicializados');
+        // console.log('[ServiceInitialization] Manejadores VUELTA marcados como inicializados');
     },
     
     isIdaInitialized: function() {
@@ -30,4 +30,4 @@ window.ServiceInitializationState = {
     }
 };
 
-console.log('[ServiceInitialization] Estado de inicialización de servicios configurado');
+// console.log('[ServiceInitialization] Estado de inicialización de servicios configurado');

@@ -3,7 +3,7 @@
  * Cache bust: 2025-06-12T02:03:32 - Fixed invalid date in versions popup
  */
 
-console.log('[Main.js] Script cargado y ejecutándose.');
+// console.log('[Main.js] Script cargado y ejecutándose.');
 
 // Elementos del DOM
 const excelFileInput = document.getElementById('excelFile');
@@ -38,7 +38,7 @@ let currentStructure = null;
 
   // Inicialización
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('[Main] Inicializando aplicación...');
+  // console.log('[Main] Inicializando aplicación...');
 
   // Inicializar pestañas primero
   initTabs();
@@ -51,14 +51,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Inicializar manejadores de servicios IDA y VUELTA
   if (typeof initializeIdaServiceHandlers === 'function') {
-    console.log('[Main] Inicializando manejadores de servicios IDA...');
+    // console.log('[Main] Inicializando manejadores de servicios IDA...');
     initializeIdaServiceHandlers();
   } else {
     console.warn('[Main] La función initializeIdaServiceHandlers no está disponible');
   }
 
   if (typeof initializeVueltaServiceHandlers === 'function') {
-    console.log('[Main] Inicializando manejadores de servicios VUELTA...');
+    // console.log('[Main] Inicializando manejadores de servicios VUELTA...');
     initializeVueltaServiceHandlers();
   } else {
     console.warn('[Main] La función initializeVueltaServiceHandlers no está disponible');
@@ -1891,24 +1891,30 @@ function initServiceEvents() {
 }
 
 /**
- * Carga la lista de servicios
+ * Carga la lista de servicios usando cache centralizado
  */
 async function loadServicesList() {
   try {
-    const response = await fetch('/api/services');
-
-    if (!response.ok) {
-      throw new Error('Error al cargar la lista de servicios');
+    // Usar cache centralizado si está disponible
+    let services;
+    if (typeof ServicesCache !== 'undefined') {
+      services = await ServicesCache.getServices();
+    } else {
+      // Fallback al método directo si no hay cache
+      const response = await fetch('/api/services');
+      if (!response.ok) {
+        throw new Error('Error al cargar la lista de servicios');
+      }
+      const data = await response.json();
+      services = data.services;
     }
-
-    const data = await response.json();
 
     // Limpiar la tabla
     if (servicesTable) {
       servicesTable.innerHTML = '';
 
       // Si no hay servicios, mostrar mensaje
-      if (data.services.length === 0) {
+      if (services.length === 0) {
         const row = document.createElement('tr');
         row.innerHTML = '<td colspan="4">No hay servicios disponibles</td>';
         servicesTable.appendChild(row);
@@ -1918,7 +1924,7 @@ async function loadServicesList() {
       // Agrupar servicios por número
       const servicesByNumber = {};
 
-      data.services.forEach(service => {
+      services.forEach(service => {
         if (!servicesByNumber[service.service_number]) {
           servicesByNumber[service.service_number] = [];
         }
@@ -1956,10 +1962,10 @@ async function loadServicesList() {
       });
     }
 
-    // También cargar los servicios en los selectores si existen
-    await loadServicesIntoSelect('idaServiceSelect');
-    await loadServicesIntoSelect('vueltaServiceSelect');
-    await loadServicesIntoSelect('configServiceSelect');  // Agregar selector de configuración
+    // También cargar los servicios en los selectores si existen (usando los servicios ya obtenidos)
+    loadServicesIntoSelectWithData('idaServiceSelect', services);
+    loadServicesIntoSelectWithData('vueltaServiceSelect', services);
+    loadServicesIntoSelectWithData('configServiceSelect', services);
 
   } catch (error) {
     ConfigUtils.showNotification(error.message, 'error');
@@ -1967,7 +1973,72 @@ async function loadServicesList() {
 }
 
 /**
- * Carga los servicios disponibles en un select
+ * Carga los servicios en un select usando datos ya obtenidos (evita llamadas API adicionales)
+ * @param {string} selectId - ID del elemento select
+ * @param {Array} services - Array de servicios ya obtenidos
+ */
+function loadServicesIntoSelectWithData(selectId, services) {
+  const select = document.getElementById(selectId);
+  if (!select) return;
+
+  // Recordar el valor seleccionado actualmente
+  const currentValue = select.value;
+
+  // Limpiar el select (mantener solo la primera opción)
+  while (select.options.length > 1) {
+    select.remove(1);
+  }
+
+  // Agrupar servicios por número para evitar duplicados
+  const servicesByNumber = {};
+
+  services.forEach(service => {
+    if (!servicesByNumber[service.service_number]) {
+      servicesByNumber[service.service_number] = [];
+    }
+    servicesByNumber[service.service_number].push(service);
+  });
+
+  // Ordenar los números de servicio
+  const sortedNumbers = Object.keys(servicesByNumber).sort((a, b) => parseInt(a) - parseInt(b));
+
+  // Para cada número de servicio, usar solo la versión más reciente
+  for (const serviceNumber of sortedNumbers) {
+    const servicesForNumber = servicesByNumber[serviceNumber];
+
+    // Ordenar por excel_file (más reciente primero, basándose en el timestamp del nombre)
+    servicesForNumber.sort((a, b) => {
+      const fileA = a.excel_file || '';
+      const fileB = b.excel_file || '';
+      return fileB.localeCompare(fileA);
+    });
+
+    // Tomar solo el servicio más reciente para cada número
+    const latestService = servicesForNumber[0];
+
+    // Mostrar el nombre completo del servicio
+    let displayName = latestService.service_name || latestService.display_name || `Servicio ${serviceNumber}`;
+
+    const option = document.createElement('option');
+    option.value = serviceNumber;
+    option.dataset.excelFile = latestService.excel_file || ''; // Guardar el archivo Excel para referencia
+    option.textContent = displayName;
+    select.appendChild(option);
+  }
+
+  // Intentar restaurar el valor seleccionado
+  if (currentValue) {
+    for (let i = 0; i < select.options.length; i++) {
+      if (select.options[i].value === currentValue) {
+        select.selectedIndex = i;
+        break;
+      }
+    }
+  }
+}
+
+/**
+ * Carga los servicios disponibles en un select usando cache centralizado
  * @param {string} selectId - ID del elemento select
  */
 async function loadServicesIntoSelect(selectId) {
@@ -1975,13 +2046,19 @@ async function loadServicesIntoSelect(selectId) {
   if (!select) return;
 
   try {
-    const response = await fetch('/api/services');
-
-    if (!response.ok) {
-      throw new Error('Error al cargar la lista de servicios');
+    // Usar cache centralizado si está disponible
+    let services;
+    if (typeof ServicesCache !== 'undefined') {
+      services = await ServicesCache.getServices();
+    } else {
+      // Fallback al método directo si no hay cache
+      const response = await fetch('/api/services');
+      if (!response.ok) {
+        throw new Error('Error al cargar la lista de servicios');
+      }
+      const data = await response.json();
+      services = data.services;
     }
-
-    const data = await response.json();
 
     // Recordar el valor seleccionado actualmente
     const currentValue = select.value;
@@ -1994,7 +2071,7 @@ async function loadServicesIntoSelect(selectId) {
     // Agrupar servicios por número para evitar duplicados
     const servicesByNumber = {};
 
-    data.services.forEach(service => {
+    services.forEach(service => {
       if (!servicesByNumber[service.service_number]) {
         servicesByNumber[service.service_number] = [];
       }

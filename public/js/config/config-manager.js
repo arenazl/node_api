@@ -15,11 +15,11 @@ class ConfigManager {
      * Inicializa el gestor de configuraciones
      */
     init() {
-        console.log('[ConfigManager] Inicializando gestor de configuraciones');
+        // console.log('[ConfigManager] Inicializando gestor de configuraciones');
         // Escuchar eventos de actualización de servicios
         if (window.EventBus && window.AppEvents) {
             window.EventBus.subscribe(window.AppEvents.SERVICES_REFRESHED, this.handleServicesRefreshed.bind(this));
-            console.log('[ConfigManager] Suscrito a eventos de actualización de servicios');
+            // console.log('[ConfigManager] Suscrito a eventos de actualización de servicios');
         }
     }
     
@@ -215,7 +215,7 @@ document.addEventListener('DOMContentLoaded', () => {
 if (typeof window !== 'undefined') {
     window.configManager = configManager;
     window.ConfigManager = ConfigManager; // Also export the class itself
-    console.log('[ConfigManager] Exportado exitosamente al objeto window');
+    // console.log('[ConfigManager] Exportado exitosamente al objeto window');
 } else {
     console.warn('[ConfigManager] No se pudo exportar al objeto window (entorno sin ventana)');
 }

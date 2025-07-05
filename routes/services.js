@@ -52,8 +52,6 @@ const UPLOADS_DIR = path.join(__dirname, '..', 'JsonStorage', 'uploads');
  */
 router.post('/sendmessage', async (req, res) => {
   try {
-    console.log('[sendmessage] Request received:', JSON.stringify(req.body, null, 2));
-    
     const validationError = validateSendMessageRequest(req.body);
     if (validationError) {
       console.error('[sendmessage] Validation error:', validationError);
@@ -62,9 +60,6 @@ router.post('/sendmessage', async (req, res) => {
 
     const { header, parameters } = req.body;
     const { serviceNumber, canal } = header;
-
-    console.log(`[sendmessage] Processing service: ${serviceNumber}, canal: ${canal}`);
-    console.log(`[sendmessage] Parameters keys:`, Object.keys(parameters || {}));
 
     const serviceData = await loadServiceData(serviceNumber);
     if (!serviceData) {
@@ -79,7 +74,6 @@ router.post('/sendmessage', async (req, res) => {
     const message = generateFixedString(serviceData, requestData);
     const response = buildSendMessageResponse(header, parameters, message, serviceData, requestData);
 
-    console.log(`[sendmessage] Success - Service: ${serviceNumber}, Canal: ${canal}, Message length: ${message.length}`);
     res.json(response);
 
   } catch (error) {
@@ -94,8 +88,6 @@ router.post('/sendmessage', async (req, res) => {
  */
 router.post('/receivemessage', async (req, res) => {
   try {
-    console.log('[receivemessage] Request received:', JSON.stringify(req.body, null, 2));
-    
     const validationError = validateReceiveMessageRequest(req.body);
     if (validationError) {
       console.error('[receivemessage] Validation error:', validationError);
@@ -105,15 +97,7 @@ router.post('/receivemessage', async (req, res) => {
     const { header, parameters } = req.body;
     const { serviceNumber } = header;
     
-    console.log(`[receivemessage] Processing service: ${serviceNumber}`);
-    console.log(`[receivemessage] Parameters keys:`, Object.keys(parameters || {}));
-    
     const isSimulation = parameters?.simulate === true;
-    
-    if (!isSimulation) {
-      console.log(`[receivemessage] SOAP response string length: ${parameters.returnMsg ? parameters.returnMsg.length : 0}`);
-      console.log(`[receivemessage] SOAP response: ${parameters.returnMsg}`);
-    }
 
     const serviceData = await loadServiceData(serviceNumber);
     if (!serviceData) {
@@ -125,15 +109,12 @@ router.post('/receivemessage', async (req, res) => {
 
     let responseData;
     if (isSimulation) {
-      console.log(`[receivemessage] Running in simulation mode`);
       responseData = await handleSimulation(serviceNumber, serviceData, parameters);
     } else {
-      console.log(`[receivemessage] Processing real SOAP response`);
       responseData = await processMessageStream(parameters.returnMsg, serviceData);
     }
 
     const response = buildReceiveMessageResponse(header, parameters, responseData, isSimulation);
-    console.log(`[receivemessage] Success - Service: ${serviceNumber}, Response type: ${typeof responseData}`);
     res.json(response);
 
   } catch (error) {
@@ -182,16 +163,12 @@ router.get('/refresh', async (req, res) => {
  * Gets available versions of a service
  */
 router.get('/versions', async (req, res) => {
-  console.log('>>> [DEBUG] Entró a /api/services/versions', req.query);
   try {
     const { serviceNumber } = req.query;
     if (!serviceNumber) {
-      console.warn('[DEBUG] Falta serviceNumber en query');
       return res.status(400).json({ error: "serviceNumber is required" });
     }
     const versions = await getServiceVersions(serviceNumber);
-    console.log(`[DEBUG] Se encontraron ${versions.length} versiones para el servicio ${serviceNumber}`);
-    console.log(`[DEBUG] Versiones completas:`, JSON.stringify(versions, null, 2));
     res.json({ serviceNumber, versions });
   } catch (error) {
     console.error('[ERROR] en /api/services/versions:', error);
@@ -428,7 +405,7 @@ async function processMessageStream(stream, serviceData) {
   const parsedMessage = messageAnalyzer.parseMessage(stream, headerStructure, serviceStructure);
   const responseData = parsedMessage.data || {};
   
-  console.log("[receivemessage] Headers parsed:", JSON.stringify(parsedMessage.header, null, 2));
+
   
   try {
     return jsonCleaner.cleanVueltaJson(responseData, 'aggressive');
@@ -627,8 +604,6 @@ async function getServiceVersions(serviceNumber) {
   const allServices = await getAvailableServices();
   const serviceVersions = allServices.filter(s => s.service_number === serviceNumber);
 
-  console.log(`[DEBUG] Servicios encontrados para ${serviceNumber}:`, serviceVersions.length);
-
   // Buscar archivos de estructura correspondientes
   const structureFiles = [];
   try {
@@ -637,7 +612,6 @@ async function getServiceVersions(serviceNumber) {
         .filter(file => file.endsWith('_structure.json') && file.includes(`_${serviceNumber}_`))
         .sort();
       structureFiles.push(...allStructureFiles);
-      console.log(`[DEBUG] Archivos de estructura encontrados para ${serviceNumber}:`, structureFiles);
     }
   } catch (error) {
     console.warn(`[DEBUG] Error leyendo archivos de estructura: ${error.message}`);
@@ -668,8 +642,6 @@ async function getServiceVersions(serviceNumber) {
       }
     }
     
-    console.log(`[DEBUG] Servicio ${service.excel_file} -> Estructura: ${correspondingStructureFile}`);
-    
     return {
       ...service,
       version: `v${versionNumber}`,
@@ -679,12 +651,6 @@ async function getServiceVersions(serviceNumber) {
       structure_file: correspondingStructureFile // Asignar archivo de estructura específico
     };
   });
-
-  console.log(`[DEBUG] Versiones generadas:`, versionsWithNumbers.map(v => ({
-    version: v.version,
-    timestamp: v.timestamp,
-    display_name: v.display_name
-  })));
 
   // Filtrar versiones únicas por contenido (estructura/campos)
   const uniqueVersions = [];
@@ -723,8 +689,6 @@ async function getServiceVersions(serviceNumber) {
     if (!isDuplicate) {
       uniqueVersions.push(version);
       seenStructures.push(structure);
-    } else {
-      console.log(`[DEBUG] Estructura duplicada encontrada para ${version.version}, omitiendo`);
     }
   }
 
@@ -734,11 +698,6 @@ async function getServiceVersions(serviceNumber) {
     version: `v${index + 1}`,
     display_name: `${version.service_name} (${parseTimestampForDisplay(version.timestamp)})`
   }));
-
-  console.log(`[DEBUG] Versiones finales únicas:`, finalVersions.map(v => ({
-    version: v.version,
-    display_name: v.display_name
-  })));
 
   return finalVersions.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 }
