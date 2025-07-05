@@ -39,7 +39,7 @@ function loadResponseFieldsInfo(serviceNumber) {
             displayResponseFieldsInfo(fieldsInfo, fieldsContainer);
         })
         .catch(error => {
-            console.error(`//[//Services UI - VUELTA] Error al cargar campos para ${serviceNumber}:`, error);
+            //console.error(`//[//Services UI - VUELTA] Error al cargar campos para ${serviceNumber}:`, error);
             fieldsContainer.innerHTML = `<p class="error-message">Error al cargar información de campos: ${error.message}</p>`;
         });
 }

@@ -1,0 +1,11 @@
+{
+  "value": "",
+  "serviceNumber": "1041",
+  "timestamp": "2025-07-05T18:30:41.730Z",
+  "sourceFile": "20250705T18304_1041_v1.xls",
+  "foundSheetName": null,
+  "foundRowContaining000": null,
+  "missingTab": true,
+  "availableTabs": 2,
+  "error": "No se encontró ninguna hoja que contenga \"ejemplo\" en su nombre. Pestañas disponibles: 2."
+}

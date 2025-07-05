@@ -309,22 +309,16 @@ initUIManager: function() {
                             versionInput.value = config.version;
                         }
                         
-                        // Reload saved configurations list if available
+                        // Después de actualizar la UI y los campos, recargar la lista según el estado del toggle
                         if (ConfigStorageManager && ConfigStorageManager.loadSavedConfigurations) {
-                            // Pasar null como primer parámetro para cargar todas las configuraciones
-                            ConfigStorageManager.loadSavedConfigurations(null, function(configs) {
-                                if (ConfigUIManager && ConfigUIManager.updateSavedConfigurationsList) {
-                                    console.log(`Actualizando lista de configuraciones después de guardar: ${configs.length} configs`);
-                                    ConfigUIManager.updateSavedConfigurationsList(configs);
-
-                                    // Emitir evento de que la lista de configuraciones ha cambiado
-                                    if (window.EventBus && window.AppEvents && window.AppEvents.CONFIG_LIST_CHANGED) {
-                                        window.EventBus.publish(window.AppEvents.CONFIG_LIST_CHANGED, {
-                                            serviceNumber: serviceNumber // Opcional: pasar el número de servicio afectado
-                                        });
+                            ConfigStorageManager.loadSavedConfigurations(
+                                ConfigUIManager && ConfigUIManager.showAllConfigs ? null : serviceNumber,
+                                function(configs) {
+                                    if (ConfigUIManager && ConfigUIManager.updateSavedConfigurationsList) {
+                                        ConfigUIManager.updateSavedConfigurationsList(configs);
                                     }
                                 }
-                            });
+                            );
                         }
                     },
                     // Error callback
@@ -578,4 +572,42 @@ ConfigInit.initialize();
 const canalInput = document.getElementById('canalInput');
 if (canalInput && !canalInput.value) {
     canalInput.value = 'SM';
+}
+
+// Al inicializar el panel, conectar el callback del toggle
+if (ConfigUIManager && ConfigUIManager.onToggleShowAllConfigs === undefined) {
+    ConfigUIManager.onToggleShowAllConfigs = (showAll) => {
+        const serviceSelect = document.getElementById('configServiceSelect');
+        const serviceNumber = serviceSelect ? serviceSelect.value : null;
+        if (ConfigStorageManager && ConfigStorageManager.loadSavedConfigurations) {
+            ConfigStorageManager.loadSavedConfigurations(showAll ? null : serviceNumber, function(configs) {
+                if (ConfigUIManager && ConfigUIManager.updateSavedConfigurationsList) {
+                    ConfigUIManager.updateSavedConfigurationsList(configs);
+                }
+            });
+        }
+    };
+}
+
+// Al cambiar de servicio, recargar según el estado del toggle
+const serviceSelect = document.getElementById('configServiceSelect');
+if (serviceSelect) {
+    serviceSelect.addEventListener('change', function() {
+        if (ConfigUIManager && typeof ConfigUIManager.showAllConfigs !== 'undefined' && ConfigUIManager.showAllConfigs) {
+            // Si el toggle está activado, cargar todas
+            ConfigStorageManager.loadSavedConfigurations(null, function(configs) {
+                if (ConfigUIManager && ConfigUIManager.updateSavedConfigurationsList) {
+                    ConfigUIManager.updateSavedConfigurationsList(configs);
+                }
+            });
+        } else {
+            // Si el toggle está desactivado, cargar solo las del servicio
+            const serviceNumber = serviceSelect.value;
+            ConfigStorageManager.loadSavedConfigurations(serviceNumber, function(configs) {
+                if (ConfigUIManager && ConfigUIManager.updateSavedConfigurationsList) {
+                    ConfigUIManager.updateSavedConfigurationsList(configs);
+                }
+            });
+        }
+    });
 }

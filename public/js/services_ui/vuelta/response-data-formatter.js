@@ -62,7 +62,7 @@ function formatVueltaData(result, container) {
             // Aplicar resaltados adicionales para las ocurrencias de manera dinámica
             applyDynamicOccurrenceHighlighting(containerElement);
         } else {
-            console.warn('//[//Services UI - VUELTA] formatJson no está disponible, usando formato básico');
+            //console.warn('//[//Services UI - VUELTA] formatJson no está disponible, usando formato básico');
         }
     } catch (error) {
         //console.error('//[//Services UI - VUELTA] Error al formatear datos:', error);

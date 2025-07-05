@@ -253,6 +253,27 @@ function initializeIdaServiceHandlers() {
     }
 }
 
+function deepMerge(target, source) {
+    // Fusión profunda de objetos y arrays
+    if (typeof target !== 'object' || target === null) return source;
+    if (typeof source !== 'object' || source === null) return target;
+    if (Array.isArray(target) && Array.isArray(source)) {
+        // Si ambos son arrays, fusionar por índice
+        return source.map((item, idx) => deepMerge(target[idx], item));
+    }
+    const merged = { ...target };
+    for (const key in source) {
+        if (source.hasOwnProperty(key)) {
+            if (key in target) {
+                merged[key] = deepMerge(target[key], source[key]);
+            } else {
+                merged[key] = source[key];
+            }
+        }
+    }
+    return merged;
+}
+
 function generateStringClickHandler() {
     const idaServiceSelect = document.getElementById('idaServiceSelect');
     const idaJsonInput = document.getElementById('idaJsonInput');
@@ -261,78 +282,69 @@ function generateStringClickHandler() {
     const generateStringBtn = document.getElementById('generateStringBtn');
     const processIdaBtn = document.getElementById('processIdaBtn');
     const serviceNumber = idaServiceSelect ? idaServiceSelect.value : null;
-    
     if (!serviceNumber) {
         if (typeof ConfigUtils !== 'undefined') ConfigUtils.showNotification('Seleccione un servicio primero', 'warning', true);
         return;
     }
-    
     // Detectar cuál pestaña está activa
     const activeTabBtn = document.querySelector('.ida-input-tab-btn.active');
     const activeTabId = activeTabBtn ? activeTabBtn.getAttribute('data-ida-input-tab') : 'json';
-    
     generateStringBtn.disabled = true;
     generateStringBtn.textContent = 'Generando...';
-    
-    let paramsData;
-    
+    let paramsData = {};
+    let baseData = {};
+    // Siempre obtener la base de 'Json Completo'
+    let jsonText = idaJsonInput ? idaJsonInput.textContent.trim() : '{}';
+    if (jsonText === '{ }' || /^\{\s*\}$/.test(jsonText)) jsonText = '{}';
+    let jsonData;
+    try {
+        const cleanedJsonText = jsonText.replace(/\{\-|\{\+/g, '{').replace(/\[\-/g, '[');
+        jsonData = JSON.parse(cleanedJsonText === '' ? '{}' : cleanedJsonText);
+    } catch (err) {
+        if (typeof ConfigUtils !== 'undefined') ConfigUtils.showNotification('JSON inválido: ' + err.message, 'error');
+        generateStringBtn.disabled = false;
+        generateStringBtn.textContent = 'Generar String Fijo';
+        return;
+    }
+    baseData = {
+        header: jsonData.header || { serviceNumber: serviceNumber, canal: 'PO' },
+        parameters: jsonData.body || {}
+    };
+    // Si la pestaña activa es parámetros dinámicos y tiene datos, fusionar
     if (activeTabId === 'params') {
-        // Pestaña "Json Parametros Dinamicos" - usar valores editables + settings
-        let jsonText = idaDynamicParamsInput ? idaDynamicParamsInput.textContent.trim() : '{}';
-        if (jsonText === '{ }' || /^\{\s*\}$/.test(jsonText)) jsonText = '{}';
-        
-        
+        let dynText = idaDynamicParamsInput ? idaDynamicParamsInput.textContent.trim() : '{}';
+        if (dynText === '{ }' || /^\{\s*\}$/.test(dynText)) dynText = '{}';
+        let dynData = {};
         try {
-            paramsData = JSON.parse(jsonText === '' ? '{}' : jsonText);
-            
-            // VALIDAR LONGITUDES DE CAMPOS usando la validación existente
-            const validationErrors = validateJsonAgainstConfigInputs(paramsData);
-            if (validationErrors.length > 0) {
-                showFieldLengthValidationError(validationErrors);
-                generateStringBtn.disabled = false;
-                generateStringBtn.textContent = 'Generar String Fijo';
-                return;
-            }
-            
+            dynData = JSON.parse(dynText === '' ? '{}' : dynText);
         } catch (err) {
             if (typeof ConfigUtils !== 'undefined') ConfigUtils.showNotification('JSON de parámetros dinámicos inválido: ' + err.message, 'error');
             generateStringBtn.disabled = false;
             generateStringBtn.textContent = 'Generar String Fijo';
             return;
         }
-    } else {
-        // Pestaña "Json Completo" - convertir formato legacy a formato dinámico
-        let jsonText = idaJsonInput ? idaJsonInput.textContent.trim() : '{}';
-        if (jsonText === '{ }' || /^\{\s*\}$/.test(jsonText)) jsonText = '{}';
-        
-        let jsonData;
-        try {
-            // Limpiar caracteres problemáticos del formato JSON
-            const cleanedJsonText = jsonText.replace(/\{\-|\{\+/g, '{').replace(/\[\-/g, '[');
-            jsonData = JSON.parse(cleanedJsonText === '' ? '{}' : cleanedJsonText);
-        } catch (err) {
-            if (typeof ConfigUtils !== 'undefined') ConfigUtils.showNotification('JSON inválido: ' + err.message, 'error');
-            generateStringBtn.disabled = false;
-            generateStringBtn.textContent = 'Generar String Fijo';
-            return;
-        }
-        
-        // Convertir formato legacy {header: {}, body: {}} a formato dinámico {header: {}, parameters: {}}
-        paramsData = {
-            header: jsonData.header || { serviceNumber: serviceNumber, canal: 'PO' },
-            parameters: jsonData.body || {}
-        };
-        
-        // VALIDAR LONGITUDES DE CAMPOS antes de enviar
-        const validationErrors = validateFieldLengths(paramsData, serviceNumber);
+        // Validar longitudes
+        const validationErrors = validateJsonAgainstConfigInputs(dynData);
         if (validationErrors.length > 0) {
             showFieldLengthValidationError(validationErrors);
             generateStringBtn.disabled = false;
             generateStringBtn.textContent = 'Generar String Fijo';
             return;
         }
+        // Fusión profunda: parámetros dinámicos sobrescriben la base
+        paramsData = deepMerge(baseData, dynData);
+    } else {
+        // Si está en Json Completo, usar solo la base
+        // Validar longitudes
+        const validationErrors = validateFieldLengths(baseData, serviceNumber);
+        if (validationErrors.length > 0) {
+            showFieldLengthValidationError(validationErrors);
+            generateStringBtn.disabled = false;
+            generateStringBtn.textContent = 'Generar String Fijo';
+            return;
+        }
+        paramsData = baseData;
     }
-    
     // SIEMPRE usar el backend - eliminar formateo local del frontend
     generateFixedStringWithDynamicParams(serviceNumber, paramsData)
         .then(fixedString => {
@@ -340,7 +352,6 @@ function generateStringClickHandler() {
                 // Almacenar la longitud real antes de asignar el valor
                 fixedStringOutput.realStringLength = fixedString.length;
                 fixedStringOutput.value = fixedString;
-                
                 // Actualizar el contador con la longitud real del string
                 const charCount = document.getElementById('charCount');
                 if (charCount) {

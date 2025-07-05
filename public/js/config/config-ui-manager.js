@@ -225,20 +225,65 @@ const ConfigUIManager = {
                     // console.log('Found config container, creating panel');
 
         // Create the panel container
-        const panel = document.createElement('div');
-        panel.id = 'savedConfigurationsPanel';
-        panel.className = 'saved-configs-panel';
-        panel.style.marginTop = '2rem';
-        panel.style.padding = '1.5rem';
-        panel.style.backgroundColor = '#f8fafc';
-        panel.style.borderRadius = 'var(--radius)';
-        panel.style.border = '1px solid var(--border-color)';
+        let panel = document.getElementById('savedConfigurationsPanel');
+        if (!panel) {
+            panel = document.createElement('div');
+            panel.id = 'savedConfigurationsPanel';
+            panel.className = 'saved-configs-panel';
+            panel.style.marginTop = '2rem';
+            panel.style.padding = '1.5rem';
+            panel.style.backgroundColor = '#f8fafc';
+            panel.style.borderRadius = 'var(--radius)';
+            panel.style.border = '1px solid var(--border-color)';
+            configContainer.appendChild(panel);
+        } else {
+            // Si el panel ya existe, limpiar su contenido
+            panel.innerHTML = '';
+        }
 
-        // Create panel header
+        // Create panel header (h3 + toggle)
+        const headerContainer = document.createElement('div');
+        headerContainer.style.display = 'flex';
+        headerContainer.style.alignItems = 'center';
+        headerContainer.style.justifyContent = 'space-between';
+        headerContainer.style.marginBottom = '1rem';
+
         const header = document.createElement('h3');
         header.textContent = 'Configuraciones Guardadas';
-        header.style.marginBottom = '1rem';
-        panel.appendChild(header);
+        header.style.margin = '0';
+        header.style.fontWeight = 'bold';
+        header.style.fontSize = '1.25rem';
+        headerContainer.appendChild(header);
+
+        // Toggle: Cargar todas las configuraciones (switch moderno)
+        const switchContainer = document.createElement('div');
+        switchContainer.className = 'modern-switch-container';
+        switchContainer.style.display = 'flex';
+        switchContainer.style.alignItems = 'center';
+
+        const showAllToggle = document.createElement('input');
+        showAllToggle.type = 'checkbox';
+        showAllToggle.id = 'showAllConfigsToggle';
+        showAllToggle.className = 'modern-switch-input';
+
+        const switchLabel = document.createElement('label');
+        switchLabel.className = 'modern-switch-label';
+        switchLabel.htmlFor = 'showAllConfigsToggle';
+
+        switchContainer.appendChild(showAllToggle);
+        switchContainer.appendChild(switchLabel);
+
+        const showAllText = document.createElement('span');
+        showAllText.textContent = 'Cargar todas las configuraciones';
+        showAllText.style.fontWeight = 'normal';
+        showAllText.style.fontSize = '1rem';
+        showAllText.style.marginLeft = '0.5rem';
+        switchContainer.appendChild(showAllText);
+
+        headerContainer.appendChild(switchContainer);
+
+        // Agregar el headerContainer como primer hijo del panel
+        panel.appendChild(headerContainer);
 
         // Create search container
         const searchContainer = document.createElement('div');
@@ -305,11 +350,32 @@ const ConfigUIManager = {
         noConfigsMsg.textContent = 'No hay configuraciones guardadas.';
         configsList.appendChild(noConfigsMsg);
 
-        // Add the panel to the config container
-        configContainer.appendChild(panel);
-
         // Add event listener for the search input
         searchInput.addEventListener('input', this.handleConfigSearch.bind(this));
+
+        // Estado del toggle en el objeto
+        this.showAllConfigs = false;
+        showAllToggle.checked = false;
+
+        // Evento para recargar la lista al cambiar el toggle
+        showAllToggle.addEventListener('change', (e) => {
+            this.showAllConfigs = e.target.checked;
+            // Si hay función externa, usarla; si no, recargar aquí
+            if (typeof this.onToggleShowAllConfigs === 'function') {
+                this.onToggleShowAllConfigs(this.showAllConfigs);
+            } else {
+                // Recarga directa si no hay función definida
+                const serviceSelect = document.getElementById('configServiceSelect');
+                const serviceNumber = serviceSelect ? serviceSelect.value : null;
+                if (window.ConfigStorageManager && window.ConfigStorageManager.loadSavedConfigurations) {
+                    window.ConfigStorageManager.loadSavedConfigurations(this.showAllConfigs ? null : serviceNumber, (configs) => {
+                        if (this.updateSavedConfigurationsList) {
+                            this.updateSavedConfigurationsList(configs);
+                        }
+                    });
+                }
+            }
+        });
     },
     
     /**
