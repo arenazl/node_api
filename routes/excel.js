@@ -7,6 +7,7 @@ const path = require('path');
 const fs = require('fs-extra');
 const XLSX = require('xlsx');
 const router = express.Router();
+const deepEqual = require('../utils/deep-equal');
 
 // Importar módulos de la API
 
@@ -110,67 +111,67 @@ router.post('/upload', async (req, res) => {
           const existingStructure = fs.readJsonSync(structurePath);
 
           // Comparar estructuras para detectar duplicados
-          if (existingStructure && existingStructure.service_structure) {
-            // Función para normalizar y comparar estructuras
-            const areStructuresEqual = (struct1, struct2) => {
-              // MODIFICADO: Desactivar la verificación de duplicados para permitir subir versiones idénticas
-              // Siempre retornar false para permitir la subida incluso si las estructuras son idénticas
-              console.log("Verificación de duplicados desactivada - permitiendo subida de estructura");
-              return false;
-
-              /* Código original comentado:
-              // Comparar cantidad de elementos en request y response
-              if (struct1.request?.elements?.length !== struct2.request?.elements?.length ||
-                  struct1.response?.elements?.length !== struct2.response?.elements?.length) {
-                return false;
+          const areStructuresEqual = (struct1, struct2) => {
+            // Función recursiva para comparación profunda
+            const deepCompare = (obj1, obj2) => {
+              // Si ambos son null/undefined, son iguales
+              if (obj1 == null && obj2 == null) return true;
+              // Si uno es null/undefined y el otro no, son diferentes
+              if (obj1 == null || obj2 == null) return false;
+              
+              // Si son arrays
+              if (Array.isArray(obj1) && Array.isArray(obj2)) {
+                if (obj1.length !== obj2.length) return false;
+                for (let i = 0; i < obj1.length; i++) {
+                  if (!deepCompare(obj1[i], obj2[i])) return false;
+                }
+                return true;
               }
-
-              // Simplificar objetos para comparación
-              const simplifyStructure = (struct) => {
-                // Eliminar propiedades que no afectan la funcionalidad
-                const simplify = (obj) => {
-                  if (Array.isArray(obj)) {
-                    return obj.map(item => simplify(item));
-                  } else if (obj && typeof obj === 'object') {
-                    const result = {};
-                    // Mantener solo propiedades relevantes para la comparación
-                    for (const key of ['type', 'name', 'length', 'count', 'fields']) {
-                      if (obj[key] !== undefined) {
-                        result[key] = simplify(obj[key]);
-                      }
-                    }
-                    return result;
-                  }
-                  return obj;
-                };
-
-                return {
-                  request: simplify(struct.request),
-                  response: simplify(struct.response)
-                };
-              };
-
-              // Comparar estructuras simplificadas
-              const simple1 = simplifyStructure(struct1);
-              const simple2 = simplifyStructure(struct2);
-
-              return JSON.stringify(simple1) === JSON.stringify(simple2);
-              */
+              
+              // Si solo uno es array, son diferentes
+              if (Array.isArray(obj1) || Array.isArray(obj2)) return false;
+              
+              // Si son objetos
+              if (typeof obj1 === 'object' && typeof obj2 === 'object') {
+                const keys1 = Object.keys(obj1);
+                const keys2 = Object.keys(obj2);
+                
+                // Filtrar solo las propiedades relevantes para comparación
+                const relevantKeys1 = keys1.filter(key => 
+                  !['index', 'timestamp', 'sourceFile', 'id'].includes(key)
+                );
+                const relevantKeys2 = keys2.filter(key => 
+                  !['index', 'timestamp', 'sourceFile', 'id'].includes(key)
+                );
+                
+                if (relevantKeys1.length !== relevantKeys2.length) return false;
+                
+                for (const key of relevantKeys1) {
+                  if (!relevantKeys2.includes(key)) return false;
+                  if (!deepCompare(obj1[key], obj2[key])) return false;
+                }
+                return true;
+              }
+              
+              // Para valores primitivos
+              return obj1 === obj2;
             };
+            
+            return deepCompare(struct1, struct2);
+          };
 
-            // Verificar si la estructura ya existe
-            if (areStructuresEqual(tempServiceStructure, existingStructure.service_structure)) {
-              console.log("Se detectó una estructura idéntica ya existente");
+          // Verificar si la estructura ya existe
+          if (areStructuresEqual(tempServiceStructure, existingStructure.service_structure)) {
+            console.log("Se detectó una estructura idéntica ya existente");
 
-              // Eliminar archivo temporal
-              fs.unlinkSync(tempFilePath);
+            // Eliminar archivo temporal
+            fs.unlinkSync(tempFilePath);
 
-              return res.status(409).json({
-                error: "La versión que está intentando subir es idéntica a una ya existente",
-                duplicateFile: structureFile.replace('_structure.json', ''),
-                message: "La estructura del servicio es exactamente igual a una versión anterior"
-              });
-            }
+            return res.status(409).json({
+              error: "La versión que está intentando subir es idéntica a una ya existente",
+              duplicateFile: structureFile.replace('_structure.json', ''),
+              message: "La estructura del servicio es exactamente igual a una versión anterior"
+            });
           }
         }
       }
@@ -199,9 +200,20 @@ router.post('/upload', async (req, res) => {
       
       console.log('[CRITICAL_VALIDATION] ✓ No se detectaron errores críticos, procediendo a guardar archivo...');
 
-      // Generar nombre de archivo único con timestamp
+      // Obtener número de servicio para generar nombre correlativo
+      const serviceNumber = tempServiceStructureForValidation.serviceNumber || 'unknown';
+      
+      // Buscar archivos existentes para este servicio en uploads
+      const existingFiles = fs.readdirSync(uploadsDir)
+        .filter(file => file.includes(`_${serviceNumber}_v`) && file.match(/\.(xlsx|xls)$/i));
+      
+      // Calcular próximo número de versión
+      const versionNumber = existingFiles.length + 1;
+      
+      // Generar nombre de archivo único con versión correlativa
       const timestamp = new Date().toISOString().replace(/[-:.]/g, '').substring(0, 14);
-      const filename = `${timestamp}_${excelFile.name}`;
+      const fileExtension = path.extname(excelFile.name);
+      const filename = `${timestamp}_${serviceNumber}_v${versionNumber}${fileExtension}`;
       const filePath = path.join(uploadsDir, filename);
 
       // Crear directorio si no existe
@@ -493,6 +505,35 @@ router.get('/header-sample/:serviceNumber', async (req, res) => {
 });
 
 /**
+ * @route GET /excel/structure/:filename
+ * @description Obtiene una estructura específica por nombre de archivo
+ */
+router.get('/structure/:filename', async (req, res) => {
+  try {
+    const { filename } = req.params;
+
+    if (!filename) {
+      return res.status(400).json({
+        error: "Se requiere el nombre del archivo"
+      });
+    }
+
+    console.log(`Cargando estructura específica: ${filename}`);
+
+    // Cargar la estructura específica
+    const structure = await getStructure(filename);
+
+    res.json(structure);
+
+  } catch (error) {
+    console.error(`Error al cargar estructura ${req.params.filename}:`, error);
+    res.status(error.statusCode || 500).json({
+      error: error.message
+    });
+  }
+});
+
+/**
  * @route GET /excel/structure-by-service
  * @description Obtiene la estructura más reciente para un número de servicio
  */
@@ -601,8 +642,38 @@ function saveStructures(headerStructure, serviceStructure, excelFilePath) {
     originalFileName = excelFileName.replace(/^\d{8}T\d{4,6}_/, '');
   }
 
-  // Generar nombre de archivo con timestamp
-  const structureFileName = `${timestamp}_${serviceNumber}_structure.json`;
+  // Calcular versión correlativa basándose en archivos existentes
+  let versionNumber = 1;
+  try {
+    if (fs.existsSync(structuresDir)) {
+      const existingFiles = fs.readdirSync(structuresDir)
+        .filter(file => file.endsWith('_structure.json') && file.includes(`_${serviceNumber}_`))
+        .sort();
+      
+      console.log(`[ESTRUCTURA] Archivos existentes para servicio ${serviceNumber}:`, existingFiles);
+      
+      // Buscar la versión más alta existente
+      let maxVersion = 0;
+      for (const file of existingFiles) {
+        const versionMatch = file.match(/_v(\d+)_structure\.json$/);
+        if (versionMatch) {
+          const version = parseInt(versionMatch[1]);
+          if (version > maxVersion) {
+            maxVersion = version;
+          }
+        }
+      }
+      
+      versionNumber = maxVersion + 1;
+      console.log(`[ESTRUCTURA] Versión calculada para nuevo archivo: v${versionNumber}`);
+    }
+  } catch (error) {
+    console.warn(`[ESTRUCTURA] Error calculando versión, usando v1: ${error.message}`);
+    versionNumber = 1;
+  }
+
+  // Generar nombre de archivo con timestamp y versión
+  const structureFileName = `${timestamp}_${serviceNumber}_v${versionNumber}_structure.json`;
 
   // Ruta completa
   const structureFilePath = path.join(structuresDir, structureFileName);
@@ -728,11 +799,19 @@ async function getExcelFiles() {
       // Crear nombre de archivo de estructura correspondiente
       let structureFile = null;
       if (timestampMatch && timestampMatch[1] && serviceNumber) {
-        structureFile = `${timestampMatch[1]}_${serviceNumber}_structure.json`;
-
-        // Verificar si existe el archivo de estructura
-        if (!fs.existsSync(path.join(structuresDir, structureFile))) {
-          structureFile = null;
+        // Buscar archivo de estructura con versión que coincida con el timestamp
+        const possibleFiles = fs.readdirSync(structuresDir)
+          .filter(file => file.startsWith(`${timestampMatch[1]}_${serviceNumber}_`) && file.endsWith('_structure.json'))
+          .sort();
+        
+        if (possibleFiles.length > 0) {
+          structureFile = possibleFiles[0]; // Usar el primer archivo encontrado
+        } else {
+          // Fallback: buscar archivo sin versión (compatibilidad con archivos antiguos)
+          const oldFormatFile = `${timestampMatch[1]}_${serviceNumber}_structure.json`;
+          if (fs.existsSync(path.join(structuresDir, oldFormatFile))) {
+            structureFile = oldFormatFile;
+          }
         }
       }
 

@@ -7,6 +7,28 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs-extra');
 const router = express.Router();
+// Función para comparación profunda de objetos
+function deepEqual(obj1, obj2) {
+  if (obj1 === obj2) return true;
+  
+  if (obj1 == null || obj2 == null) return false;
+  
+  if (typeof obj1 !== typeof obj2) return false;
+  
+  if (typeof obj1 !== 'object') return obj1 === obj2;
+  
+  const keys1 = Object.keys(obj1);
+  const keys2 = Object.keys(obj2);
+  
+  if (keys1.length !== keys2.length) return false;
+  
+  for (let key of keys1) {
+    if (!keys2.includes(key)) return false;
+    if (!deepEqual(obj1[key], obj2[key])) return false;
+  }
+  
+  return true;
+}
 
 // Core utilities
 const messageCreator = require('../utils/message-creator');
@@ -156,6 +178,28 @@ router.get('/refresh', async (req, res) => {
 });
 
 /**
+ * GET /api/services/versions
+ * Gets available versions of a service
+ */
+router.get('/versions', async (req, res) => {
+  console.log('>>> [DEBUG] Entró a /api/services/versions', req.query);
+  try {
+    const { serviceNumber } = req.query;
+    if (!serviceNumber) {
+      console.warn('[DEBUG] Falta serviceNumber en query');
+      return res.status(400).json({ error: "serviceNumber is required" });
+    }
+    const versions = await getServiceVersions(serviceNumber);
+    console.log(`[DEBUG] Se encontraron ${versions.length} versiones para el servicio ${serviceNumber}`);
+    console.log(`[DEBUG] Versiones completas:`, JSON.stringify(versions, null, 2));
+    res.json({ serviceNumber, versions });
+  } catch (error) {
+    console.error('[ERROR] en /api/services/versions:', error);
+    res.status(500).json({ error: error.message || 'Error interno en get service versions' });
+  }
+});
+
+/**
  * GET /api/services/:serviceNumber
  * Gets service details by number
  */
@@ -233,25 +277,6 @@ router.get('/files', async (req, res) => {
     res.json({ files });
   } catch (error) {
     handleEndpointError(res, error, 'get service files');
-  }
-});
-
-/**
- * GET /api/services/versions
- * Gets available versions of a service
- */
-router.get('/versions', async (req, res) => {
-  try {
-    const { serviceNumber } = req.query;
-    
-    if (!serviceNumber) {
-      return res.status(400).json({ error: "serviceNumber is required" });
-    }
-    
-    const versions = await getServiceVersions(serviceNumber);
-    res.json({ serviceNumber, versions });
-  } catch (error) {
-    handleEndpointError(res, error, 'get service versions');
   }
 });
 
@@ -601,17 +626,121 @@ function parseTimestamp(timestamp) {
 async function getServiceVersions(serviceNumber) {
   const allServices = await getAvailableServices();
   const serviceVersions = allServices.filter(s => s.service_number === serviceNumber);
+
+  console.log(`[DEBUG] Servicios encontrados para ${serviceNumber}:`, serviceVersions.length);
+
+  // Buscar archivos de estructura correspondientes
+  const structureFiles = [];
+  try {
+    if (fs.existsSync(STRUCTURES_DIR)) {
+      const allStructureFiles = fs.readdirSync(STRUCTURES_DIR)
+        .filter(file => file.endsWith('_structure.json') && file.includes(`_${serviceNumber}_`))
+        .sort();
+      structureFiles.push(...allStructureFiles);
+      console.log(`[DEBUG] Archivos de estructura encontrados para ${serviceNumber}:`, structureFiles);
+    }
+  } catch (error) {
+    console.warn(`[DEBUG] Error leyendo archivos de estructura: ${error.message}`);
+  }
+
+  // Crear versiones basadas en archivos de estructura con numeración correlativa
+  const versionsWithNumbers = serviceVersions.map((service, index) => {
+    const versionNumber = index + 1; // Numeración correlativa empezando en 1
+    const timestamp = service.timestamp || new Date().toISOString();
+    
+    // Buscar archivo de estructura correspondiente por versión
+    let correspondingStructureFile = null;
+    if (structureFiles.length > 0) {
+      // Buscar archivo de estructura que corresponda a esta versión
+      const versionPattern = `_${serviceNumber}_v${versionNumber}_structure.json`;
+      correspondingStructureFile = structureFiles.find(file => 
+        file.includes(versionPattern)
+      );
+      
+      // Si no se encuentra por versión, buscar por timestamp como fallback
+      if (!correspondingStructureFile && service.excel_file) {
+        const timestampMatch = service.excel_file.match(/^(\d+T\d+)/);
+        if (timestampMatch) {
+          correspondingStructureFile = structureFiles.find(file => 
+            file.startsWith(`${timestampMatch[1]}_${serviceNumber}_`)
+          );
+        }
+      }
+    }
+    
+    console.log(`[DEBUG] Servicio ${service.excel_file} -> Estructura: ${correspondingStructureFile}`);
+    
+    return {
+      ...service,
+      version: `v${versionNumber}`,
+      timestamp: timestamp,
+      upload_date: timestamp,
+      display_name: `${service.service_name} (${parseTimestampForDisplay(timestamp)})`,
+      structure_file: correspondingStructureFile // Asignar archivo de estructura específico
+    };
+  });
+
+  console.log(`[DEBUG] Versiones generadas:`, versionsWithNumbers.map(v => ({
+    version: v.version,
+    timestamp: v.timestamp,
+    display_name: v.display_name
+  })));
+
+  // Filtrar versiones únicas por contenido (estructura/campos)
+  const uniqueVersions = [];
+  const seenStructures = [];
   
-  const settingsFiles = await getSettingsFiles(serviceNumber);
-  const versionsWithTimestamps = enrichVersionsWithTimestamps(serviceVersions, settingsFiles);
-  
-  const allVersions = versionsWithTimestamps.length > 0 ? 
-    versionsWithTimestamps : 
-    createVersionsFromSettings(settingsFiles, serviceNumber);
-  
-  return allVersions.sort((a, b) => 
-    new Date(b.timestamp) - new Date(a.timestamp)
-  );
+  for (const version of versionsWithNumbers) {
+    let structure = null;
+    try {
+      // Leer estructura JSON asociada a la versión
+      if (version.structure_file) {
+        const structurePath = path.join(__dirname, '..', 'JsonStorage', 'structures', version.structure_file);
+        if (fs.existsSync(structurePath)) {
+          const structureJson = fs.readJsonSync(structurePath);
+          structure = structureJson.service_structure;
+        }
+      }
+    } catch (e) { 
+      console.warn(`[DEBUG] Error leyendo estructura para ${version.structure_file}:`, e.message);
+    }
+    
+    // Si no hay estructura, incluir igual (por compatibilidad)
+    if (!structure) {
+      uniqueVersions.push(version);
+      continue;
+    }
+    
+    // Comparar con estructuras ya vistas
+    let isDuplicate = false;
+    for (const prev of seenStructures) {
+      if (deepEqual(structure, prev)) {
+        isDuplicate = true;
+        break;
+      }
+    }
+    
+    if (!isDuplicate) {
+      uniqueVersions.push(version);
+      seenStructures.push(structure);
+    } else {
+      console.log(`[DEBUG] Estructura duplicada encontrada para ${version.version}, omitiendo`);
+    }
+  }
+
+  // Renumerar las versiones únicas para mantener secuencia correlativa
+  const finalVersions = uniqueVersions.map((version, index) => ({
+    ...version,
+    version: `v${index + 1}`,
+    display_name: `${version.service_name} (${parseTimestampForDisplay(version.timestamp)})`
+  }));
+
+  console.log(`[DEBUG] Versiones finales únicas:`, finalVersions.map(v => ({
+    version: v.version,
+    display_name: v.display_name
+  })));
+
+  return finalVersions.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 }
 
 async function getSettingsFiles(serviceNumber) {
@@ -648,14 +777,20 @@ async function getSettingsFiles(serviceNumber) {
 function enrichVersionsWithTimestamps(serviceVersions, settingsFiles) {
   return serviceVersions.map(service => {
     const validTimestamp = extractValidTimestamp(service);
-    const relatedSettingsFile = settingsFiles.find(sf => 
-      sf.filename.includes(service.service_number)
-    );
+    let version = 'v1';
+    
+    if (service.settings_file) {
+      // Extraer versión del nombre del archivo
+      const versionMatch = service.settings_file.match(/-v(\d+)\.json$/);
+      if (versionMatch) {
+        version = `v${versionMatch[1]}`;
+      }
+    }
     
     return {
       ...service,
       timestamp: validTimestamp,
-      settings_file: relatedSettingsFile?.filename || null
+      version
     };
   });
 }
@@ -700,17 +835,45 @@ function parseExcelTimestamp(timestamp) {
   return null;
 }
 
+function parseTimestampForDisplay(timestamp) {
+  try {
+    const date = new Date(timestamp);
+    if (!isNaN(date.getTime())) {
+      return date.toLocaleDateString('es-ES', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+  } catch (error) {
+    console.warn(`Error parsing timestamp for display ${timestamp}:`, error);
+  }
+  return 'Fecha desconocida';
+}
+
 function createVersionsFromSettings(settingsFiles, serviceNumber) {
-  return settingsFiles.map(sf => ({
-    filename: sf.filename,
-    excel_file: null,
-    settings_file: sf.filename,
-    timestamp: sf.timestamp,
-    upload_date: sf.upload_date,
-    size: sf.size,
-    service_number: serviceNumber,
-    service_name: `Configuration ${serviceNumber}`
-  }));
+  return settingsFiles.map(sf => {
+    // Extraer versión del nombre del archivo
+    let version = 'v1';
+    const versionMatch = sf.filename.match(/-v(\d+)\.json$/);
+    if (versionMatch) {
+      version = `v${versionMatch[1]}`;
+    }
+    
+    return {
+      filename: sf.filename,
+      excel_file: null,
+      settings_file: sf.filename,
+      timestamp: sf.timestamp,
+      upload_date: sf.upload_date,
+      size: sf.size,
+      service_number: serviceNumber,
+      service_name: `Configuration ${serviceNumber}`,
+      version
+    };
+  });
 }
 
 function handleEndpointError(res, error, operation) {

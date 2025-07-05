@@ -210,6 +210,9 @@ initUIManager: function() {
                             console.log('Tabla de requerimiento poblada con campos vacíos');
                         }
                         
+                        // Cargar versiones disponibles para este servicio
+                        ConfigInit.loadServiceVersions(serviceNumber);
+                        
                         // Auto-fill fields automatically when service is selected
                         const canalInput = document.getElementById('canalInput');
                         ConfigUtils.showNotification('Completando campos automáticamente...', 'info');
@@ -360,8 +363,219 @@ initUIManager: function() {
                 }
             }
         }
+    },
+    
+    /**
+     * Load available versions for a service and update the version UI
+     * @param {string} serviceNumber - The service number to load versions for
+     */
+    loadServiceVersions: function(serviceNumber) {
+        console.log(`[ConfigInit] Cargando versiones para servicio: ${serviceNumber}`);
+        
+        // Make request to get service versions
+        fetch(`/api/services/versions?serviceNumber=${serviceNumber}`)
+            .then(response => {
+                console.log(`[ConfigInit] Response status: ${response.status}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log(`[ConfigInit] Respuesta completa del servidor:`, data);
+                console.log(`[ConfigInit] Tipo de data.versions:`, typeof data.versions);
+                console.log(`[ConfigInit] Longitud de data.versions:`, data.versions ? data.versions.length : 'N/A');
+                
+                if (data.versions && Array.isArray(data.versions)) {
+                    console.log(`[ConfigInit] Versiones individuales:`, data.versions);
+                    this.updateVersionUI(data.versions);
+                } else {
+                    console.warn(`[ConfigInit] No se encontraron versiones válidas para el servicio ${serviceNumber}`);
+                    console.warn(`[ConfigInit] Estructura de datos recibida:`, data);
+                    this.updateVersionUI([]);
+                }
+            })
+            .catch(error => {
+                console.error(`[ConfigInit] Error al cargar versiones para ${serviceNumber}:`, error);
+                // En caso de error, mantener la versión por defecto
+                this.updateVersionUI([]);
+            });
+    },
+    
+    /**
+     * Load structure for a specific version
+     * @param {string} serviceNumber - The service number
+     * @param {Object} versionData - The version data object
+     */
+    loadVersionStructure: function(serviceNumber, versionData) {
+        console.log(`[ConfigInit] Cargando estructura para versión: ${versionData.version}`);
+        
+        // Mostrar indicador de carga
+        const headerTbody = document.querySelector('#headerConfigTable tbody');
+        const requestTbody = document.querySelector('#requestConfigTable tbody');
+        
+        if (headerTbody) {
+            headerTbody.innerHTML = '<tr><td colspan="4" class="text-center">Cargando estructura de cabecera...</td></tr>';
+        }
+        if (requestTbody) {
+            requestTbody.innerHTML = '<tr><td colspan="4" class="text-center">Cargando estructura de requerimiento...</td></tr>';
+        }
+        
+        // Crear URL para cargar estructura específica
+        let structureUrl;
+        
+        // Si hay archivo de estructura específico, usarlo
+        if (versionData.structure_file) {
+            structureUrl = `/excel/structure/${versionData.structure_file}`;
+            console.log(`[ConfigInit] Usando archivo de estructura específico: ${versionData.structure_file}`);
+        } else {
+            // Fallback a estructura por servicio (más reciente)
+            structureUrl = `/excel/structure-by-service?service_number=${serviceNumber}`;
+            console.log(`[ConfigInit] Usando estructura por servicio (fallback)`);
+        }
+        
+        console.log(`[ConfigInit] URL de estructura: ${structureUrl}`);
+        
+        // Cargar la estructura específica
+        fetch(structureUrl)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(structure => {
+                console.log(`[ConfigInit] Estructura cargada para versión ${versionData.version}:`, structure);
+                
+                // Actualizar las tablas con la nueva estructura
+                if (ConfigUIManager.populateHeaderConfigTable) {
+                    ConfigUIManager.populateHeaderConfigTable(structure.header_structure);
+                    console.log('Tabla de cabecera actualizada para nueva versión');
+                }
+                if (ConfigUIManager.populateRequestConfigTable) {
+                    ConfigUIManager.populateRequestConfigTable(structure.service_structure);
+                    console.log('Tabla de requerimiento actualizada para nueva versión');
+                }
+                
+                // Auto-completar campos para la nueva versión
+                const canalInput = document.getElementById('canalInput');
+                try {
+                    window.ConfigDataHandler.autoFillFields(serviceNumber, structure.header_structure, canalInput);
+                    console.log('Campos auto-completados para nueva versión');
+                    
+                    // Aplicar validaciones
+                    setTimeout(() => {
+                        if (typeof ConfigUtils !== 'undefined' && ConfigUtils.applyValidationsToExistingFields) {
+                            ConfigUtils.applyValidationsToExistingFields();
+                        }
+                    }, 300);
+                } catch (err) {
+                    console.error('Error al auto-completar campos para nueva versión:', err);
+                }
+                
+                ConfigUtils.showNotification(`Estructura cargada para versión ${versionData.version}`, 'success');
+            })
+            .catch(error => {
+                console.error(`[ConfigInit] Error al cargar estructura para versión ${versionData.version}:`, error);
+                ConfigUtils.showNotification(`Error al cargar estructura para versión ${versionData.version}`, 'error');
+            });
+    },
+    
+    /**
+     * Update the version UI based on available versions
+     * @param {Array} versions - Array of version objects
+     */
+    updateVersionUI: function(versions) {
+        // Buscar el contenedor del campo de versión
+        let versionContainer = document.getElementById('versionDisplay');
+        if (!versionContainer) {
+            // Si no existe, buscar si hay un select previo
+            versionContainer = document.getElementById('versionSelect');
+        }
+        if (!versionContainer) {
+            // Si no existe ninguno, buscar el input oculto y su padre
+            versionContainer = document.getElementById('versionInput');
+            if (versionContainer) versionContainer = versionContainer.parentElement.querySelector('.version-display, #versionSelect');
+        }
+        if (!versionContainer) {
+            // Si aún no existe, abortar
+            console.error('[ConfigInit] No se encontró el contenedor de versión');
+            return;
+        }
+        const parent = versionContainer.parentElement;
+
+        // Eliminar cualquier select o div de versión previo
+        const oldSelect = document.getElementById('versionSelect');
+        if (oldSelect) parent.removeChild(oldSelect);
+        const oldDiv = document.getElementById('versionDisplay');
+        if (oldDiv) parent.removeChild(oldDiv);
+
+        const versionInput = document.getElementById('versionInput');
+        if (!versionInput) {
+            console.error('[ConfigInit] No se encontró el input oculto de versión');
+            return;
+        }
+
+        if (versions && Array.isArray(versions) && versions.length > 1) {
+            // Crear combo
+            const select = document.createElement('select');
+            select.id = 'versionSelect';
+            select.className = 'form-control';
+            select.style.width = '100%';
+            versions.forEach((version, index) => {
+                const option = document.createElement('option');
+                option.value = version.version || `v${index + 1}`;
+                option.textContent = version.version || `v${index + 1}`;
+                if (version.timestamp) {
+                    const date = new Date(version.timestamp);
+                    option.textContent += ` (${date.toLocaleDateString('es-AR')})`;
+                }
+                if (index === 0) option.selected = true;
+                select.appendChild(option);
+            });
+            select.addEventListener('change', function() {
+                versionInput.value = this.value;
+                
+                // Recargar la estructura para la nueva versión seleccionada
+                const serviceSelect = document.getElementById('configServiceSelect');
+                const serviceNumber = serviceSelect ? serviceSelect.value : null;
+                
+                if (serviceNumber) {
+                    console.log(`[ConfigInit] Cambiando a versión: ${this.value} para servicio: ${serviceNumber}`);
+                    
+                    // Buscar la versión seleccionada en el array de versiones
+                    const selectedVersion = versions.find(v => v.version === this.value);
+                    if (selectedVersion) {
+                        console.log(`[ConfigInit] Cargando estructura para versión:`, selectedVersion);
+                        
+                        // Cargar la estructura específica de esta versión
+                        ConfigInit.loadVersionStructure(serviceNumber, selectedVersion);
+                    }
+                }
+            });
+            parent.insertBefore(select, versionInput);
+            versionInput.value = select.value;
+        } else {
+            // Crear input deshabilitado (div)
+            let versionText = 'v1';
+            if (versions && Array.isArray(versions) && versions.length === 1) {
+                versionText = versions[0].version || 'v1';
+            }
+            const div = document.createElement('div');
+            div.id = 'versionDisplay';
+            div.className = 'version-display';
+            div.textContent = versionText;
+            parent.insertBefore(div, versionInput);
+            versionInput.value = versionText;
+        }
     }
 };
     
 // Auto-initialize the config module
 ConfigInit.initialize();
+
+// Al inicializar la pantalla de configuración o crear nueva configuración
+const canalInput = document.getElementById('canalInput');
+if (canalInput && !canalInput.value) {
+    canalInput.value = 'SM';
+}

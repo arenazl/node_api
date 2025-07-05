@@ -115,8 +115,31 @@ async function getAvailableServices(forceRefresh = false) {
           }
         }
         
-        let structureFile = timestampMatch ? `${timestampMatch[1]}_${serviceNumber}_structure.json` : `${serviceNumber}_structure.json`;
-        const structureExists = fs.existsSync(path.join(structuresDir, structureFile));
+        let structureFile = null;
+        let structureExists = false;
+        
+        if (timestampMatch && timestampMatch[1]) {
+          // Buscar archivo de estructura con versión que coincida con el timestamp
+          const possibleFiles = fs.readdirSync(structuresDir)
+            .filter(file => file.startsWith(`${timestampMatch[1]}_${serviceNumber}_`) && file.endsWith('_structure.json'))
+            .sort();
+          
+          if (possibleFiles.length > 0) {
+            structureFile = possibleFiles[0];
+            structureExists = true;
+          } else {
+            // Fallback: buscar archivo sin versión (compatibilidad con archivos antiguos)
+            const oldFormatFile = `${timestampMatch[1]}_${serviceNumber}_structure.json`;
+            if (fs.existsSync(path.join(structuresDir, oldFormatFile))) {
+              structureFile = oldFormatFile;
+              structureExists = true;
+            }
+          }
+        } else {
+          // Formato antiguo sin timestamp
+          structureFile = `${serviceNumber}_structure.json`;
+          structureExists = fs.existsSync(path.join(structuresDir, structureFile));
+        }
 
         services.push({
           service_number: serviceNumber,

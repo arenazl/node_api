@@ -12,6 +12,7 @@ const ConfigUIManager = {
     canalInput: null,
     versionInput: null,
     versionDisplay: null,
+    versionSelect: null,
     saveButton: null,
     autoFillBtn: null,
     
@@ -27,6 +28,7 @@ const ConfigUIManager = {
         this.canalInput = elements.canalInput;
         this.versionInput = elements.versionInput;
         this.versionDisplay = elements.versionDisplay;
+        this.versionSelect = elements.versionSelect; // Can be null initially
         this.saveButton = elements.saveButton;
         this.autoFillBtn = elements.autoFillBtn;
         
@@ -461,7 +463,35 @@ const ConfigUIManager = {
             });
         };
         
+        // Delete button
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'action-btn delete-btn';
+        deleteBtn.textContent = 'Eliminar';
+        deleteBtn.style.padding = '0.375rem 0.75rem';
+        deleteBtn.style.fontSize = '0.875rem';
+        deleteBtn.style.backgroundColor = '#dc3545';
+        deleteBtn.style.color = 'white';
+        deleteBtn.style.border = 'none';
+        deleteBtn.style.borderRadius = 'var(--radius)';
+        deleteBtn.style.cursor = 'pointer';
+        
+        // Set click handler for the delete button
+        deleteBtn.onclick = function(e) {
+            e.stopPropagation(); // Prevent triggering the parent item click
+            self.deleteConfiguration(config.filename, config.serviceName, item);
+        };
+        
+        // Add hover effect for delete button
+        deleteBtn.addEventListener('mouseenter', function() {
+            this.style.backgroundColor = '#c82333';
+        });
+        
+        deleteBtn.addEventListener('mouseleave', function() {
+            this.style.backgroundColor = '#dc3545';
+        });
+        
         actionsSection.appendChild(loadBtn);
+        actionsSection.appendChild(deleteBtn);
         item.appendChild(actionsSection);
         
         // Also make the whole item clickable to load the configuration
@@ -526,8 +556,7 @@ const ConfigUIManager = {
         
         // Establecer valores base
         this.canalInput.value = config.canal || '';
-        this.versionInput.value = config.version || '';
-        this.versionDisplay.textContent = config.version || '';
+        this.setCurrentVersionValue(config.version || 'v1');
         
         // Completar campos de cabecera (header)
         if (config.header) {
@@ -841,6 +870,140 @@ const ConfigUIManager = {
                 this.applyConfigToForm(config);
                 ConfigUtils.showNotification(`Configuración cargada: ${config.canal} - ${config.version}`, "success");
             });
+        });
+    },
+    
+    /**
+     * Get the current version value from either display div or select dropdown
+     * @returns {string} Current version value
+     */
+    getCurrentVersionValue: function() {
+        const versionSelect = document.getElementById('versionSelect');
+        const versionDisplay = document.getElementById('versionDisplay');
+        const versionInput = document.getElementById('versionInput');
+        
+        if (versionSelect) {
+            return versionSelect.value;
+        } else if (versionDisplay) {
+            return versionDisplay.textContent;
+        } else if (versionInput) {
+            return versionInput.value;
+        }
+        
+        return 'v1'; // Default fallback
+    },
+    
+    /**
+     * Set the current version value in the appropriate UI element
+     * @param {string} version - Version value to set
+     */
+    setCurrentVersionValue: function(version) {
+        const versionSelect = document.getElementById('versionSelect');
+        const versionDisplay = document.getElementById('versionDisplay');
+        const versionInput = document.getElementById('versionInput');
+        
+        if (versionSelect) {
+            // If it's a dropdown, set the selected value
+            versionSelect.value = version;
+        } else if (versionDisplay) {
+            // If it's a display div, update the text
+            versionDisplay.textContent = version;
+        }
+        
+        // Always update the hidden input
+        if (versionInput) {
+            versionInput.value = version;
+        }
+    },
+    
+    /**
+     * Elimina una configuración guardada
+     * @param {string} filename - Nombre del archivo de configuración
+     * @param {string} serviceName - Nombre del servicio para mostrar en confirmación
+     * @param {HTMLElement} itemElement - Elemento DOM a eliminar de la lista
+     */
+    deleteConfiguration: function(filename, serviceName, itemElement) {
+        // Mostrar confirmación con Sweet Alert
+        Swal.fire({
+            title: '¿Eliminar configuración?',
+            html: `¿Está seguro de que desea eliminar la configuración:<br><strong>"${serviceName}"</strong>?<br><br>Esta acción no se puede deshacer.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar',
+            focusCancel: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Mostrar loading
+                Swal.fire({
+                    title: 'Eliminando...',
+                    text: 'Por favor espere',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+                
+                // Obtener el ID de la configuración (nombre del archivo sin extensión)
+                const configId = filename.replace('.json', '');
+                
+                // Hacer la petición DELETE al backend
+                fetch(`/service-config/delete/${configId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Error ${response.status}: ${response.statusText}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        // Eliminar el elemento de la lista
+                        itemElement.remove();
+                        
+                        // Verificar si quedan configuraciones en la lista
+                        const remainingItems = document.querySelectorAll('#savedConfigsList .saved-config-item');
+                        if (remainingItems.length === 0) {
+                            // Mostrar mensaje de "no hay configuraciones"
+                            const noConfigsMsg = document.getElementById('noConfigsMessage');
+                            if (noConfigsMsg) {
+                                noConfigsMsg.style.display = 'block';
+                            }
+                        }
+                        
+                        // Mostrar notificación de éxito
+                        Swal.fire({
+                            title: '¡Eliminada!',
+                            text: 'La configuración ha sido eliminada exitosamente.',
+                            icon: 'success',
+                            timer: 2000,
+                            timerProgressBar: true,
+                            showConfirmButton: false
+                        });
+                        
+                        console.log(`[CONFIG] Configuración eliminada: ${configId}`);
+                    } else {
+                        throw new Error(data.error || 'Error desconocido al eliminar configuración');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error al eliminar configuración:', error);
+                    
+                    // Mostrar notificación de error
+                    Swal.fire({
+                        title: 'Error',
+                        text: `Error al eliminar configuración: ${error.message}`,
+                        icon: 'error',
+                        confirmButtonText: 'Aceptar'
+                    });
+                });
+            }
         });
     }
 };

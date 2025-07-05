@@ -18,34 +18,32 @@ const configDir = path.join(__dirname, '..', 'JsonStorage', 'settings');
 router.post('/save', async (req, res) => {
   try {
     console.log('[ServiceConfig] POST /save - Received request body:', req.body);
-    const { serviceNumber, serviceName, canal, version, header, request } = req.body;
-    console.log('[ServiceConfig] POST /save - Extracted variables:', { serviceNumber, serviceName, canal, version });
+    const { serviceNumber, serviceName, canal, header, request } = req.body;
+    console.log('[ServiceConfig] POST /save - Extracted variables:', { serviceNumber, serviceName, canal });
     
     // Validar datos requeridos
     if (!serviceNumber) {
       return res.status(400).json({ error: 'Número de servicio es requerido' });
     }
-    
     if (!canal) {
       return res.status(400).json({ error: 'Canal es requerido' });
     }
-    
     // Crear directorio si no existe
     if (!fs.existsSync(configDir)) {
       fs.mkdirSync(configDir, { recursive: true });
     }
-    
-    // Sanitizar valores para el nombre de archivo
+    // Sanitizar canal
     const safeCanal = canal.replace(/[^a-zA-Z0-9]/g, '');
-    const safeVersion = (version || 'v1').replace(/[^a-zA-Z0-9]/g, '');
-    console.log('[ServiceConfig] POST /save - Sanitized values:', { safeCanal, safeVersion });
-    
-    // Crear nombre de archivo: serviceNumber-canal-version.json
+    // Buscar archivos existentes para este servicio y canal
+    const files = fs.readdirSync(configDir)
+      .filter(file => file.endsWith('.json') && file.startsWith(`${serviceNumber}-${safeCanal}-v`));
+    // Calcular el próximo número de versión correlativo
+    const versionNumber = files.length + 1;
+    const safeVersion = `v${versionNumber}`;
+    // Crear nombre de archivo: serviceNumber-canal-vN.json
     const filename = `${serviceNumber}-${safeCanal}-${safeVersion}.json`;
     const filePath = path.join(configDir, filename);
-    
     // Crear objeto de configuración
-
     const config = {
       serviceNumber,
       serviceName: serviceName || `Servicio ${serviceNumber}`,
@@ -56,10 +54,8 @@ router.post('/save', async (req, res) => {
       request: request || {}
     };
     console.log('[ServiceConfig] POST /save - Configuration object to save:', JSON.stringify(config, null, 2));
-
     // Guardar configuración en archivo JSON
     await fs.writeJson(filePath, config, { spaces: 2 });
-    
     // Emitir evento de configuración guardada
     if (global.io) {
       console.log(`[WebSocket] Emitiendo evento config:saved para servicio ${serviceNumber}`);
@@ -90,14 +86,12 @@ router.post('/save', async (req, res) => {
         console.warn('[ServiceConfig] No se pudo guardar evento:', eventError);
       }
     }
-    
     // Devolver respuesta exitosa
     res.json({
       success: true,
       message: `Configuración guardada exitosamente`,
       filename: filename
     });
-    
   } catch (error) {
     console.error('Error al guardar configuración:', error);
     res.status(500).json({ 
@@ -118,24 +112,6 @@ router.get('/list', async (req, res) => {
     const forceRefresh = refresh === 'true';
     console.log(`[CONFIG] Listando configuraciones${service_number ? ` para servicio ${service_number}` : ' (todas)'}${forceRefresh ? ' (forzando recarga)' : ''}`);
     
-    // IMPORTANTE: Forzar actualización de la caché de servicios cuando se solicita específicamente
-    // o cuando se carga la configuración por primera vez
-    /* // Se comenta esta sección para evitar la doble recarga de la caché de servicios.
-       // La actualización de la caché de servicios debe manejarse explícitamente
-       // a través del endpoint /api/services?refresh=true o /api/services/refresh.
-    if (forceRefresh) {
-      try {
-        console.log("[CONFIG] Forzando recarga de caché de servicios para actualizar la lista (AHORA COMENTADO)...");
-        // const serviceRouter = require('./services');
-        // await serviceRouter.getAvailableServices(true);
-        // console.log("[CONFIG] Caché de servicios actualizada exitosamente (AHORA COMENTADO)");
-      } catch (cacheError) {
-        console.error("[CONFIG] Error al recargar caché de servicios (AHORA COMENTADO):", cacheError);
-      }
-    }
-    */
-    
-    // Verificar si el directorio existe
     if (!fs.existsSync(configDir)) {
       console.log(`[CONFIG] Directorio de configuraciones no existe: ${configDir}`);
       return res.json({ configs: [] });
@@ -147,35 +123,26 @@ router.get('/list', async (req, res) => {
     
     // Obtener información de cada configuración
     const configs = [];
-    const processedConfigs = new Set(); // Para evitar configs duplicadas
-    
     for (const file of files) {
       try {
-        // Leer el contenido del archivo JSON directamente
         const filePath = path.join(configDir, file);
         const config = await fs.readJson(filePath);
-        
-        // Extraer la información necesaria del contenido del archivo
         const serviceNumber = config.serviceNumber || "";
+        if (service_number && serviceNumber !== service_number) continue;
         
-        // Filtrar por número de servicio si se especificó
-        if (service_number && serviceNumber !== service_number) {
-          continue;
+        // Extraer versión del nombre del archivo
+        let version = 'v1';
+        const versionMatch = file.match(/-v(\d+)\.json$/);
+        if (versionMatch) {
+          version = `v${versionMatch[1]}`;
         }
-        
-        // Crear una clave única para esta configuración para evitar duplicados
-        const configKey = `${serviceNumber}-${config.canal}-${config.version}`;
-        
-        // Si ya hemos procesado una configuración idéntica, saltarla
-        if (processedConfigs.has(configKey)) continue;
-        processedConfigs.add(configKey);
         
         configs.push({
           id: file.replace('.json', ''),
           serviceNumber,
           serviceName: config.serviceName || `Servicio ${serviceNumber}`,
           canal: config.canal || "",
-          version: config.version || "v1",
+          version: version,
           filename: file,
           timestamp: config.timestamp || new Date().toISOString()
         });
@@ -227,6 +194,61 @@ router.get('/get/:id', async (req, res) => {
     console.error('Error al obtener configuración:', error);
     res.status(500).json({ 
       error: `Error al obtener configuración: ${error.message}` 
+    });
+  }
+});
+
+/**
+ * @route DELETE /service-config/delete/:id
+ * @description Elimina una configuración específica por ID o nombre de archivo
+ */
+router.delete('/delete/:id', async (req, res) => {
+  try {
+    let { id } = req.params;
+    
+    // Validar ID para evitar path traversal
+    if (!id || id.includes('..')) {
+      return res.status(400).json({ error: 'Identificador de configuración inválido' });
+    }
+    
+    // Usar la utilidad para buscar el archivo con formato nuevo o antiguo
+    const filePath = configFormatUpdater.getConfigFilePath(configDir, id);
+    
+    // Verificar si se encontró el archivo
+    if (!filePath) {
+      return res.status(404).json({ error: 'Configuración no encontrada' });
+    }
+    
+    // Leer la configuración antes de eliminarla para obtener info
+    const config = await fs.readJson(filePath);
+    
+    // Eliminar el archivo
+    await fs.remove(filePath);
+    
+    console.log(`[CONFIG] Configuración eliminada: ${id}`);
+    
+    // Emitir evento de configuración eliminada
+    if (global.io) {
+      console.log(`[WebSocket] Emitiendo evento config:deleted para servicio ${config.serviceNumber}`);
+      global.io.emit('config:deleted', { 
+        serviceNumber: config.serviceNumber,
+        canal: config.canal,
+        version: config.version,
+        filename: id,
+        timestamp: new Date().toISOString()
+      });
+    }
+    
+    res.json({
+      success: true,
+      message: `Configuración eliminada exitosamente`,
+      filename: id
+    });
+    
+  } catch (error) {
+    console.error('Error al eliminar configuración:', error);
+    res.status(500).json({ 
+      error: `Error al eliminar configuración: ${error.message}` 
     });
   }
 });
