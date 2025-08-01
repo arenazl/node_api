@@ -60,6 +60,7 @@
   width: 100%;
   border-collapse: collapse;
   margin-bottom: 20px;
+  table-layout: fixed;
 }
 
 #servicesTable th,
@@ -78,6 +79,18 @@
   background-color: var(--bg-secondary);
 }
 
+/* Anchos específicos para columnas de tabla de servicios */
+#servicesTable th:nth-child(1) { width: 20%; } /* Servicio */
+#servicesTable th:nth-child(2) { width: 60%; } /* Nombre */
+#servicesTable th:nth-child(3) { width: 20%; } /* Acciones */
+
+/* Para móviles, ajustar anchos de columnas de servicios */
+@media (max-width: 768px) {
+  #servicesTable th:nth-child(1), #servicesTable td:nth-child(1) { width: 25% !important; }
+  #servicesTable th:nth-child(2), #servicesTable td:nth-child(2) { width: 50% !important; }
+  #servicesTable th:nth-child(3), #servicesTable td:nth-child(3) { width: 25% !important; }
+}
+
 /* Action buttons */
 .action-buttons {
   display: flex;
@@ -93,6 +106,7 @@
 #versionsTable {
   width: 100%;
   border-collapse: collapse;
+  table-layout: fixed;
 }
 
 #versionsTable th,
@@ -109,6 +123,30 @@
 
 #versionsTable tr:nth-child(even) {
   background-color: var(--bg-secondary);
+}
+
+/* Anchos específicos para columnas de tabla de versiones */
+#versionsTable th:nth-child(1) { width: 70%; } /* Archivo */
+#versionsTable th:nth-child(2) { width: 30%; } /* Acciones - más espacio para iconos */
+
+/* Para móviles, ajustar anchos de columnas de versiones */
+@media (max-width: 768px) {
+  #versionsTable th:nth-child(1), #versionsTable td:nth-child(1) { width: 60% !important; }
+  #versionsTable th:nth-child(2), #versionsTable td:nth-child(2) { width: 40% !important; }
+}
+
+/* Asegurar que los botones en la columna de acciones tengan suficiente espacio */
+#versionsTable td:nth-child(2) {
+  min-width: 100px;
+  text-align: center;
+}
+
+#versionsTable .action-buttons {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
 }
 
 .loading-spinner {
@@ -169,4 +207,24 @@
   color: var(--primary-color, #3b82f6); /* Color de texto para pestaña activa, con fallback */
   border-bottom-color: var(--primary-color, #3b82f6); /* Color del borde inferior para pestaña activa, con fallback */
   font-weight: 600;
+}
+
+/* Botón de eliminar servicio completo */
+.action-btn.danger-btn {
+  background-color: var(--danger-color, #ef4444);
+  color: white;
+  border: 1px solid var(--danger-color, #ef4444);
+}
+
+.action-btn.danger-btn:hover {
+  background-color: #dc2626;
+  border-color: #dc2626;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(220, 38, 38, 0.2);
+}
+
+.action-btn.danger-btn:active {
+  background-color: #b91c1c;
+  border-color: #b91c1c;
+  transform: translateY(0);
 }

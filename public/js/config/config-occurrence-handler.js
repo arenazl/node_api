@@ -64,11 +64,16 @@ const ConfigOccurrenceHandler = {
      * @private
      */
     _createFieldRow: function(element, tbody, level, elementId, section) {
-        // Create a row for a field
-        const row = document.createElement('tr');
-        row.classList.add('field-row');
-        row.dataset.level = level;
-        row.dataset.elementId = elementId; // Unique ID for this element instance
+        console.log('=== _createFieldRow DEBUG ===');
+        console.log('Element:', element);
+        console.log('Level:', level, 'Section:', section, 'ElementId:', elementId);
+        
+        try {
+            // Create a row for a field
+            const row = document.createElement('tr');
+            row.classList.add('field-row');
+            row.dataset.level = level;
+            row.dataset.elementId = elementId; // Unique ID for this element instance
 
         if (level > 0) {
             row.classList.add(`level-${level}-field`);
@@ -90,6 +95,40 @@ const ConfigOccurrenceHandler = {
         lengthCell.textContent = element.length || '';
         row.appendChild(lengthCell);
 
+        // Field required/obligatorio cell
+        const requiredCell = document.createElement('td');
+        let formattedRequired = '-';
+        
+        // Verificar si ConfigUtils está disponible
+        if (typeof ConfigUtils !== 'undefined' && ConfigUtils.formatRequiredText) {
+            formattedRequired = ConfigUtils.formatRequiredText(element.required);
+        } else {
+            // Fallback manual si ConfigUtils no está disponible
+            if (element.required && typeof element.required === 'string' && element.required.trim() !== '') {
+                const text = element.required.trim();
+                // Algoritmo simple: toLowerCase + properCase
+                const lowerText = text.toLowerCase();
+                formattedRequired = lowerText.charAt(0).toUpperCase() + lowerText.slice(1);
+            }
+        }
+        
+        requiredCell.textContent = formattedRequired;
+        
+        // Si contiene "obligatorio", resaltar con estilo (sin color rojo)
+        if (element.required && typeof element.required === 'string' && element.required.toLowerCase().includes('obligatorio')) {
+            requiredCell.style.fontWeight = 'bold';
+        }
+        
+        // Si el texto es largo, agregar tooltip
+        if (formattedRequired && formattedRequired.length > 20) {
+            requiredCell.title = formattedRequired;
+            requiredCell.style.cursor = 'help';
+            // Reducir tamaño de fuente para textos largos
+            requiredCell.style.fontSize = '0.8rem';
+        }
+        requiredCell.style.textAlign = 'left';
+        row.appendChild(requiredCell);
+
         // Field value cell with input
         const valueCell = document.createElement('td');
         const input = ConfigUtils.createFieldInput(element);
@@ -100,7 +139,17 @@ const ConfigOccurrenceHandler = {
         valueCell.appendChild(input);
         row.appendChild(valueCell);
 
-        tbody.appendChild(row);
+            tbody.appendChild(row);
+            console.log('=== _createFieldRow SUCCESS ===');
+            
+        } catch (error) {
+            console.error('=== _createFieldRow ERROR ===');
+            console.error('Error creando fila para campo:', element.name);
+            console.error('Error:', error);
+            console.error('Stack:', error.stack);
+            console.error('=============================');
+            throw error; // Re-throw para que se vea en la UI
+        }
     },
 
     /**
@@ -113,6 +162,23 @@ const ConfigOccurrenceHandler = {
      * @private
      */
     _createOccurrenceRow: function(element, tbody, section, level, elementId) {
+        console.log('=== DEBUG OCCURRENCE ===');
+        console.log('Element completo:', element);
+        console.log('Level:', level);
+        console.log('Section:', section);
+        console.log('ElementId:', elementId);
+        console.log('Element.fields length:', element.fields ? element.fields.length : 'no fields');
+        if (element.fields) {
+            element.fields.forEach((field, idx) => {
+                console.log(`Campo ${idx}:`, {
+                    name: field.name,
+                    required: field.required,
+                    fieldType: field.fieldType,
+                    type: field.type
+                });
+            });
+        }
+        console.log('========================');
         // Create a container row for the occurrence definition
         const occurrenceDefId = element.id || `occDef_${this.occurrenceCounter++}`; // Use ID from JSON or generate one
         const occRow = document.createElement('tr');
@@ -129,7 +195,7 @@ const ConfigOccurrenceHandler = {
 
         // Occurrence name cell with proper indentation and controls
         const occNameCell = document.createElement('td');
-        occNameCell.colSpan = 4; // Span across all columns
+        occNameCell.colSpan = 5; // Span across all columns (updated for obligatorio column)
         occNameCell.style.paddingLeft = `${level * 20}px`; // Indentation using padding
         occNameCell.classList.add('occurrence-header-cell'); // Add class for styling
 
@@ -215,7 +281,7 @@ const ConfigOccurrenceHandler = {
         instanceRow.dataset.level = level + 1; // Instance content is one level deeper
 
         const instanceCell = document.createElement('td');
-        instanceCell.colSpan = 4;
+        instanceCell.colSpan = 5; // Updated for obligatorio column
         instanceCell.style.paddingLeft = `${(level + 1) * 20}px`; // Indent instance header
         instanceCell.classList.add('instance-header-cell'); // Add class for styling
 
@@ -266,8 +332,28 @@ const ConfigOccurrenceHandler = {
         if (occurrenceElement.elements && Array.isArray(occurrenceElement.elements)) {
             elementsToProcess = occurrenceElement.elements;
         } else if (occurrenceElement.fields && Array.isArray(occurrenceElement.fields)) {
-            // If using 'fields', ensure they look like 'elements' (add type if missing)
-            elementsToProcess = occurrenceElement.fields.map(f => ({ ...f, type: f.type || 'field' }));
+            // If using 'fields', ensure they look like 'elements' (add type if missing and preserve all properties)
+            console.log('=== DEBUG FIELDS MAPPING ===');
+            console.log('Original fields:', occurrenceElement.fields);
+            
+            elementsToProcess = occurrenceElement.fields.map(f => {
+                const mapped = { 
+                    ...f, 
+                    type: f.type || 'field',
+                    fieldType: f.fieldType || f.type,
+                    required: f.required || '',
+                    values: f.values || '',
+                    description: f.description || ''
+                };
+                console.log(`Mapping field ${f.name}:`, {
+                    original: f,
+                    mapped: mapped
+                });
+                return mapped;
+            });
+            
+            console.log('Elements to process after mapping:', elementsToProcess);
+            console.log('============================');
         }
 
         console.log(`Adding instance ${instanceId} content. Children to process:`, elementsToProcess.length);
@@ -288,33 +374,23 @@ const ConfigOccurrenceHandler = {
                 let nestedOccDefId = null; // Definition ID for nested occurrences
 
                 if (element.type === 'field') {
-                    newRow = document.createElement('tr');
-                    newRow.classList.add('field-row', `level-${level + 2}-field`);
+                    // Create a temporary tbody to use _createFieldRow
+                    const tempTbody = document.createElement('tbody');
+                    const fieldElementId = `${instanceId}_field_${index}`;
+                    
+                    // Use the standard _createFieldRow method to ensure all 5 columns are created
+                    this._createFieldRow(element, tempTbody, level + 2, fieldElementId, section);
+                    newRow = tempTbody.firstChild;
+                    
+                    // Add instance-specific data attributes
                     newRow.dataset.instanceId = instanceId; // Belongs to this instance
                     newRow.dataset.parentDefId = occurrenceDefId; // Belongs to parent occurrence type
-                    newRow.dataset.level = level + 2;
-
-                    const nameCell = document.createElement('td');
-                    nameCell.style.paddingLeft = `${(level + 2) * 20}px`; // Indent field
-                    nameCell.textContent = element.name;
-                    newRow.appendChild(nameCell);
-
-                    const typeCell = document.createElement('td');
-                    typeCell.textContent = element.fieldType || '';
-                    newRow.appendChild(typeCell);
-
-                    const lengthCell = document.createElement('td');
-                    lengthCell.textContent = element.length || '';
-                    newRow.appendChild(lengthCell);
-
-                    const valueCell = document.createElement('td');
-                    const input = ConfigUtils.createFieldInput(element);
-                    input.dataset.fieldName = element.name;
-                    input.dataset.section = section;
-                    input.dataset.instanceId = instanceId; // Link input to instance
-                    input.dataset.level = level + 2;
-                    valueCell.appendChild(input);
-                    newRow.appendChild(valueCell);
+                    
+                    // Update the input with instance-specific data
+                    const input = newRow.querySelector('.config-field-input');
+                    if (input) {
+                        input.dataset.instanceId = instanceId; // Link input to instance
+                    }
 
                 } else if (isNestedOccurrence) {
                     nestedOccDefId = element.id || `occDef_nested_${this.occurrenceCounter++}`;
@@ -326,7 +402,7 @@ const ConfigOccurrenceHandler = {
                     newRow.dataset.level = level + 2; // Nested header is level + 2
 
                     const nestedCell = document.createElement('td');
-                    nestedCell.colSpan = 4;
+                    nestedCell.colSpan = 5;
                     nestedCell.style.paddingLeft = `${(level + 2) * 20}px`; // Indent nested header
                     nestedCell.classList.add('occurrence-header-cell');
 
@@ -439,7 +515,7 @@ const ConfigOccurrenceHandler = {
         endMarkerRow.dataset.level = level + 1; // Same level as the instance header
 
         const endMarkerCell = document.createElement('td');
-        endMarkerCell.colSpan = 4;
+        endMarkerCell.colSpan = 5; // Updated for obligatorio column
         endMarkerCell.style.paddingLeft = `${(level + 1) * 20}px`; // Indent like instance header
         endMarkerCell.style.height = '5px'; // Make it a thin line
         endMarkerCell.style.borderTop = '1px solid transparent'; // Add a thin top border

@@ -262,18 +262,18 @@
   }
 }
 
-/* Tabla de columnas simplificada para móvil */
+/* Tabla de configuración de requerimiento simplificada para móvil */
 @media (max-width: 768px) {
-  /* Reducir tamaños de columnas para mejor visualización en móvil */
-  th:nth-child(1), td:nth-child(1) { width: 30% !important; }
-  th:nth-child(2), td:nth-child(2) { width: 15% !important; }
-  th:nth-child(3), td:nth-child(3) { width: 15% !important; }
-  th:nth-child(4), td:nth-child(4) { width: 15% !important; }
-  th:nth-child(5), td:nth-child(5) { width: 25% !important; min-width: 150px !important; }
-  th:nth-child(6), td:nth-child(6) { display: none !important; } /* Ocultar la columna de descripción en móvil */
+  /* Reducir tamaños de columnas para mejor visualización en móvil - solo para tabla de configuración */
+  #requestConfigTable th:nth-child(1), #requestConfigTable td:nth-child(1) { width: 30% !important; }
+  #requestConfigTable th:nth-child(2), #requestConfigTable td:nth-child(2) { width: 15% !important; }
+  #requestConfigTable th:nth-child(3), #requestConfigTable td:nth-child(3) { width: 15% !important; }
+  #requestConfigTable th:nth-child(4), #requestConfigTable td:nth-child(4) { width: 15% !important; }
+  #requestConfigTable th:nth-child(5), #requestConfigTable td:nth-child(5) { width: 25% !important; min-width: 150px !important; }
+  #requestConfigTable th:nth-child(6), #requestConfigTable td:nth-child(6) { display: none !important; } /* Ocultar la columna de descripción en móvil */
   
-  /* Mostrar descripción como tooltip o menú desplegable */
-  td:nth-child(1) {
+  /* Mostrar descripción como tooltip o menú desplegable - solo para tabla de configuración */
+  #requestConfigTable td:nth-child(1) {
     position: relative !important;
   }
 }

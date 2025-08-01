@@ -1,0 +1,11 @@
+{
+  "value": "000110SD1210000000000100120052011090909P0425831047                                             00     ",
+  "serviceNumber": "1210",
+  "timestamp": "2025-08-01T15:00:41.751Z",
+  "sourceFile": "20250801T15004_1210_v1.xls",
+  "foundSheetName": "Trama Ejemplo",
+  "foundRowContaining000": "000110SD1210000000000100120052011090909P0425831047                                             00     01",
+  "missingTab": false,
+  "availableTabs": 3,
+  "error": null
+}

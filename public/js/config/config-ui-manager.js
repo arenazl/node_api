@@ -85,7 +85,7 @@ const ConfigUIManager = {
 
         // Request table
         const requestTbody = this.requestConfigTable.querySelector('tbody');
-        requestTbody.innerHTML = '<tr class="empty-message"><td colspan="4" class="text-center">Seleccione un servicio para cargar los campos del requerimiento</td></tr>';
+        requestTbody.innerHTML = '<tr class="empty-message"><td colspan="5" class="text-center">Seleccione un servicio para cargar los campos del requerimiento</td></tr>';
     },
     
     /**
@@ -150,7 +150,7 @@ const ConfigUIManager = {
         // Check for service structure
         if (!serviceStructure || (!serviceStructure.request && !serviceStructure.header_structure)) {
             console.warn("Invalid service structure - missing both request and header sections.");
-            tbody.innerHTML = '<tr class="empty-message"><td colspan="4" class="text-center">Estructura de servicio inválida o vacía.</td></tr>';
+            tbody.innerHTML = '<tr class="empty-message"><td colspan="5" class="text-center">Estructura de servicio inválida o vacía.</td></tr>';
             return;
         }
 
@@ -169,9 +169,9 @@ const ConfigUIManager = {
                     name: field.name,
                     length: field.length,
                     fieldType: field.type,
-                    required: field.required,
-                    values: field.values,
-                    description: field.description
+                    required: field.required || '',
+                    values: field.values || '',
+                    description: field.description || ''
                 }));
             
             allElements = [...allElements, ...headerElements];
@@ -195,7 +195,7 @@ const ConfigUIManager = {
         console.log("Total elements to process:", allElements.length);
         
         if (allElements.length === 0) {
-            tbody.innerHTML = '<tr class="empty-message"><td colspan="4" class="text-center">No hay campos definidos para este servicio.</td></tr>';
+            tbody.innerHTML = '<tr class="empty-message"><td colspan="5" class="text-center">No hay campos definidos para este servicio.</td></tr>';
             return;
         }
 
@@ -539,10 +539,12 @@ const ConfigUIManager = {
         let dateStr = '';
         if (config.timestamp) {
             const date = new Date(config.timestamp);
-            dateStr = date.toLocaleDateString('es-AR') + ' ' + date.toLocaleTimeString('es-AR');
+            dateStr = date.toLocaleDateString('es-AR') + ' ' + date.toLocaleTimeString('es-AR', { hour12: false });
         }
         
-        details.textContent = `Canal: ${config.canal} | Versión: ${config.version} | ${dateStr}`;
+        // Usar displayName (nombre completo del archivo) o construir con canal + versión
+        const displayText = config.displayName || config.filename?.replace('.json', '') || `${config.canal} - ${config.version}`;
+        details.textContent = `${displayText} | ${dateStr}`;
         infoSection.appendChild(details);
         
         item.appendChild(infoSection);

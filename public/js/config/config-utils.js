@@ -194,6 +194,59 @@ const ConfigUtils = {
     },
 
     /**
+     * Escapa caracteres HTML especiales para evitar inyección
+     * @param {string} text - Texto a escapar
+     * @returns {string} - Texto escapado
+     */
+    escapeHtml: function(text) {
+        if (!text || typeof text !== 'string') return text;
+        
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    },
+
+    /**
+     * Formatea el texto de campo obligatorio aplicando toLowerCase + properCase
+     * @param {string|boolean} required - Valor del campo required
+     * @returns {string} - Texto formateado o '-' si no aplica
+     */
+    formatRequiredText: function(required) {
+        // Si no hay valor, retornar guión
+        if (!required || required === '' || required === null || required === undefined) {
+            return '-';
+        }
+        
+        // Si required es un string, aplicar toLowerCase + properCase
+        if (typeof required === 'string') {
+            const text = required.trim();
+            if (text === '') {
+                return '-';
+            }
+            
+            // Algoritmo simple: toLowerCase + properCase
+            const lowerText = text.toLowerCase();
+            const properCase = lowerText.charAt(0).toUpperCase() + lowerText.slice(1);
+            return properCase;
+        }
+        
+        // Si es boolean true, mostrar '-' (no hay texto específico)
+        if (required === true) {
+            return '-';
+        }
+        
+        // Para cualquier otro caso, convertir a string y aplicar el mismo algoritmo
+        const text = String(required).trim();
+        if (text === '' || text === 'false') {
+            return '-';
+        }
+        
+        // Algoritmo simple: toLowerCase + properCase
+        const lowerText = text.toLowerCase();
+        return lowerText.charAt(0).toUpperCase() + lowerText.slice(1);
+    },
+
+    /**
      * Parsea las opciones desde un string de valores o array
      * @param {string|Array} values - String con opciones (ej: "1-Opción 1\n2-Opción 2") o array de valores
      * @returns {Array} - Array de objetos {value, label}
@@ -230,18 +283,29 @@ const ConfigUtils = {
         }
 
         const options = [];
-        const lines = valuesStr.split(/\n|\r\n/).filter(line => line.trim() !== '');
+        
+        // Normalizar el string para manejar los casos con múltiples espacios
+        // Este es el caso del campo que está fallando con valores como:
+        // "0 = todos\n 1 = En fase de propuesta\n 2 = Autorizado..."
+        const normalizedStr = valuesStr
+            .replace(/\r\n/g, '\n') // Normalizar saltos de línea
+            .replace(/\n\s+(\d+)\s*=/g, '\n$1 =') // Normalizar líneas con número = valor
+            .trim();
+        
+        const lines = normalizedStr.split('\n').filter(line => line.trim() !== '');
 
         for (const line of lines) {
             const trimmedLine = line.trim();
-            const codeMatch = trimmedLine.match(/^([0-9a-zA-Z]+)[-=\s.]+(.+)$/);
+            // Mejorar el regex para capturar correctamente "0 = todos" o "1 = En fase..."
+            const codeMatch = trimmedLine.match(/^([0-9a-zA-Z]+)\s*[-=]\s*(.+)$/);
 
             if (codeMatch) {
                 options.push({
                     value: codeMatch[1].trim(),
                     label: trimmedLine
                 });
-            } else {
+            } else if (trimmedLine.length > 0) {
+                // Solo agregar si la línea no está vacía
                 options.push({
                     value: trimmedLine,
                     label: trimmedLine
@@ -299,7 +363,7 @@ const ConfigUtils = {
             // Añadir opciones al select
             options.forEach(option => {
                 const optionElement = document.createElement('option');
-                optionElement.value = option.value;
+                optionElement.value = this.escapeHtml(option.value);
                 optionElement.textContent = option.label;
                 optionElement.dataset.fullValue = option.label;
                 input.appendChild(optionElement);
@@ -358,8 +422,11 @@ const ConfigUtils = {
             // Usar la descripción completa del values como placeholder si existe
             if (field.values && typeof field.values === 'string' && field.values.trim()) {
                 input.placeholder = field.values.trim();
+                // Agregar tooltip con el texto completo
+                input.title = field.values.trim();
             } else {
                 input.placeholder = dateFormat.format || 'AAAAMMDD';
+                input.title = dateFormat.format || 'AAAAMMDD';
             }
 
             // Aplicar máscara de fecha basada en el formato
@@ -445,14 +512,18 @@ const ConfigUtils = {
         // Añadir clase común y clase específica por tipo
         input.className = className + ' ' + fieldType + '-input';
 
-        // Añadir placeholder si existe
+        // Añadir placeholder y tooltip si existe
         if (field.description) {
             input.placeholder = field.description;
+            // Agregar tooltip con el texto completo
+            input.title = field.description;
         } else if (field.values && typeof field.values === 'string' && !input.placeholder &&
                   fieldType === 'alfanumerico') {
             const valueTrimmed = field.values.trim();
             if (valueTrimmed && !valueTrimmed.includes('\n')) {
                 input.placeholder = valueTrimmed;
+                // Agregar tooltip con el texto completo
+                input.title = valueTrimmed;
             }
         }
 

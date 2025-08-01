@@ -58,13 +58,7 @@ router.delete('/clear-dirs', async (req, res) => {
       }
     }
     
-    // Si se tiene una instancia de Socket.io, notificar a los clientes
-    if (global.io) {
-      global.io.emit('directories:cleared', {
-        timestamp: new Date().toISOString(),
-        results: results
-      });
-    }
+    // Los eventos se manejan via EventBus local en el frontend
     
     // Forzar refresco de la caché de servicios
     if (global.serviceCache) {
@@ -84,6 +78,138 @@ router.delete('/clear-dirs', async (req, res) => {
     return res.status(500).json({
       success: false,
       message: `Error al limpiar directorios: ${error.message}`
+    });
+  }
+});
+
+/**
+ * @route DELETE /system-maintenance/delete-service-complete
+ * @description Elimina completamente un servicio y todos sus archivos relacionados
+ */
+router.delete('/delete-service-complete', async (req, res) => {
+  try {
+    const { serviceNumber, filename } = req.body;
+    
+    // Validar parámetros requeridos
+    if (!serviceNumber) {
+      return res.status(400).json({
+        success: false,
+        error: 'Número de servicio es requerido'
+      });
+    }
+    
+    if (!filename) {
+      return res.status(400).json({
+        success: false, 
+        error: 'Nombre de archivo es requerido'
+      });
+    }
+    
+    console.log(`[System Maintenance] Eliminando servicio completo: ${serviceNumber} (${filename})`);
+    
+    const deletedFiles = [];
+    const errors = [];
+    
+    // Directorios donde buscar archivos relacionados al servicio
+    const directories = [
+      { name: 'uploads', path: path.join(__dirname, '..', 'JsonStorage', 'uploads') },
+      { name: 'structures', path: path.join(__dirname, '..', 'JsonStorage', 'structures') },
+      { name: 'headers', path: path.join(__dirname, '..', 'JsonStorage', 'headers') },
+      { name: 'settings', path: path.join(__dirname, '..', 'JsonStorage', 'settings') }
+    ];
+    
+    // Buscar y eliminar archivos en cada directorio
+    for (const dir of directories) {
+      if (!fs.existsSync(dir.path)) {
+        console.log(`[System Maintenance] Directorio no existe: ${dir.path}`);
+        continue;
+      }
+      
+      try {
+        const files = fs.readdirSync(dir.path);
+        
+        for (const file of files) {
+          let shouldDelete = false;
+          
+          // Determinar si el archivo debe ser eliminado basado en el directorio
+          switch (dir.name) {
+            case 'uploads':
+              // Eliminar archivo Excel específico
+              shouldDelete = file === filename;
+              break;
+            case 'structures':
+              // Eliminar estructuras que contengan el número de servicio
+              shouldDelete = file.includes(`_${serviceNumber}_`) || file.startsWith(`${serviceNumber}_`);
+              break;
+            case 'headers':
+              // Eliminar headers que contengan el número de servicio
+              shouldDelete = file.startsWith(`${serviceNumber}_`) || file.includes(`${serviceNumber}_`);
+              break;
+            case 'settings':
+              // Eliminar configuraciones que empiecen con el número de servicio
+              shouldDelete = file.startsWith(`${serviceNumber}-`) && file.endsWith('.json');
+              break;
+          }
+          
+          if (shouldDelete) {
+            const filePath = path.join(dir.path, file);
+            try {
+              await fs.remove(filePath);
+              deletedFiles.push(`${dir.name}/${file}`);
+              console.log(`[System Maintenance] Eliminado: ${dir.name}/${file}`);
+            } catch (deleteError) {
+              errors.push(`Error eliminando ${dir.name}/${file}: ${deleteError.message}`);
+              console.error(`[System Maintenance] Error eliminando ${filePath}:`, deleteError);
+            }
+          }
+        }
+      } catch (dirError) {
+        errors.push(`Error accediendo directorio ${dir.name}: ${dirError.message}`);
+        console.error(`[System Maintenance] Error accediendo directorio ${dir.path}:`, dirError);
+      }
+    }
+    
+    // Limpiar caché del servicio
+    if (global.serviceCache) {
+      // Eliminar del caché de servicios
+      if (global.serviceCache.services) {
+        global.serviceCache.services = global.serviceCache.services.filter(
+          service => service.service_number !== serviceNumber
+        );
+      }
+      
+      // Eliminar estructura específica del caché
+      if (global.serviceCache.structures && global.serviceCache.structures[serviceNumber]) {
+        delete global.serviceCache.structures[serviceNumber];
+      }
+      
+      console.log(`[System Maintenance] Cache limpiado para servicio ${serviceNumber}`);
+    }
+    
+    // Preparar respuesta
+    const response = {
+      success: true,
+      message: `Servicio ${serviceNumber} eliminado completamente`,
+      serviceNumber: serviceNumber,
+      filename: filename,
+      deletedFiles: deletedFiles,
+      deletedCount: deletedFiles.length
+    };
+    
+    if (errors.length > 0) {
+      response.warnings = errors;
+      console.warn(`[System Maintenance] Eliminación completada con advertencias:`, errors);
+    }
+    
+    console.log(`[System Maintenance] Eliminación completada. Archivos eliminados: ${deletedFiles.length}`);
+    
+    return res.json(response);
+    
+  } catch (error) {
+    console.error('[System Maintenance] Error al eliminar servicio completo:', error);
+    return res.status(500).json({
+      success: false,
+      error: `Error interno al eliminar servicio: ${error.message}`
     });
   }
 });

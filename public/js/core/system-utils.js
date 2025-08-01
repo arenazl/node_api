@@ -15,8 +15,7 @@ const SystemUtils = {
         // Crear el botón de limpieza
         this._createCleanButton();
 
-        // Inicializar eventos de sockets para actualizaciones en tiempo real
-        this._initSocketEvents();
+        // Los eventos se manejan via EventBus local
 
         console.log('SystemUtils inicializado');
     },
@@ -177,32 +176,7 @@ const SystemUtils = {
         });
     },
 
-    // Inicializar eventos de sockets para actualizaciones en tiempo real
-    _initSocketEvents: function() {
-        try {
-            // Verificar si Socket.io está disponible
-            if (typeof io !== 'undefined') {
-                const socket = io();
-
-                // Escuchar evento de directorios limpiados
-                socket.on('directories:cleared', (data) => {
-                    console.log('Evento de directorios limpiados recibido:', data);
-
-                    // Mostrar notificación
-                    toastr.info('Los directorios han sido limpiados por otro usuario');
-
-                    // Actualizar servicios en la interfaz (si existe la función)
-                    if (typeof updateServicesList === 'function') {
-                        updateServicesList();
-                    }
-                });
-            } else {
-                console.warn('Socket.io no está disponible, las actualizaciones en tiempo real no funcionarán');
-            }
-        } catch (error) {
-            console.error('Error al inicializar eventos de sockets:', error);
-        }
-    }
+    // Los eventos se manejan via EventBus local
 };
 
 // Inicializar cuando el DOM esté cargado

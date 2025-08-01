@@ -104,6 +104,9 @@
   border-radius: var(--radius);
   font-size: 0.875rem;
   transition: var(--transition);
+  /* Evitar que el texto del placeholder se corte */
+  text-overflow: ellipsis;
+  overflow: hidden;
 }
 
 .config-field-input:focus {
@@ -114,8 +117,98 @@
 
 .config-field-input::placeholder {
   color: #9ca3af;
-  font-size: 0.8125rem;
+  /* Reducir tamaño de fuente del placeholder para que quepa más texto */
+  font-size: 0.75rem;
+  /* Asegurar que el texto largo se muestre completo con ellipsis si es necesario */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
+
+/* Para inputs con placeholders muy largos en la tabla de requerimiento */
+#requestConfig .config-field-input::placeholder {
+  font-size: 0.7rem;
+  line-height: 1.2;
+}
+
+/* En hover, mostrar el placeholder completo como tooltip */
+.config-field-input[placeholder]:hover::before {
+  content: attr(placeholder);
+  position: absolute;
+  background: #333;
+  color: white;
+  padding: 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  white-space: normal;
+  word-wrap: break-word;
+  max-width: 300px;
+  z-index: 1000;
+  bottom: 100%;
+  left: 0;
+  margin-bottom: 5px;
+  display: none;
+}
+
+/* Ajuste para inputs dentro de celdas de tabla */
+#requestConfigTable td .config-field-input,
+#headerConfigTable td .config-field-input {
+  min-width: 150px;
+  max-width: 100%;
+}
+
+/* Estilos para la columna Obligatorio en la tabla de requerimiento */
+#requestConfigTable th:nth-child(4),
+#requestConfigTable td:nth-child(4) {
+  max-width: 150px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Tooltip para celdas con texto largo en columna Obligatorio */
+#requestConfigTable td:nth-child(4)[title] {
+  position: relative;
+}
+
+#requestConfigTable td:nth-child(4)[title]:hover::after {
+  content: attr(title);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #333;
+  color: white;
+  padding: 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  white-space: normal;
+  word-wrap: break-word;
+  max-width: 250px;
+  z-index: 1000;
+  margin-bottom: 5px;
+}
+
+/* Hacer que la columna Obligatorio sea un poco más angosta */
+#requestConfigTable {
+  table-layout: fixed;
+}
+
+#requestConfigTable th:nth-child(1) { width: 25%; } /* Campo */
+#requestConfigTable th:nth-child(2) { width: 15%; } /* Tipo */
+#requestConfigTable th:nth-child(3) { width: 10%; } /* Longitud */
+#requestConfigTable th:nth-child(4) { width: 20%; } /* Obligatorio */
+#requestConfigTable th:nth-child(5) { width: 30%; } /* Valor */
+
+/* Anchos específicos para tabla de configuración del header */
+#headerConfigTable {
+  table-layout: fixed;
+}
+
+#headerConfigTable th:nth-child(1) { width: 30%; } /* Campo */
+#headerConfigTable th:nth-child(2) { width: 20%; } /* Tipo */
+#headerConfigTable th:nth-child(3) { width: 15%; } /* Longitud */
+#headerConfigTable th:nth-child(4) { width: 35%; } /* Valor */
 
 .config-actions {
   display: flex;

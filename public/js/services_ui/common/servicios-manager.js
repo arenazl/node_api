@@ -157,28 +157,6 @@ function updateServicesTable(services) {
         const actionsContainer = document.createElement('div');
         actionsContainer.className = 'action-buttons';
         
-        // Probe button
-        const probeButton = document.createElement('button');
-        probeButton.className = 'action-btn small';
-        probeButton.textContent = 'Probar';
-        probeButton.title = 'Probar el servicio';
-        probeButton.onclick = function() {
-            // Select this service in the API tab
-            const idaServiceSelect = document.getElementById('idaServiceSelect');
-            if (idaServiceSelect) {
-                idaServiceSelect.value = service.service_number;
-                // Trigger change event
-                const event = new Event('change');
-                idaServiceSelect.dispatchEvent(event);
-                
-                // Switch to API tab
-                const apiTabBtn = document.querySelector('.main-tab-btn[data-tab="servicios"]');
-                if (apiTabBtn) {
-                    apiTabBtn.click();
-                }
-            }
-        };
-        
         // Versions button
         const versionsButton = document.createElement('button');
         versionsButton.className = 'action-btn small secondary-btn';
@@ -189,7 +167,6 @@ function updateServicesTable(services) {
         };
         
         // Add buttons to container
-        actionsContainer.appendChild(probeButton);
         actionsContainer.appendChild(versionsButton);
         
         // Add container to cell
@@ -229,14 +206,14 @@ function showVersionsModal(serviceNumber, serviceName) {
     modal.style.display = 'block';
     
     // Fetch the versions for this service
-    fetchServiceVersions(serviceNumber);
+    fetchServiceVersions(serviceNumber, serviceName);
 }
 
 /**
  * Fetch all versions of a specific service using the /api/services/versions endpoint
  * @param {string} serviceNumber - The service number
  */
-async function fetchServiceVersions(serviceNumber) {
+async function fetchServiceVersions(serviceNumber, serviceName) {
     try {
         // console.log(`[servicios-manager] Cargando versiones para servicio ${serviceNumber}`);
         
@@ -250,7 +227,7 @@ async function fetchServiceVersions(serviceNumber) {
         // console.log(`[servicios-manager] Versiones recibidas para servicio ${serviceNumber}:`, data);
         
         // Update the versions table with the loaded versions
-        updateVersionsTable(data.versions || []);
+        updateVersionsTable(data.versions || [], serviceNumber, serviceName);
         
     } catch (error) {
         console.error('[servicios-manager] Error al cargar versiones:', error);
@@ -276,8 +253,10 @@ async function fetchServiceVersions(serviceNumber) {
 /**
  * Update the versions table with the provided files
  * @param {Array} files - Array of file objects
+ * @param {string} serviceNumber - The service number
+ * @param {string} serviceName - The service name
  */
-function updateVersionsTable(files) {
+function updateVersionsTable(files, serviceNumber, serviceName) {
     const versionsTable = document.getElementById('versionsTable');
     if (!versionsTable || !versionsTable.tBodies[0]) return;
     
@@ -302,7 +281,8 @@ function updateVersionsTable(files) {
         return dateB - dateA;
     });
     
-    files.forEach(file => {
+    files.forEach((file, index) => {
+        console.log(`[Debug] Processing file ${index}:`, file);
         const row = tbody.insertRow();
         
         // Date cell
@@ -388,10 +368,27 @@ function updateVersionsTable(files) {
         downloadButton.innerHTML = '<span style="font-size: 1.2em;">⬇️</span>';
         downloadButton.title = 'Descargar archivo';
         downloadButton.onclick = function() {
-            downloadExcelFile(file.filename);
+            // Usar excel_file en lugar de filename para la descarga
+            const fileToDownload = file.excel_file || file.filename;
+            console.log('[Debug] Download button clicked, file:', fileToDownload, 'from object:', file);
+            downloadExcelFile(fileToDownload);
+        };
+        
+        // Delete button
+        const deleteButton = document.createElement('button');
+        deleteButton.className = 'action-btn small danger-btn';
+        deleteButton.innerHTML = '<span style="font-size: 1.2em;">🗑️</span>';
+        deleteButton.title = 'Eliminar servicio completo (Excel, structure, settings, headers)';
+        deleteButton.style.marginLeft = '5px';
+        deleteButton.onclick = function() {
+            // Usar excel_file en lugar de filename para la eliminación
+            const fileToDelete = file.excel_file || file.filename;
+            console.log('[Debug] Delete button clicked, serviceNumber:', serviceNumber, 'file:', fileToDelete, 'serviceName:', serviceName);
+            deleteServiceCompletely(serviceNumber, fileToDelete, serviceName);
         };
         
         cellAction.appendChild(downloadButton);
+        cellAction.appendChild(deleteButton);
     });
 }
 
@@ -400,7 +397,10 @@ function updateVersionsTable(files) {
  * @param {string} filename - The filename to download
  */
 function downloadExcelFile(filename) {
-    if (!filename) {
+    console.log('[Debug] downloadExcelFile called with filename:', filename);
+    
+    if (!filename || filename.trim() === '') {
+        console.error('[Debug] Invalid filename:', filename);
         if (typeof ConfigUtils !== 'undefined') {
             ConfigUtils.showNotification('Nombre de archivo no válido', 'error');
         }
@@ -419,5 +419,123 @@ function downloadExcelFile(filename) {
     
     if (typeof ConfigUtils !== 'undefined') {
         ConfigUtils.showNotification(`Descargando archivo: ${filename}`, 'info');
+    }
+}
+
+/**
+ * Delete a service completely including all related files
+ * @param {string} serviceNumber - The service number
+ * @param {string} filename - The Excel filename 
+ * @param {string} serviceName - The service name
+ */
+async function deleteServiceCompletely(serviceNumber, filename, serviceName) {
+    // Confirm deletion with SweetAlert
+    if (typeof Swal !== 'undefined') {
+        const result = await Swal.fire({
+            title: '¿Eliminar servicio completo?',
+            html: `
+                <div style="text-align: left; margin: 15px 0;">
+                    <p><strong>Servicio:</strong> ${serviceNumber} - ${serviceName}</p>
+                    <p><strong>Archivo:</strong> ${filename}</p>
+                    <br>
+                    <p style="color: #dc3545; font-weight: bold;">⚠️ Esta acción eliminará PERMANENTEMENTE:</p>
+                    <ul style="color: #dc3545; text-align: left; margin: 10px 0;">
+                        <li>📄 Archivo Excel original</li>
+                        <li>🏗️ Estructura JSON procesada</li>
+                        <li>⚙️ Configuraciones guardadas</li>
+                        <li>📋 Headers de ejemplo</li>
+                    </ul>
+                    <p style="color: #dc3545;"><strong>Esta operación NO se puede deshacer.</strong></p>
+                </div>
+            `,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Sí, eliminar todo',
+            cancelButtonText: 'Cancelar',
+            reverseButtons: true
+        });
+        
+        if (!result.isConfirmed) {
+            return;
+        }
+    } else {
+        // Fallback a confirm básico si SweetAlert no está disponible
+        const confirmed = confirm(`¿Está seguro de eliminar completamente el servicio ${serviceNumber} - ${serviceName}?\n\nEsto eliminará:\n- Archivo Excel: ${filename}\n- Estructura procesada\n- Configuraciones guardadas\n- Headers de ejemplo\n\nEsta acción NO se puede deshacer.`);
+        if (!confirmed) {
+            return;
+        }
+    }
+    
+    try {
+        // Llamar al endpoint de eliminación completa
+        const response = await fetch('/system-maintenance/delete-service-complete', {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                serviceNumber: serviceNumber,
+                filename: filename
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            // Mostrar resultado exitoso
+            if (typeof ConfigUtils !== 'undefined') {
+                ConfigUtils.showNotification(`Servicio ${serviceNumber} eliminado completamente`, 'success');
+            }
+            
+            if (typeof Swal !== 'undefined') {
+                await Swal.fire({
+                    title: '¡Eliminación completada!',
+                    html: `
+                        <div style="text-align: left;">
+                            <p><strong>Servicio eliminado:</strong> ${serviceNumber}</p>
+                            <br>
+                            <p><strong>Archivos eliminados:</strong></p>
+                            <ul style="color: #28a745;">
+                                ${result.deletedFiles ? result.deletedFiles.map(file => `<li>✅ ${file}</li>`).join('') : '<li>Ver consola para detalles</li>'}
+                            </ul>
+                        </div>
+                    `,
+                    icon: 'success',
+                    timer: 4000,
+                    timerProgressBar: true
+                });
+            }
+            
+            // Cerrar el modal de versiones
+            const modal = document.getElementById('versionsModal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+            
+            // Recargar la lista de servicios para reflejar los cambios
+            if (typeof loadServicesData === 'function') {
+                loadServicesData();
+            }
+            
+        } else {
+            throw new Error(result.error || 'Error desconocido al eliminar servicio');
+        }
+        
+    } catch (error) {
+        console.error('Error al eliminar servicio:', error);
+        
+        if (typeof ConfigUtils !== 'undefined') {
+            ConfigUtils.showNotification(`Error al eliminar servicio: ${error.message}`, 'error');
+        }
+        
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Error al eliminar',
+                text: `No se pudo eliminar el servicio: ${error.message}`,
+                icon: 'error'
+            });
+        }
     }
 }

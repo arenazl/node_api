@@ -476,11 +476,14 @@ function loadConfigsForService(serviceNumber, selectElement) {
                         day: '2-digit',
                         month: '2-digit',
                         hour: '2-digit',
-                        minute: '2-digit'
+                        minute: '2-digit',
+                        hour12: false
                     });
                 }
                 
-                option.textContent = `${config.canal} - ${config.version || 'v1'} (${fecha})`;
+                // Usar displayName (nombre completo del archivo) en lugar de construir el texto
+                const displayText = config.displayName || config.filename?.replace('.json', '') || `${config.canal} - ${config.version || 'v1'}`;
+                option.textContent = fecha ? `${displayText} (${fecha})` : displayText;
                 
                 // Guardar datos completos en atributos de datos para referencia
                 option.dataset.canal = config.canal;

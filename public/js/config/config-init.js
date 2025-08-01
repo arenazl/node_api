@@ -23,6 +23,12 @@ initialize: function() {
     
     // Listen for service selection events
     window.addEventListener('fileUploaded', this.handleFileUploaded.bind(this));
+    
+    // Also listen via EventBus if available
+    if (window.EventBus && window.AppEvents) {
+        window.EventBus.subscribe(window.AppEvents.FILE_UPLOADED, this.handleFileUploaded.bind(this));
+        console.log('[ConfigInit] Suscrito a eventos FILE_UPLOADED via EventBus');
+    }
 },
 
 /**
@@ -338,22 +344,43 @@ initUIManager: function() {
      * Handle file uploaded event
      * @param {Event} event - Custom event with file details
      */
-    handleFileUploaded: function(event) {
-        if (event && event.detail) {
-            const serviceNumber = event.detail.serviceNumber;
+    handleFileUploaded: function(eventOrData) {
+        // Handle both DOM event and EventBus data formats
+        let serviceNumber = null;
+        
+        if (eventOrData) {
+            // Check if it's a DOM event (has detail property)
+            if (eventOrData.detail && eventOrData.detail.serviceNumber) {
+                serviceNumber = eventOrData.detail.serviceNumber;
+            }
+            // Or if it's direct data from EventBus
+            else if (eventOrData.service_number) {
+                serviceNumber = eventOrData.service_number;
+            }
             
-            // If service number is available, select it in the config service selector
+            // If service number is available, reload services and then select it
             if (serviceNumber) {
                 const serviceSelect = document.getElementById('configServiceSelect');
                 if (serviceSelect) {
-                    for (let i = 0; i < serviceSelect.options.length; i++) {
-                        if (serviceSelect.options[i].value === serviceNumber) {
-                            serviceSelect.selectedIndex = i;
-                            // Trigger change event to load structure
-                            serviceSelect.dispatchEvent(new Event('change'));
-                            break;
-                        }
-                    }
+                    console.log(`[ConfigInit] Nuevo Excel cargado. Recargando servicios para incluir: ${serviceNumber}`);
+                    
+                    // Reload services first to ensure the new one is in the list
+                    ConfigServiceLoader.loadAvailableServices(serviceSelect, function(services) {
+                        console.log(`[ConfigInit] Servicios recargados. Seleccionando servicio: ${serviceNumber}`);
+                        
+                        // After services are loaded, select the new service
+                        setTimeout(() => {
+                            for (let i = 0; i < serviceSelect.options.length; i++) {
+                                if (serviceSelect.options[i].value === serviceNumber) {
+                                    serviceSelect.selectedIndex = i;
+                                    // Trigger change event to load structure
+                                    serviceSelect.dispatchEvent(new Event('change'));
+                                    console.log(`[ConfigInit] Servicio ${serviceNumber} seleccionado automáticamente`);
+                                    break;
+                                }
+                            }
+                        }, 100); // Small delay to ensure DOM is updated
+                    });
                 }
             }
         }
@@ -518,8 +545,10 @@ initUIManager: function() {
             select.style.width = '100%';
             versions.forEach((version, index) => {
                 const option = document.createElement('option');
-                option.value = version.version || `v${index + 1}`;
-                option.textContent = version.version || `v${index + 1}`;
+                // Usar displayName si está disponible, sino usar filename sin extensión
+                const displayText = version.displayName || version.filename?.replace('.json', '') || version.version || `v${index + 1}`;
+                option.value = version.filename || `${version.version || `v${index + 1}`}.json`;
+                option.textContent = displayText;
                 if (version.timestamp) {
                     const date = new Date(version.timestamp);
                     option.textContent += ` (${date.toLocaleDateString('es-AR')})`;

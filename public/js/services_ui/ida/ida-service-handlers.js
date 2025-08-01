@@ -450,8 +450,10 @@ function loadConfigsForService(serviceNumber, selectElement) {
         uniqueConfigs.forEach(config => {
             const option = document.createElement('option');
             option.value = config.id;
-            let fecha = config.timestamp ? new Date(config.timestamp).toLocaleTimeString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
-            option.textContent = `${config.canal} - ${config.version || 'v1'} (${fecha})`;
+            let fecha = config.timestamp ? new Date(config.timestamp).toLocaleTimeString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }) : '';
+            // Usar displayName (nombre completo del archivo) en lugar de construir el texto
+            const displayText = config.displayName || config.filename?.replace('.json', '') || `${config.canal} - ${config.version || 'v1'}`;
+            option.textContent = fecha ? `${displayText} (${fecha})` : displayText;
             Object.assign(option.dataset, { canal: config.canal, version: config.version, timestamp: config.timestamp });
             selectElement.appendChild(option);
         });

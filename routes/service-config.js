@@ -17,7 +17,7 @@ const configDir = path.join(__dirname, '..', 'JsonStorage', 'settings');
  */
 router.post('/save', async (req, res) => {
   try {
-      const { serviceNumber, serviceName, canal, header, request } = req.body;
+      const { serviceNumber, serviceName, canal, suffix, header, request } = req.body;
     
     // Validar datos requeridos
     if (!serviceNumber) {
@@ -26,27 +26,47 @@ router.post('/save', async (req, res) => {
     if (!canal) {
       return res.status(400).json({ error: 'Canal es requerido' });
     }
+    if (!suffix || suffix.trim() === '') {
+      return res.status(400).json({ error: 'Sufijo es requerido' });
+    }
     // Crear directorio si no existe
     if (!fs.existsSync(configDir)) {
       fs.mkdirSync(configDir, { recursive: true });
     }
     // Sanitizar canal
     const safeCanal = canal.replace(/[^a-zA-Z0-9]/g, '');
+    
+    // Sanitizar sufijo (ya validamos que no está vacío)
+    const safeSuffix = suffix.replace(/[^a-zA-Z0-9_-]/g, '');
+    
+    console.log('[ServiceConfig] DEBUG - suffix original:', suffix);
+    console.log('[ServiceConfig] DEBUG - safeSuffix:', safeSuffix);
+    
+    // Validación adicional después de sanitizar
+    if (!safeSuffix || safeSuffix.trim() === '') {
+      return res.status(400).json({ error: 'El sufijo contiene caracteres inválidos y resultó vacío después de sanitizar' });
+    }
+    
     // Buscar archivos existentes para este servicio y canal
     const files = fs.readdirSync(configDir)
       .filter(file => file.endsWith('.json') && file.startsWith(`${serviceNumber}-${safeCanal}-v`));
     // Calcular el próximo número de versión correlativo
     const versionNumber = files.length + 1;
     const safeVersion = `v${versionNumber}`;
-    // Crear nombre de archivo: serviceNumber-canal-vN.json
-    const filename = `${serviceNumber}-${safeCanal}-${safeVersion}.json`;
+    
+    // Crear nombre de archivo: serviceNumber-canal-vN-suffix.json
+    const filename = `${serviceNumber}-${safeCanal}-${safeVersion}-${safeSuffix}.json`;
     const filePath = path.join(configDir, filename);
+    
+    console.log('[ServiceConfig] DEBUG - filename generado:', filename);
+    console.log('[ServiceConfig] DEBUG - filePath completo:', filePath);
     // Crear objeto de configuración
     const config = {
       serviceNumber,
       serviceName: serviceName || `Servicio ${serviceNumber}`,
       canal: safeCanal,
       version: safeVersion,
+      suffix: safeSuffix,
       timestamp: new Date().toISOString(),
       header: header || {},
       request: request || {}
@@ -54,37 +74,9 @@ router.post('/save', async (req, res) => {
     console.log('[ServiceConfig] POST /save - Configuration object to save:', JSON.stringify(config, null, 2));
     // Guardar configuración en archivo JSON
     await fs.writeJson(filePath, config, { spaces: 2 });
-    // Emitir evento de configuración guardada
-    if (global.io) {
-      console.log(`[WebSocket] Emitiendo evento config:saved para servicio ${serviceNumber}`);
-      global.io.emit('config:saved', { 
-        serviceNumber,
-        canal: safeCanal,
-        version: safeVersion,
-        filename,
-        timestamp: config.timestamp
-      });
-    } else {
-      // Sin Socket.IO, guardar evento para consulta
-      console.log(`[ServiceConfig] Socket.IO no disponible, guardando evento para consulta`);
-      try {
-        const eventFile = path.join(__dirname, '..', 'tmp', 'config_event.json');
-        fs.writeFileSync(eventFile, JSON.stringify({
-          type: 'config:saved',
-          payload: {
-            serviceNumber,
-            canal: safeCanal,
-            version: safeVersion,
-            filename,
-            timestamp: config.timestamp
-          },
-          timestamp: new Date().toISOString()
-        }, null, 2));
-      } catch (eventError) {
-        console.warn('[ServiceConfig] No se pudo guardar evento:', eventError);
-      }
-    }
+    // Los eventos se manejan via EventBus local en el frontend
     // Devolver respuesta exitosa
+    console.log('[ServiceConfig] DEBUG - Enviando filename en respuesta:', filename);
     res.json({
       success: true,
       message: `Configuración guardada exitosamente`,
@@ -128,20 +120,18 @@ router.get('/list', async (req, res) => {
         const serviceNumber = config.serviceNumber || "";
         if (service_number && serviceNumber !== service_number) continue;
         
-        // Extraer versión del nombre del archivo
-        let version = 'v1';
-        const versionMatch = file.match(/-v(\d+)\.json$/);
-        if (versionMatch) {
-          version = `v${versionMatch[1]}`;
-        }
+        // Usar el nombre de archivo tal como está (sin extension)
+        const displayName = file.replace('.json', '');
         
         configs.push({
-          id: file.replace('.json', ''),
+          id: displayName,
           serviceNumber,
           serviceName: config.serviceName || `Servicio ${serviceNumber}`,
           canal: config.canal || "",
-          version: version,
+          version: config.version || 'v1', // Usar versión del archivo JSON
+          suffix: config.suffix || '', // Usar sufijo del archivo JSON
           filename: file,
+          displayName: displayName, // Nombre completo para mostrar en el dropdown
           timestamp: config.timestamp || new Date().toISOString()
         });
       } catch (fileError) {
@@ -225,17 +215,7 @@ router.delete('/delete/:id', async (req, res) => {
     
     console.log(`[CONFIG] Configuración eliminada: ${id}`);
     
-    // Emitir evento de configuración eliminada
-    if (global.io) {
-      console.log(`[WebSocket] Emitiendo evento config:deleted para servicio ${config.serviceNumber}`);
-      global.io.emit('config:deleted', { 
-        serviceNumber: config.serviceNumber,
-        canal: config.canal,
-        version: config.version,
-        filename: id,
-        timestamp: new Date().toISOString()
-      });
-    }
+    // Los eventos se manejan via EventBus local en el frontend
     
     res.json({
       success: true,
@@ -251,41 +231,6 @@ router.delete('/delete/:id', async (req, res) => {
   }
 });
 
-/**
- * @route GET /service-config/events/last
- * @description Obtiene el último evento de configuración registrado
- */
-router.get('/events/last', (req, res) => {
-  try {
-    const eventFile = path.join(__dirname, '..', 'tmp', 'config_event.json');
-    
-    if (!fs.existsSync(eventFile)) {
-      return res.json({
-        hasEvent: false,
-        event: null
-      });
-    }
-
-    const eventData = JSON.parse(fs.readFileSync(eventFile, 'utf-8'));
-    
-    // Verificar si el evento es reciente (menos de 5 minutos)
-    const eventAge = Date.now() - new Date(eventData.timestamp).getTime();
-    const isRecent = eventAge < 5 * 60 * 1000; // 5 minutos
-
-    res.json({
-      hasEvent: isRecent,
-      event: isRecent ? eventData : null,
-      eventAge: eventAge
-    });
-
-  } catch (error) {
-    console.error('[ServiceConfig] Error al obtener último evento:', error);
-    res.json({
-      hasEvent: false,
-      event: null,
-      error: error.message
-    });
-  }
-});
+// Endpoint de eventos eliminado - se usa EventBus local en el frontend
 
 module.exports = router;

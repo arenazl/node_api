@@ -114,40 +114,46 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Configurar WebSocket para actualizaciones en tiempo real
+    // Configurar actualizaciones en tiempo real usando EventBus
     function setupRealTimeUpdates() {
-        // Verificar si Socket.IO ya está disponible
-        if (typeof io === 'undefined') {
-            console.warn('[Services UI] Socket.IO no está disponible para actualizaciones en tiempo real');
+        // Verificar si EventBus está disponible
+        if (typeof window.EventBus === 'undefined' || typeof window.AppEvents === 'undefined') {
+            console.warn('[Services UI] EventBus no está disponible, esperando...');
+            // Reintentar en 500ms
+            setTimeout(setupRealTimeUpdates, 500);
             return;
         }
 
-        try {
-            // Conectar al servidor WebSocket
-            const socket = io();
+        console.log('[Services UI] Configurando listeners de EventBus');
+        
+        // Manejar evento de archivo cargado (nuevo Excel)
+        window.EventBus.subscribe(window.AppEvents.FILE_UPLOADED, function(data) {
+            console.log('[EventBus] Nuevo archivo Excel cargado:', data);
+            
+            // Actualizar todos los dropdowns de servicios
+            updateServiceDropdowns();
+        });
 
-            // Manejar evento de conexión
-            socket.on('connect', function() {
-                console.log('[WebSocket] Conexión establecida con ID:', socket.id);
-            });
+        // Manejar evento de configuración guardada
+        window.EventBus.subscribe(window.AppEvents.CONFIG_SAVED, function(data) {
+            console.log('[EventBus] Nueva configuración guardada:', data);
 
-            // Manejar evento de configuración guardada
-            socket.on('config:saved', function(data) {
-                console.log('[WebSocket] Nueva configuración guardada:', data);
+            // Forzar actualización de la lista de servicios
+            if (typeof ServiceApiClient !== 'undefined') {
+                ServiceApiClient.getServices(true)
+                    .then(() => {
+                        console.log('[EventBus] Lista de servicios actualizada después de guardar configuración');
+                        
+                        // Actualizar dropdowns de servicios si existen
+                        updateServiceDropdowns();
+                    })
+                    .catch(error => {
+                        console.error('[EventBus] Error al actualizar servicios:', error);
+                    });
+            }
 
-                // Forzar actualización de la lista de servicios
-                if (typeof ServiceApiClient !== 'undefined') {
-                    ServiceApiClient.getServices(true)
-                        .then(() => {
-                            console.log('[WebSocket] Lista de servicios actualizada después de guardar configuración');
-                        })
-                        .catch(error => {
-                            console.error('[WebSocket] Error al actualizar servicios:', error);
-                        });
-                }
-
-                // Si estamos en la pestaña API, actualizar las configuraciones para el servicio actual
-                const apiTab = document.querySelector('.services-tab-content[data-tab="ida"], .services-tab-content[data-tab="vuelta"]');
+            // Si estamos en la pestaña API, actualizar las configuraciones para el servicio actual
+            const apiTab = document.querySelector('.services-tab-content[data-tab="ida"], .services-tab-content[data-tab="vuelta"]');
                 if (apiTab && apiTab.classList.contains('active')) {
                     // Identificar qué selector de servicio está activo (IDA o VUELTA)
                     const serviceSelect = apiTab.querySelector('#idaServiceSelect, #vueltaServiceSelect');
@@ -367,4 +373,58 @@ document.addEventListener('DOMContentLoaded', function() {
 
         console.log('[Services UI] Inicialización de servicios completada');
     }
+    
+    // Función para actualizar todos los dropdowns de servicios
+    function updateServiceDropdowns() {
+        console.log('[Services UI] Actualizando dropdowns de servicios...');
+        
+        // Si ServiceApiClient está disponible, actualizar todos los servicios
+        if (typeof ServiceApiClient !== 'undefined') {
+            ServiceApiClient.getServices(true).then(services => {
+                console.log('[Services UI] Servicios obtenidos:', services.length);
+                
+                // Actualizar dropdowns usando las funciones correctas
+                if (typeof loadServicesIntoSelectWithData === 'function') {
+                    // Actualizar dropdown de IDA
+                    const idaServiceSelect = document.getElementById('idaServiceSelect');
+                    if (idaServiceSelect) {
+                        loadServicesIntoSelectWithData('idaServiceSelect', services);
+                    }
+                    
+                    // Actualizar dropdown de VUELTA
+                    const vueltaServiceSelect = document.getElementById('vueltaServiceSelect');
+                    if (vueltaServiceSelect) {
+                        loadServicesIntoSelectWithData('vueltaServiceSelect', services);
+                    }
+                    
+                    // Actualizar dropdown de configuración
+                    const configServiceSelect = document.getElementById('configServiceSelect');
+                    if (configServiceSelect) {
+                        loadServicesIntoSelectWithData('configServiceSelect', services);
+                    }
+                } else if (typeof loadServicesIntoSelect === 'function') {
+                    // Fallback al método antiguo
+                    loadServicesIntoSelect('idaServiceSelect');
+                    loadServicesIntoSelect('vueltaServiceSelect');
+                    loadServicesIntoSelect('configServiceSelect');
+                }
+                
+                // También actualizar la tabla de servicios si está visible
+                if (typeof updateServicesTable === 'function') {
+                    updateServicesTable(services);
+                }
+            }).catch(error => {
+                console.error('[Services UI] Error al actualizar servicios:', error);
+            });
+        }
+        
+        // Actualizar dropdown de configuración usando ConfigServiceLoader si está disponible
+        const configServiceSelect = document.getElementById('configServiceSelect');
+        if (configServiceSelect && typeof ConfigServiceLoader !== 'undefined') {
+            ConfigServiceLoader.loadAvailableServices(configServiceSelect);
+        }
+    }
+    
+    // Hacer la función accesible globalmente
+    window.updateServiceDropdowns = updateServiceDropdowns;
 });

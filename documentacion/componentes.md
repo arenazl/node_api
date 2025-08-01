@@ -3,6 +3,7 @@
 ## Stack Tecnológico
 
 ### Backend
+
 - **Node.js**: v16.x - Runtime JavaScript
 - **Express.js**: v4.18.2 - Framework web
 - **Winston**: v3.17.0 - Sistema de logging
@@ -11,12 +12,14 @@
 - **dotenv**: v16.3.1 - Gestión de variables de entorno
 
 ### Procesamiento de Archivos
+
 - **XLSX**: v0.18.5 - Lectura y escritura de archivos Excel
 - **express-fileupload**: v1.4.0 - Manejo de uploads
 - **fs-extra**: v11.1.1 - Operaciones de sistema de archivos
 - **glob**: v10.3.10 - Búsqueda de archivos con patrones
 
 ### Frontend
+
 - **HTML5**: Estructura semántica
 - **CSS3**: Estilos con variables CSS y flexbox
 - **JavaScript ES6+**: Lógica del cliente
@@ -24,6 +27,7 @@
 - **SimpleBar**: Scrollbars personalizadas
 
 ### Herramientas de Desarrollo
+
 - **nodemon**: v2.0.22 - Recarga automática en desarrollo
 - **PM2**: Gestión de procesos en producción
 - **NSSM**: Servicio Windows alternativo
@@ -31,15 +35,17 @@
 ## Arquitectura de Componentes
 
 ### 1. Servidor Principal
+
 ```javascript
 // server.js
-const express = require('express');
-const cors = require('cors');
-const morgan = require('morgan');
-const winston = require('winston');
+const express = require("express");
+const cors = require("cors");
+const morgan = require("morgan");
+const winston = require("winston");
 ```
 
 **Responsabilidades**:
+
 - Configuración del servidor Express
 - Middleware de logging y CORS
 - Servir archivos estáticos
@@ -48,15 +54,17 @@ const winston = require('winston');
 ### 2. Sistema de Rutas
 
 #### Routes/Services.js - Endpoints Principales
+
 ```javascript
 // Endpoints principales para aplicaciones externas
-POST /api/services/sendmessage    // JSON → String
-POST /api/services/receivemessage // String → JSON
-GET  /api/services               // Lista servicios
-GET  /api/services/versions      // Versiones disponibles
+POST / api / services / sendmessage; // JSON → String
+POST / api / services / receivemessage; // String → JSON
+GET / api / services; // Lista servicios
+GET / api / services / versions; // Versiones disponibles
 ```
 
 #### Routes/API.js - API Legacy
+
 ```javascript
 // Endpoints legacy para compatibilidad
 POST /api/process-excel
@@ -66,6 +74,7 @@ GET  /api/services/:serviceNumber
 ### 3. Utilidades de Procesamiento
 
 #### utils/message-creator.js
+
 ```javascript
 // Conversión JSON → String posiciones fijas
 class MessageCreator {
@@ -78,6 +87,7 @@ class MessageCreator {
 ```
 
 #### utils/message-analyzer.js
+
 ```javascript
 // Conversión String → JSON estructurado
 class MessageAnalyzer {
@@ -90,6 +100,7 @@ class MessageAnalyzer {
 ```
 
 #### utils/excel-parser.js
+
 ```javascript
 // Procesamiento archivos Excel
 class ExcelParser {
@@ -104,6 +115,7 @@ class ExcelParser {
 ### 4. Sistema de Almacenamiento
 
 #### JsonStorage/structures/
+
 ```json
 // Metadatos de servicios
 {
@@ -118,6 +130,7 @@ class ExcelParser {
 ```
 
 #### JsonStorage/settings/
+
 ```json
 // Configuraciones por canal
 {
@@ -132,52 +145,57 @@ class ExcelParser {
 ### 5. Sistema de Logging
 
 #### utils/logger.js
+
 ```javascript
 // Configuración Winston
-const winston = require('winston');
-const DailyRotateFile = require('winston-daily-rotate-file');
+const winston = require("winston");
+const DailyRotateFile = require("winston-daily-rotate-file");
 
 const logger = winston.createLogger({
-  level: 'info',
+  level: "info",
   format: winston.format.combine(
     winston.format.timestamp(),
     winston.format.json()
   ),
   transports: [
     new DailyRotateFile({
-      filename: 'logs/app-%DATE%.log',
-      datePattern: 'YYYY-MM-DD',
-      maxFiles: '14d'
-    })
-  ]
+      filename: "logs/app-%DATE%.log",
+      datePattern: "YYYY-MM-DD",
+      maxFiles: "14d",
+    }),
+  ],
 });
 ```
 
 ## Componentes Frontend
 
 ### 1. Interfaz Principal
+
 ```html
 <!-- public/index.html -->
 <!DOCTYPE html>
 <html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <title>MQ Importer API</title>
-  <link rel="stylesheet" href="css/styles.css">
-</head>
-<body>
-  <div class="tabs-container">
-    <div class="tab-buttons">
-      <button class="tab-button active" data-tab="carga">CARGA</button>
-      <button class="tab-button" data-tab="configuracion">CONFIGURACIÓN</button>
-      <button class="tab-button" data-tab="servicios">SERVICIOS</button>
+  <head>
+    <meta charset="UTF-8" />
+    <title>MQ Importer API</title>
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+  <body>
+    <div class="tabs-container">
+      <div class="tab-buttons">
+        <button class="tab-button active" data-tab="carga">CARGA</button>
+        <button class="tab-button" data-tab="configuracion">
+          CONFIGURACIÓN
+        </button>
+        <button class="tab-button" data-tab="servicios">SERVICIOS</button>
+      </div>
     </div>
-  </div>
-</body>
+  </body>
 </html>
 ```
 
 ### 2. Cliente API JavaScript
+
 ```javascript
 // public/js/api_client/service-api-client.js
 class ServiceApiClient {
@@ -187,34 +205,38 @@ class ServiceApiClient {
 
   async sendMessage(serviceData) {
     const response = await fetch(`${this.baseUrl}/api/services/sendmessage`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json'
+        "Content-Type": "application/json",
       },
-      body: JSON.stringify(serviceData)
+      body: JSON.stringify(serviceData),
     });
     return await response.json();
   }
 
   async receiveMessage(messageData) {
-    const response = await fetch(`${this.baseUrl}/api/services/receivemessage`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(messageData)
-    });
+    const response = await fetch(
+      `${this.baseUrl}/api/services/receivemessage`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(messageData),
+      }
+    );
     return await response.json();
   }
 }
 ```
 
 ### 3. Gestión de Servicios UI
+
 ```javascript
 // public/js/services_ui/common/servicios-manager.js
 class ServiciosManager {
   constructor() {
-    this.apiClient = new ServiceApiClient('/');
+    this.apiClient = new ServiceApiClient("/");
   }
 
   async loadServices() {
@@ -222,7 +244,7 @@ class ServiciosManager {
       const services = await this.apiClient.getServices();
       this.renderServices(services);
     } catch (error) {
-      console.error('Error loading services:', error);
+      console.error("Error loading services:", error);
     }
   }
 
@@ -236,6 +258,7 @@ class ServiciosManager {
 ### 4. Sistema de Estilos CSS
 
 #### public/css/styles.css
+
 ```css
 /* Variables CSS */
 :root {
@@ -281,47 +304,55 @@ class ServiciosManager {
 ## Middlewares y Configuración
 
 ### 1. Request Logger
+
 ```javascript
 // middleware/request-logger.js
-const morgan = require('morgan');
-const winston = require('winston');
+const morgan = require("morgan");
+const winston = require("winston");
 
 const stream = {
   write: (message) => {
     winston.info(message.trim());
-  }
+  },
 };
 
-module.exports = morgan('combined', { stream });
+module.exports = morgan("combined", { stream });
 ```
 
 ### 2. CORS Configuration
+
 ```javascript
 // server.js
-const cors = require('cors');
+const cors = require("cors");
 
-app.use(cors({
-  origin: '*',
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+app.use(
+  cors({
+    origin: "*",
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 ```
 
 ### 3. File Upload Handler
+
 ```javascript
 // server.js
-const fileUpload = require('express-fileupload');
+const fileUpload = require("express-fileupload");
 
-app.use(fileUpload({
-  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB
-  abortOnLimit: true,
-  createParentPath: true
-}));
+app.use(
+  fileUpload({
+    limits: { fileSize: 50 * 1024 * 1024 }, // 50MB
+    abortOnLimit: true,
+    createParentPath: true,
+  })
+);
 ```
 
 ## Gestión de Dependencias
 
 ### package.json
+
 ```json
 {
   "name": "mq-importer-api",
@@ -354,6 +385,7 @@ app.use(fileUpload({
 ## Configuración del Entorno
 
 ### Variables de Entorno
+
 ```bash
 # .env
 NODE_ENV=production
@@ -364,52 +396,57 @@ UPLOAD_PATH=./JsonStorage/uploads
 ```
 
 ### Configuración PM2
+
 ```javascript
 // ecosystem.config.js
 module.exports = {
-  apps: [{
-    name: 'mq-importer-api',
-    script: 'server.js',
-    env: {
-      NODE_ENV: 'production',
-      PORT: 3000
+  apps: [
+    {
+      name: "mq-importer-api",
+      script: "server.js",
+      env: {
+        NODE_ENV: "production",
+        PORT: 4000,
+      },
+      max_memory_restart: "1G",
+      error_file: "logs/pm2-error.log",
+      out_file: "logs/pm2-out.log",
+      log_file: "logs/pm2-combined.log",
+      time: true,
     },
-    max_memory_restart: '1G',
-    error_file: 'logs/pm2-error.log',
-    out_file: 'logs/pm2-out.log',
-    log_file: 'logs/pm2-combined.log',
-    time: true
-  }]
+  ],
 };
 ```
 
 ## Seguridad y Validación
 
 ### Input Validation
+
 ```javascript
 // utils/validation.js
 const validateServiceData = (data) => {
   if (!data.header || !data.header.serviceNumber) {
-    throw new Error('ServiceNumber is required');
+    throw new Error("ServiceNumber is required");
   }
-  
+
   if (!data.parameters) {
-    throw new Error('Parameters are required');
+    throw new Error("Parameters are required");
   }
-  
+
   return true;
 };
 ```
 
 ### Error Handling
+
 ```javascript
 // middleware/error-handler.js
 const errorHandler = (err, req, res, next) => {
   logger.error(err.message, err);
-  
+
   res.status(err.statusCode || 500).json({
-    error: err.message || 'Internal Server Error',
-    timestamp: new Date().toISOString()
+    error: err.message || "Internal Server Error",
+    timestamp: new Date().toISOString(),
   });
 };
 ```
@@ -417,22 +454,24 @@ const errorHandler = (err, req, res, next) => {
 ## Monitoreo y Debugging
 
 ### Health Check
+
 ```javascript
 // routes/health.js
-router.get('/health', (req, res) => {
+router.get("/health", (req, res) => {
   res.json({
-    status: 'OK',
+    status: "OK",
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
-    memory: process.memoryUsage()
+    memory: process.memoryUsage(),
   });
 });
 ```
 
 ### Debug Configuration
+
 ```javascript
 // En development
-if (process.env.NODE_ENV === 'development') {
+if (process.env.NODE_ENV === "development") {
   app.use((req, res, next) => {
     console.log(`${req.method} ${req.path}`, req.body);
     next();
@@ -440,4 +479,4 @@ if (process.env.NODE_ENV === 'development') {
 }
 ```
 
-Este stack tecnológico proporciona una base sólida para el procesamiento de mensajes MQ, con escalabilidad, mantenibilidad y facilidad de uso como principios fundamentales. 
+Este stack tecnológico proporciona una base sólida para el procesamiento de mensajes MQ, con escalabilidad, mantenibilidad y facilidad de uso como principios fundamentales.

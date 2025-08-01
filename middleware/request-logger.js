@@ -40,9 +40,10 @@ const requestLogger = winston.createLogger({
     ]
 });
 
-// En desarrollo, también log en consola
-if (process.env.NODE_ENV !== 'production') {
+// En desarrollo, también log en consola - SOLO ERRORES para evitar ruido en startup
+if (process.env.NODE_ENV !== 'production' && process.env.VERBOSE_LOGS === 'true') {
     requestLogger.add(new winston.transports.Console({
+        level: 'error', // Solo errores en consola
         format: winston.format.combine(
             winston.format.colorize(),
             winston.format.simple()

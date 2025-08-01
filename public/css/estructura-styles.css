@@ -163,6 +163,43 @@
   font-style: italic;
 }
 
+/* Anchos específicos para tablas de estructura por ID */
+#headerTable,
+#requestTable,
+#responseTable {
+  table-layout: fixed;
+}
+
+/* Tabla de archivos */
+#filesTable {
+  table-layout: fixed;
+}
+
+#filesTable th:nth-child(1) { width: 50%; } /* Nombre */
+#filesTable th:nth-child(2) { width: 25%; } /* Fecha */
+#filesTable th:nth-child(3) { width: 25%; } /* Tamaño */
+
+/* Tablas de estructura - anchos generales para todas */
+#headerTable th:nth-child(1),
+#requestTable th:nth-child(1),
+#responseTable th:nth-child(1) { width: 25%; } /* Campo */
+
+#headerTable th:nth-child(2),
+#requestTable th:nth-child(2),
+#responseTable th:nth-child(2) { width: 15%; } /* Tipo */
+
+#headerTable th:nth-child(3),
+#requestTable th:nth-child(3),
+#responseTable th:nth-child(3) { width: 10%; } /* Longitud */
+
+#headerTable th:nth-child(4),
+#requestTable th:nth-child(4),
+#responseTable th:nth-child(4) { width: 15%; } /* Obligatorio */
+
+#headerTable th:nth-child(5),
+#requestTable th:nth-child(5),
+#responseTable th:nth-child(5) { width: 35%; } /* Descripción */
+
 /* Responsive */
 @media (max-width: 768px) {
   .estructura-tabs-nav {

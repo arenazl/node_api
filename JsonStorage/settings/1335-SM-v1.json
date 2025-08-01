@@ -1,0 +1,29 @@
+{
+  "serviceNumber": "1335",
+  "serviceName": "SVO1335 - Consulta las Sucursales de un Centro Zonal",
+  "canal": "SM",
+  "version": "v1",
+  "timestamp": "2025-08-01T14:20:21.669Z",
+  "header": {
+    "LONGITUD DEL MENSAJE": "000132",
+    "CANAL": "MD",
+    "SERVICIO": "1335",
+    "CÓDIGO DE RETORNO": "0000",
+    "ID DEL MENSAJE": "000000102",
+    "FECHA": "18102019",
+    "HORA": "060606",
+    "USUARIO": "P046343",
+    "Ubicación": "4002",
+    "TEXTO DEL CÓDIGO DE RETORNO": "",
+    "ESTADO ENVIADO": "00",
+    "CAMPO COMPLEMENTARIO": ""
+  },
+  "request": {
+    "SVC1335-TIPO-PEDIDO": "1",
+    "SVC1335-C-BCO-GRRE": "14",
+    "SVC1335-COD-OF-GRU": "",
+    "SVC1335-COD-ACCESO": "1",
+    "SVC1335-COD-SITU": "",
+    "SVC1335-RELLAMADA": ""
+  }
+}

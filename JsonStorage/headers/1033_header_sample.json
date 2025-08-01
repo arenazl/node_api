@@ -1,0 +1,11 @@
+{
+  "value": "000113IB1033000000000000207062011122932PTTTTTT1047                                             00     ",
+  "serviceNumber": "1033",
+  "timestamp": "2025-08-01T15:31:33.921Z",
+  "sourceFile": "20250801T15313_1033_v1.xls",
+  "foundSheetName": "Trama ejemplo",
+  "foundRowContaining000": "000113IB1033000000000000207062011122932PTTTTTT1047                                             00     01033528534",
+  "missingTab": false,
+  "availableTabs": 3,
+  "error": null
+}

@@ -3,7 +3,7 @@
   "serviceName": "SERVICIO 1213-Consulta de Convenios",
   "canal": "SM",
   "version": "v1",
-  "timestamp": "2025-07-05T17:16:39.781Z",
+  "timestamp": "2025-08-01T14:38:06.775Z",
   "header": {
     "LONGITUD DEL MENSAJE": "000125",
     "CANAL": "SD",
@@ -19,21 +19,15 @@
     "CAMPO COMPLEMENTARIO": ""
   },
   "request": {
-    "SVC1213-TIPO-PEDIDO": "54",
-    "SVC1213-N-ITN-ACUE": "544",
+    "SVC1213-TIPO-PEDIDO": "1",
+    "SVC1213-N-ITN-ACUE": "",
     "SVC1213-TI-ACU-COL": "3",
     "occ_3": [
       {
-        "SVC1213-CO-SIT-ACU": "3"
-      },
-      {
-        "SVC1213-CO-SIT-ACU": "2"
-      },
-      {
-        "SVC1213-CO-SIT-ACU": "1"
+        "SVC1213-CO-SIT-ACU": "0"
       }
     ],
-    "SVC1213-N-ITN-ACUE-INIC": "5466565",
+    "SVC1213-N-ITN-ACUE-INIC": "",
     "SVC1213-TI-ACU-COL-INIC": "",
     "SVC1213-CO-SIT-ACU-INIC": ""
   }

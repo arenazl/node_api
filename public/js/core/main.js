@@ -7,7 +7,6 @@
 
 // Elementos del DOM
 const excelFileInput = document.getElementById('excelFile');
-console.log('[Main.js] excelFileInput:', excelFileInput ? 'Encontrado' : 'NO Encontrado');
 const fileNameDisplay = document.getElementById('fileName');
 const uploadForm = document.getElementById('uploadForm');
 const notification = document.getElementById('notification');
@@ -970,7 +969,14 @@ async function loadStructure(structureFile) {
           });
         }
 
-        console.error(errorMsg);
+        // Log resumido en consola
+        const totalErrors = (headerErrors?.length || 0) + (requestErrors?.length || 0) + (responseErrors?.length || 0);
+        console.log(`⚠️ Excel: ${totalErrors} errores encontrados (${headerErrors?.length || 0} cabecera, ${requestErrors?.length || 0} request, ${responseErrors?.length || 0} response)`);
+        
+        // Log detallado solo si VERBOSE está activado
+        if (window.VERBOSE_LOGS || localStorage.getItem('VERBOSE_LOGS') === 'true') {
+          console.error(errorMsg);
+        }
 
         // Mostrar notificación más específica con SweetAlert para mejor formato si está disponible
         if (typeof Swal !== 'undefined') {
@@ -988,15 +994,20 @@ async function loadStructure(structureFile) {
         // Si no tenemos información detallada, mostrar mensaje genérico
         ConfigUtils.showNotification('La estructura de servicio está incompleta: Cabecera presente pero faltan secciones Request/Response. Esto puede deberse a problemas con el formato del Excel.', 'warning');
 
-        // Agregar información detallada para depuración
-        console.warn("Estructura incompleta detectada:", {
-          headerComplete,
-          requestComplete,
-          responseComplete,
-          headerFields: data.header_structure?.fields?.length || 0,
-          requestElements: data.service_structure?.request?.elements?.length || 0,
-          responseElements: data.service_structure?.response?.elements?.length || 0
-        });
+        // Log resumido de estructura incompleta
+        console.log(`⚠️ Estructura incompleta: Cabecera ${headerComplete ? '✓' : '✗'} | Request ${requestComplete ? '✓' : '✗'} | Response ${responseComplete ? '✓' : '✗'}`);
+        
+        // Información detallada solo si VERBOSE está activado
+        if (window.VERBOSE_LOGS || localStorage.getItem('VERBOSE_LOGS') === 'true') {
+          console.warn("Estructura incompleta detectada:", {
+            headerComplete,
+            requestComplete,
+            responseComplete,
+            headerFields: data.header_structure?.fields?.length || 0,
+            requestElements: data.service_structure?.request?.elements?.length || 0,
+            responseElements: data.service_structure?.response?.elements?.length || 0
+          });
+        }
 
         // Análisis de posibles causas comunes
         let posibleCausa = 'Posibles causas:\n';
@@ -1010,7 +1021,10 @@ async function loadStructure(structureFile) {
         posibleCausa += '• Hay celdas combinadas que interrumpen el parsing\n';
         posibleCausa += '• La hoja puede contener celdas con formato especial (html, imágenes) que interfieren con el procesamiento';
 
-        console.warn(posibleCausa);
+        // Log de posibles causas solo si VERBOSE está activado
+        if (window.VERBOSE_LOGS || localStorage.getItem('VERBOSE_LOGS') === 'true') {
+          console.warn(posibleCausa);
+        }
 
         // Mostrar causas posibles en una alerta más detallada
         if (typeof Swal !== 'undefined') {
@@ -1246,7 +1260,20 @@ function displayHeaderStructure(headerStructure) {
     const formattedName = field.name;
     const formattedLength = formatFieldValueForDisplay(field.length);
     const formattedType = formatFieldValueForDisplay(field.type);
-    const formattedRequired = field.required;
+    let formattedRequired = '-';
+    
+    // Verificar si ConfigUtils está disponible
+    if (typeof ConfigUtils !== 'undefined' && ConfigUtils.formatRequiredText) {
+        formattedRequired = ConfigUtils.formatRequiredText(field.required);
+    } else {
+        // Fallback manual si ConfigUtils no está disponible
+        if (field.required && typeof field.required === 'string' && field.required.trim() !== '') {
+            const text = field.required.trim();
+            // Algoritmo simple: toLowerCase + properCase
+            const lowerText = text.toLowerCase();
+            formattedRequired = lowerText.charAt(0).toUpperCase() + lowerText.slice(1);
+        }
+    }
 
     // Asegurar que la descripción también tenga scroll si es larga
     let formattedDescription = field.description;
@@ -1327,14 +1354,20 @@ function displayServiceStructure(serviceStructure) {
 
   // Procesar sección de requerimiento
   if (serviceStructure.request && serviceStructure.request.elements) {
-    console.log('Processing request structure with', serviceStructure.request.elements.length, 'elements');
+    // Log de procesamiento solo si VERBOSE está activado
+    if (window.VERBOSE_LOGS || localStorage.getItem('VERBOSE_LOGS') === 'true') {
+      console.log('Processing request structure with', serviceStructure.request.elements.length, 'elements');
+    }
     const originalElementsCount = serviceStructure.request.elements.length;
     displayServiceSection(serviceStructure.request, requestTable);
 
     // Verificar si se generaron filas en la tabla
     if (requestTable.childElementCount === 0) {
       const errorMsg = `Error al procesar estructura de requerimiento: Se encontraron ${originalElementsCount} elementos pero no se pudieron interpretar correctamente.`;
-      console.error(errorMsg);
+      console.log(`⚠️ Request: ${originalElementsCount} elementos no procesados`);
+      if (window.VERBOSE_LOGS || localStorage.getItem('VERBOSE_LOGS') === 'true') {
+        console.error(errorMsg);
+      }
 
       const row = document.createElement('tr');
       row.innerHTML = `<td colspan="6" class="error-message">${errorMsg}</td>`;
@@ -1357,14 +1390,20 @@ function displayServiceStructure(serviceStructure) {
 
   // Procesar sección de respuesta
   if (serviceStructure.response && serviceStructure.response.elements) {
-    console.log('Processing response structure with', serviceStructure.response.elements.length, 'elements');
+    // Log de procesamiento solo si VERBOSE está activado
+    if (window.VERBOSE_LOGS || localStorage.getItem('VERBOSE_LOGS') === 'true') {
+      console.log('Processing response structure with', serviceStructure.response.elements.length, 'elements');
+    }
     const originalElementsCount = serviceStructure.response.elements.length;
     displayServiceSection(serviceStructure.response, responseTable);
 
     // Verificar si se generaron filas en la tabla
     if (responseTable.childElementCount === 0) {
       const errorMsg = `Error al procesar estructura de respuesta: Se encontraron ${originalElementsCount} elementos pero no se pudieron interpretar correctamente.`;
-      console.error(errorMsg);
+      console.log(`⚠️ Response: ${originalElementsCount} elementos no procesados`);
+      if (window.VERBOSE_LOGS || localStorage.getItem('VERBOSE_LOGS') === 'true') {
+        console.error(errorMsg);
+      }
 
       const row = document.createElement('tr');
       row.innerHTML = `<td colspan="6" class="error-message">${errorMsg}</td>`;
@@ -1516,7 +1555,20 @@ function displayElements(elements, table, level = 0) {
       const formattedName = element.name;
       const formattedLength = formatFieldValueForDisplay(element.length);
       const formattedType = formatFieldValueForDisplay(element.fieldType);
-      const formattedRequired = element.required;
+      let formattedRequired = '-';
+      
+      // Verificar si ConfigUtils está disponible
+      if (typeof ConfigUtils !== 'undefined' && ConfigUtils.formatRequiredText) {
+          formattedRequired = ConfigUtils.formatRequiredText(element.required);
+      } else {
+          // Fallback manual si ConfigUtils no está disponible
+          if (element.required && typeof element.required === 'string' && element.required.trim() !== '') {
+              const text = element.required.trim();
+              // Algoritmo simple: toLowerCase + properCase
+              const lowerText = text.toLowerCase();
+              formattedRequired = lowerText.charAt(0).toUpperCase() + lowerText.slice(1);
+          }
+      }
 
       // Formatear los valores largos o múltiples - siempre truncar en valores
       const formattedValues = formatFieldValueForDisplay(element.values, true);
@@ -1598,7 +1650,20 @@ function displayElements(elements, table, level = 0) {
             const formattedName = field.name;
             const formattedLength = formatFieldValueForDisplay(field.length);
             const formattedType = formatFieldValueForDisplay(field.fieldType);
-            const formattedRequired = field.required;
+            let formattedRequired = '-';
+    
+    // Verificar si ConfigUtils está disponible
+    if (typeof ConfigUtils !== 'undefined' && ConfigUtils.formatRequiredText) {
+        formattedRequired = ConfigUtils.formatRequiredText(field.required);
+    } else {
+        // Fallback manual si ConfigUtils no está disponible
+        if (field.required && typeof field.required === 'string' && field.required.trim() !== '') {
+            const text = field.required.trim();
+            // Algoritmo simple: toLowerCase + properCase
+            const lowerText = text.toLowerCase();
+            formattedRequired = lowerText.charAt(0).toUpperCase() + lowerText.slice(1);
+        }
+    }
 
             // Formatear los valores
             const formattedValues = formatFieldValueForDisplay(field.values);
@@ -1953,7 +2018,6 @@ async function loadServicesList() {
           <td>${serviceNumber}</td>
           <td>${displayName}</td>
           <td>
-            <button class="action-btn" onclick="processService('${serviceNumber}')">Probar</button>
             <button class="action-btn" onclick="loadServiceVersions('${serviceNumber}')">Versiones</button>
           </td>
         `;

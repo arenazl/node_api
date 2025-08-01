@@ -217,16 +217,88 @@ const ConfigDataHandler = {
      * @param {Function} onError - Callback on error with error message
      */
     saveConfiguration: function(serviceNumber, serviceName, canal, onSuccess, onError) {
+        // Intentar usar SweetAlert con un pequeño delay para asegurar que esté cargado
+        const showDescriptionDialog = () => {
+            if (typeof Swal !== 'undefined') {
+                console.log('[ConfigDataHandler] SweetAlert disponible, mostrando diálogo elegante');
+                this._showSweetAlertDialog(serviceNumber, serviceName, canal, onSuccess, onError);
+            } else {
+                console.log('[ConfigDataHandler] SweetAlert no disponible, usando prompt básico');
+                this._showBasicDialog(serviceNumber, serviceName, canal, onSuccess, onError);
+            }
+        };
+        
+        // Intentar inmediatamente, si no funciona, intentar después de un pequeño delay
+        if (typeof Swal !== 'undefined') {
+            showDescriptionDialog();
+        } else {
+            // Esperar un poco para que SweetAlert se cargue
+            setTimeout(showDescriptionDialog, 100);
+        }
+    },
+
+    _showSweetAlertDialog: function(serviceNumber, serviceName, canal, onSuccess, onError) {
+        Swal.fire({
+            title: 'Descripción',
+            html: `
+                <p>Ingrese una descripción para identificar esta configuración:</p>
+                <p class="text-sm text-gray-600 mb-3">
+                    Formato: <strong>${serviceNumber}-SM-v${this.versionCounter + 1}-{descripción}.json</strong>
+                </p>
+            `,
+            input: 'text',
+            inputPlaceholder: 'Ej: test, produccion, desarrollo, etc.',
+            showCancelButton: true,
+            confirmButtonText: 'Guardar',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#2563eb',
+            inputValidator: (value) => {
+                if (!value || value.trim() === '') {
+                    return 'La descripción no puede estar vacía';
+                }
+                // Validar que la descripción solo contenga caracteres válidos para nombres de archivo
+                if (!/^[a-zA-Z0-9_-]+$/.test(value.trim())) {
+                    return 'La descripción solo puede contener letras, números, guiones y guiones bajos';
+                }
+                return null;
+            }
+        }).then((result) => {
+            if (result.isConfirmed && result.value) {
+                const suffix = result.value.trim();
+                this._saveConfigurationWithSuffix(serviceNumber, serviceName, canal, suffix, onSuccess, onError);
+            } else {
+                // Usuario canceló, re-habilitar botón si hay callback de error
+                if (typeof onError === 'function') {
+                    onError('Guardado cancelado por el usuario');
+                }
+            }
+        });
+    },
+
+    _showBasicDialog: function(serviceNumber, serviceName, canal, onSuccess, onError) {
+        // Fallback si SweetAlert no está disponible
+        const suffix = prompt('Ingrese una descripción para identificar esta configuración:');
+        if (suffix && suffix.trim() !== '') {
+            this._saveConfigurationWithSuffix(serviceNumber, serviceName, canal, suffix.trim(), onSuccess, onError);
+        } else {
+            if (typeof onError === 'function') {
+                onError('Guardado cancelado por el usuario');
+            }
+        }
+    },
+
+    _saveConfigurationWithSuffix: function(serviceNumber, serviceName, canal, suffix, onSuccess, onError) {
         // Update version counter and create version string
         this.versionCounter++;
         const versionStr = `v${this.versionCounter}`;
         
-        // Create configuration object
+        // Create configuration object with suffix
         const configuration = {
             serviceNumber: ConfigServiceLoader.currentServiceNumber,
             serviceName: ConfigServiceLoader.currentServiceName,
             canal: canal,
             version: versionStr,
+            suffix: suffix, // Agregar el sufijo al objeto de configuración
             timestamp: new Date().toISOString(),
             header: {},
             request: {}
@@ -265,6 +337,8 @@ const ConfigDataHandler = {
             return response.json();
         })
         .then(data => {
+            console.log('[ConfigDataHandler] DEBUG - Respuesta del servidor:', data);
+            console.log('[ConfigDataHandler] DEBUG - Filename recibido:', data.filename);
             ConfigUtils.showNotification(`Configuración guardada correctamente como: ${data.filename}`, 'success');
             
             // Update the saved configurations list immediately

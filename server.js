@@ -8,8 +8,7 @@ global._babelPolyfill = global._babelPolyfill || false;
 // Ignorar errores específicos de get-intrinsic
 process.on('uncaughtException', (err) => {
   if (err.message && err.message.includes('callee') && err.message.includes('strict mode')) {
-    // Ignorar este error específico pero continuar la ejecución
-    console.warn('Ignorando error conocido de get-intrinsic');
+    // Ignorar este error específico pero continuar la ejecución silenciosamente
     return;
   }
   // Para otros errores, usar el manejador existente
@@ -21,15 +20,21 @@ const cors = require('cors');
 const path = require('path');
 const fileUpload = require('express-fileupload');
 const fs = require('fs-extra');
+const { initializeDatabase, query } = require('./config/database');
 
 // Cargar variables de entorno desde .env si existe
 try {
   if (fs.existsSync(path.join(__dirname, '.env'))) {
     require('dotenv').config();
-    console.log('Variables de entorno cargadas desde .env');
+    // Solo mostrar si verbose está activado
+    if (process.env.VERBOSE_LOGS === 'true') {
+      console.log('Variables de entorno cargadas desde .env');
+    }
   }
 } catch (err) {
-  console.warn('No se pudo cargar el archivo .env:', err.message);
+  if (process.env.VERBOSE_LOGS === 'true') {
+    console.warn('No se pudo cargar el archivo .env:', err.message);
+  }
 }
 
 // Cache para mejorar el rendimiento
@@ -57,7 +62,7 @@ fs.ensureDirSync(logsDir);
 
 // Inicializar Express
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 4000;
 
 // Crear directorio temporal
 const tmpDir = path.join(__dirname, 'tmp');
@@ -118,9 +123,13 @@ app.use(fileUpload({
 
 // Importar middleware de logging
 const { requestLoggerMiddleware } = require('./middleware/request-logger');
+const { showStartupBanner, requestCounter, startPeriodicSummary } = require('./utils/startup-logger');
 
 // Aplicar middleware de logging a todas las rutas
-app.use(requestLoggerMiddleware);
+app.use(requestCounter); // Contador simple de requests
+if (process.env.VERBOSE_LOGS === 'true') {
+  app.use(requestLoggerMiddleware);
+}
 
 // Middleware para manejar errores
 app.use((err, req, res, next) => {
@@ -159,7 +168,7 @@ app.get('/', (req, res) => {
 });
 
 // Ruta para estado de salud del sistema
-app.get('/health', (req, res) => {
+app.get('/health', async (req, res) => {
   const uptime = process.uptime();
   const memory = process.memoryUsage();
   
@@ -179,6 +188,28 @@ app.get('/health', (req, res) => {
     nodeVersion: process.version
   };
   
+  // Verificar conexión a base de datos
+  let databaseStatus = {
+    connected: false,
+    host: null,
+    database: null,
+    error: null
+  };
+  
+  try {
+    const result = await query('SELECT 1 as test');
+    if (result && result[0] && result[0].test === 1) {
+      databaseStatus = {
+        connected: true,
+        host: 'mysql-aiven-arenazl.e.aivencloud.com',
+        database: 'SimImporter',
+        error: null
+      };
+    }
+  } catch (error) {
+    databaseStatus.error = error.message;
+  }
+  
   res.json({
     status: 'ok',
     environment: environment,
@@ -193,7 +224,8 @@ app.get('/health', (req, res) => {
       services: global.serviceCache.services ? global.serviceCache.services.length : 0,
       structures: Object.keys(global.serviceCache.structures).length,
       lastUpdate: global.serviceCache.lastUpdate
-    }
+    },
+    database: databaseStatus
   });
 });
 
@@ -215,23 +247,46 @@ const mostrarResumenSistema = () => {
     const versions = fs.existsSync(structuresPath) ? 
       fs.readdirSync(structuresPath).filter(file => file.endsWith('.json')).length : 0;
 
-    console.log('\n🚀 MQ IMPORTER API - Sistema iniciado');
-    console.log('=====================================');
-    console.log(`📊 Servicios cargados: ${services}`);
-    console.log(`⚙️  Configuraciones: ${configurations}`);
-    console.log(`📄 Versiones Excel: ${versions}`);
-    console.log(`🌐 Puerto: ${PORT}`);
-    console.log('=====================================\n');
+    // Mostrar banner de inicio limpio
+    showStartupBanner(PORT);
+    
+    // Iniciar resumen periódico
+    startPeriodicSummary();
+    
+    // Log adicional solo si verbose está activado
+    if (process.env.VERBOSE_LOGS === 'true') {
+      console.log(`📊 Servicios: ${services} | ⚙️ Configs: ${configurations} | 📦 Versiones: ${versions}`);
+    }
   } catch (error) {
-    console.log('\n🚀 MQ IMPORTER API - Sistema iniciado');
-    console.log(`🌐 Puerto: ${PORT}\n`);
+    // En caso de error, mostrar banner simple
+    showStartupBanner(PORT);
+    startPeriodicSummary();
   }
 };
 
-// Iniciar servidor
-const server = app.listen(PORT, '0.0.0.0', () => {
-  mostrarResumenSistema();
-});
+// Inicializar la base de datos antes de iniciar el servidor
+async function startServer() {
+  try {
+    await initializeDatabase();
+    if (process.env.VERBOSE_LOGS === 'true') {
+      console.log('✅ Base de datos inicializada correctamente');
+    }
+  } catch (error) {
+    // Solo mostrar error resumido
+    console.log('⚠️  DB: Sin conexión (continuando sin base de datos)');
+    if (process.env.VERBOSE_LOGS === 'true') {
+      console.error('Error detallado:', error.message);
+    }
+  }
 
-// Configurar timeout para solicitudes utilizando la variable de entorno
-server.timeout = REQUEST_TIMEOUT; // Valor por defecto: 2 minutos
+  // Iniciar servidor
+  const server = app.listen(PORT, '0.0.0.0', () => {
+    mostrarResumenSistema();
+  });
+
+  // Configurar timeout para solicitudes utilizando la variable de entorno
+  server.timeout = REQUEST_TIMEOUT; // Valor por defecto: 2 minutos
+}
+
+// Iniciar la aplicación
+startServer();

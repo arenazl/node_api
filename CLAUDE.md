@@ -52,7 +52,7 @@ MQ Importer API is a Node.js middleware service that converts between JSON and f
 ### Performance Features
 - **Global Service Cache**: `global.serviceCache` improves lookup performance
 - **Structure Caching**: Reduces file I/O operations for frequently accessed services
-- **Socket.IO Integration**: Real-time updates for service management
+- **EventBus Integration**: Local event communication system for tab synchronization
 
 ## Key Data Flow
 
@@ -73,6 +73,7 @@ MQ Importer API is a Node.js middleware service that converts between JSON and f
 - `FILE_UPLOAD_SIZE_LIMIT` - Max upload size in MB (default: 50)
 - `REQUEST_TIMEOUT` - Request timeout in ms (default: 120000)
 - `ALLOWED_ORIGINS` - CORS allowed origins (comma-separated)
+- `VERBOSE_LOGS` - Enable detailed logging (default: false). When false, shows clean emoji-based summaries
 
 ### Directory Structure Created Automatically
 - `JsonStorage/uploads/`
@@ -84,7 +85,7 @@ MQ Importer API is a Node.js middleware service that converts between JSON and f
 
 ### Core Dependencies
 - **Express.js** - REST API framework
-- **Socket.IO** - Real-time communication
+- **EventBus** - Local event communication system
 - **XLSX** - Excel file processing
 - **CORS** - Cross-origin resource sharing
 - **express-fileupload** - File upload handling
@@ -97,6 +98,28 @@ MQ Importer API is a Node.js middleware service that converts between JSON and f
 - Global uncaught exception handler saves detailed error logs to `logs/` directory
 - Comprehensive middleware error handling with development/production modes
 - Request logging with timing information
+
+## Logging Configuration
+
+### Clean Startup (default)
+When `VERBOSE_LOGS=false` (default), the application shows:
+- 🚀 Clean startup banner with emojis
+- ⏱️ Periodic summaries every 5 minutes (uptime, requests, errors)
+- ⚠️ Compact error messages
+
+### Verbose Mode
+Set `VERBOSE_LOGS=true` for detailed logging:
+- Full request/response logging
+- Detailed error stack traces
+- Excel processing details
+- Database connection status
+
+### Client-Side Logging
+JavaScript logs are also controlled by `VERBOSE_LOGS` in localStorage:
+```javascript
+// Enable verbose logs in browser console
+localStorage.setItem('VERBOSE_LOGS', 'true');
+```
 
 ## Integration Notes
 This API serves as middleware between modern JSON-based applications and legacy mainframe systems that require fixed-position string formats. The Excel files define the message structures that enable this bidirectional conversion.

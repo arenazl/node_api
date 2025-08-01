@@ -249,27 +249,9 @@ router.post('/upload', async (req, res) => {
       }
       console.log('[EXCEL] Caché limpiado exitosamente');
 
-      // Publicar al frontend los eventos de FILE_UPLOADED y SERVICES_REFRESHED
-      // Este es el mecanismo principal de actualización automática
-      if (global.io) {
-        // Si tenemos Socket.IO disponible, emitir eventos
-        console.log('[EXCEL] Emitiendo eventos de actualización via Socket.IO');
-        global.io.emit('file:uploaded', eventPayload);
-        global.io.emit('services:refreshed', eventPayload);
-      } else {
-        // Sin Socket.IO, guardar evento para que el frontend pueda consultarlo
-        console.log('[EXCEL] Socket.IO no disponible, guardando evento para consulta');
-        try {
-          const eventFile = path.join(__dirname, '..', 'tmp', 'last_event.json');
-          fs.writeFileSync(eventFile, JSON.stringify({
-            type: 'file:uploaded',
-            payload: eventPayload,
-            timestamp: new Date().toISOString()
-          }, null, 2));
-        } catch (eventError) {
-          console.warn('[EXCEL] No se pudo guardar evento:', eventError);
-        }
-      }
+      // Los eventos se manejan via EventBus local en el frontend
+      // El frontend detecta automáticamente los cambios cuando actualiza la lista
+      console.log('[EXCEL] Archivo procesado exitosamente. El frontend detectará los cambios automáticamente.');
 
       // Devolver respuesta
       res.json({

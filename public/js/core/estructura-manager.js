@@ -234,7 +234,22 @@ const EstructuraManager = {
                 typeCell.textContent = field.type || field.fieldType || '';
 
                 const requiredCell = document.createElement('td');
-                requiredCell.textContent = field.required || '';
+                let formattedRequired = '-';
+                
+                // Verificar si ConfigUtils está disponible
+                if (typeof ConfigUtils !== 'undefined' && ConfigUtils.formatRequiredText) {
+                    formattedRequired = ConfigUtils.formatRequiredText(field.required);
+                } else {
+                    // Fallback manual si ConfigUtils no está disponible
+                    if (field.required && typeof field.required === 'string' && field.required.trim() !== '') {
+                        const text = field.required.trim();
+                        // Algoritmo simple: toLowerCase + properCase
+                        const lowerText = text.toLowerCase();
+                        formattedRequired = lowerText.charAt(0).toUpperCase() + lowerText.slice(1);
+                    }
+                }
+                
+                requiredCell.textContent = formattedRequired;
 
                 const valuesCell = document.createElement('td');
                 valuesCell.textContent = field.values || '';
@@ -312,7 +327,22 @@ const EstructuraManager = {
                 typeCell.textContent = element.fieldType || '';
 
                 const requiredCell = document.createElement('td');
-                requiredCell.textContent = element.required || '';
+                let formattedRequired = '-';
+                
+                // Verificar si ConfigUtils está disponible
+                if (typeof ConfigUtils !== 'undefined' && ConfigUtils.formatRequiredText) {
+                    formattedRequired = ConfigUtils.formatRequiredText(element.required);
+                } else {
+                    // Fallback manual si ConfigUtils no está disponible
+                    if (element.required && typeof element.required === 'string' && element.required.trim() !== '') {
+                        const text = element.required.trim();
+                        // Algoritmo simple: toLowerCase + properCase
+                        const lowerText = text.toLowerCase();
+                        formattedRequired = lowerText.charAt(0).toUpperCase() + lowerText.slice(1);
+                    }
+                }
+                
+                requiredCell.textContent = formattedRequired;
 
                 const valuesCell = document.createElement('td');
                 valuesCell.textContent = element.values || '';
@@ -365,7 +395,7 @@ const EstructuraManager = {
                         typeCell.textContent = field.fieldType || '';
 
                         const requiredCell = document.createElement('td');
-                        requiredCell.textContent = field.required || '';
+                        requiredCell.textContent = ConfigUtils.formatRequiredText(field.required);
 
                         const valuesCell = document.createElement('td');
                         valuesCell.textContent = field.values || '';
