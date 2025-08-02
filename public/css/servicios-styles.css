@@ -80,15 +80,39 @@
 }
 
 /* Anchos específicos para columnas de tabla de servicios */
-#servicesTable th:nth-child(1) { width: 20%; } /* Servicio */
-#servicesTable th:nth-child(2) { width: 60%; } /* Nombre */
-#servicesTable th:nth-child(3) { width: 20%; } /* Acciones */
+#servicesTable th:nth-child(1) {
+  width: 20%;
+}
+
+/* Servicio */
+#servicesTable th:nth-child(2) {
+  width: 60%;
+}
+
+/* Nombre */
+#servicesTable th:nth-child(3) {
+  width: 20%;
+}
+
+/* Acciones */
 
 /* Para móviles, ajustar anchos de columnas de servicios */
 @media (max-width: 768px) {
-  #servicesTable th:nth-child(1), #servicesTable td:nth-child(1) { width: 25% !important; }
-  #servicesTable th:nth-child(2), #servicesTable td:nth-child(2) { width: 50% !important; }
-  #servicesTable th:nth-child(3), #servicesTable td:nth-child(3) { width: 25% !important; }
+
+  #servicesTable th:nth-child(1),
+  #servicesTable td:nth-child(1) {
+    width: 25% !important;
+  }
+
+  #servicesTable th:nth-child(2),
+  #servicesTable td:nth-child(2) {
+    width: 50% !important;
+  }
+
+  #servicesTable th:nth-child(3),
+  #servicesTable td:nth-child(3) {
+    width: 25% !important;
+  }
 }
 
 /* Action buttons */
@@ -126,13 +150,29 @@
 }
 
 /* Anchos específicos para columnas de tabla de versiones */
-#versionsTable th:nth-child(1) { width: 70%; } /* Archivo */
-#versionsTable th:nth-child(2) { width: 30%; } /* Acciones - más espacio para iconos */
+#versionsTable th:nth-child(1) {
+  width: 15%;
+}
+
+/* Archivo */
+#versionsTable th:nth-child(2) {
+  width: 30%;
+}
+
+/* Acciones - más espacio para iconos */
 
 /* Para móviles, ajustar anchos de columnas de versiones */
 @media (max-width: 768px) {
-  #versionsTable th:nth-child(1), #versionsTable td:nth-child(1) { width: 60% !important; }
-  #versionsTable th:nth-child(2), #versionsTable td:nth-child(2) { width: 40% !important; }
+
+  #versionsTable th:nth-child(1),
+  #versionsTable td:nth-child(1) {
+    width: 60% !important;
+  }
+
+  #versionsTable th:nth-child(2),
+  #versionsTable td:nth-child(2) {
+    width: 40% !important;
+  }
 }
 
 /* Asegurar que los botones en la columna de acciones tengan suficiente espacio */
@@ -162,7 +202,9 @@
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Error message */
@@ -178,10 +220,14 @@
 /* Estilos para las sub-pestañas de entrada de IDA (JSON a Enviar / Parámetros Detallados) */
 .ida-input-tabs {
   display: flex;
-  gap: 10px; /* Espacio entre botones */
-  margin-top: 15px; /* Espacio sobre las pestañas */
-  margin-bottom: 15px; /* Espacio antes del contenido de la pestaña */
-  border-bottom: 1px solid var(--border-color-light, #e5e7eb); /* Línea divisoria sutil, con fallback */
+  gap: 10px;
+  /* Espacio entre botones */
+  margin-top: 15px;
+  /* Espacio sobre las pestañas */
+  margin-bottom: 15px;
+  /* Espacio antes del contenido de la pestaña */
+  border-bottom: 1px solid var(--border-color-light, #e5e7eb);
+  /* Línea divisoria sutil, con fallback */
   padding-bottom: 8px;
 }
 
@@ -190,22 +236,29 @@
   cursor: pointer;
   border: none;
   background-color: transparent;
-  color: var(--text-color-secondary, #6b7280); /* Color de texto para pestaña inactiva, con fallback */
+  color: var(--text-color-secondary, #6b7280);
+  /* Color de texto para pestaña inactiva, con fallback */
   font-size: 0.9rem;
   font-weight: 500;
-  border-bottom: 3px solid transparent; /* Borde inferior transparente por defecto, más grueso */
+  border-bottom: 3px solid transparent;
+  /* Borde inferior transparente por defecto, más grueso */
   transition: color 0.2s ease, border-bottom-color 0.2s ease;
-  border-radius: 4px 4px 0 0; /* Ligeras esquinas redondeadas arriba */
-  line-height: 1.5; /* Mejorar alineación vertical del texto */
+  border-radius: 4px 4px 0 0;
+  /* Ligeras esquinas redondeadas arriba */
+  line-height: 1.5;
+  /* Mejorar alineación vertical del texto */
 }
 
 .ida-input-tab-btn:hover {
-  color: var(--primary-color, #3b82f6); /* Color de texto al hacer hover, con fallback */
+  color: var(--primary-color, #3b82f6);
+  /* Color de texto al hacer hover, con fallback */
 }
 
 .ida-input-tab-btn.active {
-  color: var(--primary-color, #3b82f6); /* Color de texto para pestaña activa, con fallback */
-  border-bottom-color: var(--primary-color, #3b82f6); /* Color del borde inferior para pestaña activa, con fallback */
+  color: var(--primary-color, #3b82f6);
+  /* Color de texto para pestaña activa, con fallback */
+  border-bottom-color: var(--primary-color, #3b82f6);
+  /* Color del borde inferior para pestaña activa, con fallback */
   font-weight: 600;
 }
 
