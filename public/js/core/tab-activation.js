@@ -9,19 +9,20 @@ document.addEventListener('DOMContentLoaded', function() {
     // Attach event listeners to subtabs
     attachSubtabListeners();
 
+    // DESHABILITADO: Causaba que la pestaña volviera a CARGA cuando se activaba API
     // Listen for file upload events to trigger proper tab activation
-    window.addEventListener('fileUploaded', function(e) {
-        console.log('[TabActivation] File uploaded event detected, activating tabs...');
-        setTimeout(activateTabsForStructure, 300);
-    });
+    // window.addEventListener('fileUploaded', function(e) {
+    //     console.log('[TabActivation] File uploaded event detected, activating tabs...');
+    //     setTimeout(activateTabsForStructure, 300);
+    // });
 
     // Also listen for events using the EventBus if available
-    if (window.EventBus && window.AppEvents) {
-        window.EventBus.subscribe(window.AppEvents.FILE_UPLOADED, function(data) {
-            console.log('[TabActivation] FILE_UPLOADED event detected via EventBus');
-            setTimeout(activateTabsForStructure, 300);
-        });
-    }
+    // if (window.EventBus && window.AppEvents) {
+    //     window.EventBus.subscribe(window.AppEvents.FILE_UPLOADED, function(data) {
+    //         console.log('[TabActivation] FILE_UPLOADED event detected via EventBus');
+    //         setTimeout(activateTabsForStructure, 300);
+    //     });
+    // }
 });
 
 /**

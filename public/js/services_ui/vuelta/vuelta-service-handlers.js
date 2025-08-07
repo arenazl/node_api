@@ -46,6 +46,9 @@ function initializeVueltaServiceHandlers() {
             vueltaServiceSelect.addEventListener('change', function() {
                 const serviceNumber = this.value;
                 
+                // OPTIMIZACIÓN: Detectar si es una sincronización desde IDA para evitar duplicados
+                const isSyncFromIda = this.dataset.syncFromIda === 'true';
+                
                 if (streamData) {
                     streamData.value = '';
                     if (streamCharCount) streamCharCount.textContent = '0';
@@ -63,7 +66,22 @@ function initializeVueltaServiceHandlers() {
                 
                 // Cargar configuraciones para este servicio si existe el selector
                 if (vueltaConfigSelect && serviceNumber) {
-                    loadConfigsForService(serviceNumber, vueltaConfigSelect);
+                    if (isSyncFromIda) {
+                        // Si viene de IDA, usar un delay pequeño para evitar colisión
+                        setTimeout(() => {
+                            loadConfigsForService(serviceNumber, vueltaConfigSelect);
+                        }, 100);
+                    } else {
+                        // Si es cambio directo en VUELTA, cargar normalmente
+                        loadConfigsForService(serviceNumber, vueltaConfigSelect);
+                        
+                        // Y sincronizar con IDA si es necesario
+                        const idaServiceSelect = document.getElementById('idaServiceSelect');
+                        if (idaServiceSelect && idaServiceSelect.value !== serviceNumber) {
+                            idaServiceSelect.value = serviceNumber;
+                            // No disparar evento para evitar ciclo infinito
+                        }
+                    }
                 }
             });
         }

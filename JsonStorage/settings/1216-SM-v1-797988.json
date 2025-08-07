@@ -1,0 +1,32 @@
+{
+  "serviceNumber": "1216",
+  "serviceName": "Servicio 1216",
+  "canal": "SM",
+  "version": "v1",
+  "suffix": "797988",
+  "timestamp": "2025-08-07T04:46:23.685Z",
+  "header": {
+    "LONGITUD DEL MENSAJE": "000169",
+    "CANAL": "SM",
+    "SERVICIO": "1216",
+    "CÓDIGO DE RETORNO": "0000",
+    "ID DEL MENSAJE": "000001001",
+    "FECHA": "20052011",
+    "HORA": "090909",
+    "USUARIO": "P042583",
+    "Ubicación": "1047",
+    "TEXTO DEL CÓDIGO DE RETORNO": "",
+    "ESTADO ENVIADO": "00",
+    "CAMPO COMPLEMENTARIO": ""
+  },
+  "request": {
+    "SVC1216-TIPO-PEDIDO": "",
+    "SVC1216-COD-OF-GRU": "",
+    "occ_2": [
+      {
+        "SVC1216-T-OFIC-GRU": ""
+      }
+    ]
+  },
+  "dynamicParams": {}
+}

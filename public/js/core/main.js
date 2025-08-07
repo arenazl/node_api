@@ -238,6 +238,7 @@ excelFileInput.addEventListener('change', async () => {
                 const formData = new FormData(uploadForm);
                 formData.append('update', 'true');
                 await uploadExcelFile(formData);
+                return; // IMPORTANTE: Salir aquí para evitar doble llamada
               } else {
       // Cancelar la subida y esconder el overlay de progreso
       ConfigUtils.showNotification('Subida cancelada por el usuario', 'info');
@@ -362,12 +363,298 @@ uploadForm.addEventListener('submit', (e) => {
 /**
  * Realiza la subida del archivo Excel
  */
+/**
+ * Muestra un SweetAlert detallado para errores de archivos duplicados o similares
+ * @param {Object} errorResult - Resultado con error del step1
+ */
+function showDuplicateFileError(errorResult) {
+    const { error, duplicateFile, message } = errorResult;
+    
+    // Obtener el tema actual
+    const currentTheme = document.body.classList.contains('dark-theme') ? 'dark' : 
+                        document.body.classList.contains('amber-theme') ? 'amber' : 'light';
+    
+    const colors = {
+        light: {
+            background: '#ffffff',
+            text: '#1f2937',
+            error: '#dc3545',
+            warning: '#f59e0b',
+            info: '#0ea5e9',
+            border: '#e5e7eb'
+        },
+        dark: {
+            background: '#1f2937',
+            text: '#f9fafb',
+            error: '#ef4444',
+            warning: '#f59e0b',
+            info: '#06b6d4',
+            border: '#374151'
+        },
+        amber: {
+            background: '#fffbeb',
+            text: '#92400e',
+            error: '#dc2626',
+            warning: '#d97706',
+            info: '#0891b2',
+            border: '#fcd34d'
+        }
+    }[currentTheme];
+
+    const toProperCase = (str) => str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+
+    const errorHtml = `
+    <div style="
+        background: ${colors.background};
+        color: ${colors.text};
+        border-radius: 8px;
+        text-align: left;
+        line-height: 1.6;">
+        
+        <div class="duplicate-error-summary" style="
+            background: ${colors.warning}15;
+            border: 1px solid ${colors.warning}30;
+            border-radius: 6px;
+            padding: 16px;
+            margin-bottom: 20px;">
+            
+            <div class="duplicate-error-title" style="
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                margin-bottom: 12px;
+                font-weight: 600;
+                font-size: 16px;
+                color: ${colors.warning};">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                </svg>
+                ${toProperCase('Archivo Idéntico Detectado')}
+            </div>
+            
+            <div class="duplicate-error-message" style="
+                background: ${colors.background};
+                border: 1px solid ${colors.border};
+                border-radius: 4px;
+                padding: 12px;
+                margin-bottom: 16px;
+                font-size: 14px;
+                color: ${colors.text};">
+                ${message || error}
+            </div>
+            
+            ${duplicateFile ? `
+            <div class="duplicate-file-info" style="
+                background: ${colors.info}15;
+                border: 1px solid ${colors.info}30;
+                border-radius: 4px;
+                padding: 12px;
+                margin-bottom: 16px;">
+                
+                <div style="font-weight: 600; color: ${colors.info}; margin-bottom: 8px;">
+                    ${toProperCase('Archivo Existente:')}
+                </div>
+                
+                <div style="
+                    font-family: 'Courier New', monospace;
+                    font-size: 13px;
+                    color: ${colors.text};
+                    word-break: break-all;">
+                    ${duplicateFile}
+                </div>
+            </div>` : ''}
+        </div>
+        
+        <div class="duplicate-suggestions" style="
+            background: ${colors.info}15;
+            border: 1px solid ${colors.info}30;
+            border-radius: 6px;
+            padding: 16px;">
+            
+            <div class="duplicate-suggestions-title" style="
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                margin-bottom: 12px;
+                font-weight: 600;
+                color: ${colors.info};">
+                <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                </svg>
+                ${toProperCase('Opciones Disponibles:')}
+            </div>
+            
+            <div class="duplicate-suggestions-list" style="
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+                font-size: 13px;
+                color: ${colors.text}99;">
+                
+                <div class="duplicate-suggestion-item" style="
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M8 4v4m0 4h.01M15 8a7 7 0 11-14 0 7 7 0 0114 0z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                    ${toProperCase('El archivo ya existe en el sistema con el mismo contenido')}
+                </div>
+                
+                <div class="duplicate-suggestion-item" style="
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M8 4v4m0 4h.01M15 8a7 7 0 11-14 0 7 7 0 0114 0z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                    ${toProperCase('Puede usar la versión existente sin necesidad de subirla nuevamente')}
+                </div>
+                
+                <div class="duplicate-suggestion-item" style="
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M8 4v4m0 4h.01M15 8a7 7 0 11-14 0 7 7 0 0114 0z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                    ${toProperCase('Si necesita hacer cambios, modifique el Excel antes de subirlo')}
+                </div>
+            </div>
+        </div>
+    </div>`;
+    
+    // Mostrar SweetAlert con información del archivo duplicado
+    if (typeof Swal !== 'undefined') {
+        Swal.fire({
+            title: `<span style="color: ${colors.warning};">${toProperCase('Archivo Idéntico Detectado')}</span>`,
+            html: errorHtml,
+            icon: 'info',
+            showCancelButton: true,
+            confirmButtonText: toProperCase('Cerrar'),
+            cancelButtonText: toProperCase('Continuar de Todos Modos'),
+            confirmButtonColor: colors.info,
+            cancelButtonColor: colors.warning,
+            width: '900px',
+            padding: '20px',
+            background: colors.background,
+            reverseButtons: true
+        }).then((result) => {
+            if (result.dismiss === Swal.DismissReason.cancel) {
+                // Usuario eligió "Continuar de Todos Modos"
+                console.log('[MAIN] Usuario eligió continuar con archivo idéntico');
+                // Aquí podrías implementar lógica para forzar la subida si es necesario
+                ConfigUtils.showNotification('Funcionalidad de "Continuar de Todos Modos" no implementada aún', 'info');
+            } else {
+                // Usuario eligió "Cerrar" o cerró el modal
+                console.log('[MAIN] Usuario canceló la subida de archivo idéntico');
+                ConfigUtils.showNotification('Subida cancelada - archivo idéntico', 'info');
+            }
+        });
+    } else {
+        // Fallback si SweetAlert no está disponible
+        const continuar = confirm(`${error}\n\nArchivo duplicado: ${duplicateFile || 'N/A'}\n\n${message || ''}\n\n¿Desea continuar de todos modos?`);
+        if (continuar) {
+            console.log('[MAIN] Usuario eligió continuar con archivo idéntico (fallback)');
+            ConfigUtils.showNotification('Funcionalidad de "Continuar de Todos Modos" no implementada aún', 'info');
+        } else {
+            console.log('[MAIN] Usuario canceló la subida (fallback)');
+            ConfigUtils.showNotification('Subida cancelada - archivo idéntico', 'info');
+        }
+    }
+}
+
 async function uploadExcelFile(formData) {
 
-    const response = await fetch('/excel/upload', {
-      method: 'POST',
-      body: formData
+    // PASO 1: Grabar en file system - VISIBLE en Network
+    console.log('📁 [MAIN] PASO 1: Llamando a step1-upload...');
+    const step1Response = await fetch('/api-orchestrator/step1-upload', {
+        method: 'POST',
+        body: formData
     });
+
+    // Primero intentar parsear la respuesta para obtener el mensaje de error real
+    let step1Result;
+    try {
+        step1Result = await step1Response.json();
+    } catch (e) {
+        // Si no se puede parsear como JSON, usar un mensaje genérico
+        if (!step1Response.ok) {
+            throw new Error(`Error en paso 1: Error HTTP ${step1Response.status}`);
+        }
+        throw new Error('Error procesando respuesta del servidor');
+    }
+    
+    // Si la respuesta no es OK o contiene un error, usar el mensaje del servidor
+    if (!step1Response.ok || step1Result.error) {
+        const errorMessage = step1Result.message || 
+                           step1Result.error || 
+                           step1Result.details || 
+                           'Error en paso 1: grabado en file system';
+        throw new Error(errorMessage);
+    }
+    console.log('✅ [MAIN] PASO 1 completado:', step1Result);
+    
+    // Verificar si hay error en step1 (archivo duplicado, etc.)
+    if (step1Result.error) {
+        console.log('⚠️ [MAIN] Error en step1:', step1Result);
+        showDuplicateFileError(step1Result);
+        return; // Salir sin continuar al step2
+    }
+
+    // Pequeño delay para asegurar que los archivos se hayan escrito completamente
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    // PASO 2: Llamar a Mora.Sim-api - VISIBLE en Network  
+    console.log('🔗 [MAIN] PASO 2: Llamando a step2-mora-sim-api...');
+    
+    // Obtener datos del resultado del paso 1 (step1Result ES el uploadResult)
+    const uploadData = step1Result;
+    
+    const step2FormData = new FormData();
+    step2FormData.append('serviceNumber', uploadData.service_number || formData.get('serviceNumber') || '1083');
+    step2FormData.append('version', formData.get('version') || '1.0');
+    step2FormData.append('fileName', uploadData.filename || formData.get('file')?.name || 'unknown.xlsx');
+    step2FormData.append('canalCode', document.getElementById('canalInput')?.value || 'SM');
+    step2FormData.append('uploadResult', JSON.stringify(uploadData));
+    
+    const step2Response = await fetch('/api-orchestrator/step2-mora-sim-api', {
+        method: 'POST',
+        body: step2FormData
+    });
+
+    if (!step2Response.ok) {
+        throw new Error('Error en paso 2: llamada a Mora.Sim-api');
+    }
+
+    const step2Result = await step2Response.json();
+    console.log('✅ [MAIN] PASO 2 completado:', step2Result);
+    
+    // IMPORTANTE: Almacenar ExcelId en sessionStorage para usar al guardar configuración
+    if (step2Result.excelId) {
+        const serviceNumber = step1Result.service_number || step2Result.service_number;
+        console.log(`📝 [MAIN] Almacenando ExcelId ${step2Result.excelId} para servicio ${serviceNumber}`);
+        sessionStorage.setItem(`excelId_${serviceNumber}`, step2Result.excelId);
+    }
+
+    // Crear respuesta simulada compatible con el resto del código
+    const response = {
+        ok: true,
+        json: () => Promise.resolve({
+            success: true,
+            message: step1Result.message || 'Excel procesado exitosamente',
+            structure_file: step1Result.structure_file,
+            service_number: step1Result.service_number,
+            service_name: step1Result.service_name,
+            filename: step1Result.filename,
+            warnings: step1Result.warnings || {},
+            excelId: step2Result.excelId, // Incluir ExcelId en la respuesta
+            data: {
+                ...step1Result,
+                databaseResult: step2Result.data
+            }
+        })
+    };
 
     if (!response.ok) {
       const errorData = await response.json();
@@ -614,12 +901,23 @@ async function uploadExcelFile(formData) {
 
     }
 
+      // Pequeño delay adicional antes de cargar estructura para asegurar que esté disponible
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
       try {
         await loadStructure(data.structure_file);
         console.log("Estructura cargada correctamente:", data.structure_file);
       } catch (structureError) {
         console.error("Error al cargar estructura:", structureError);
-        // ConfigUtils.showNotification("Error al cargar la estructura del archivo", "error"); // Comentado para evitar duplicados
+        // Intentar una vez más después de un delay más largo
+        try {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          await loadStructure(data.structure_file);
+          console.log("Estructura cargada correctamente en segundo intento:", data.structure_file);
+        } catch (secondError) {
+          console.error("Error al cargar estructura en segundo intento:", secondError);
+          // ConfigUtils.showNotification("Error al cargar la estructura del archivo", "error"); // Comentado para evitar duplicados
+        }
       }
 
       try {
@@ -648,10 +946,82 @@ async function uploadExcelFile(formData) {
     // Actualizar los selectores directamente sin recargar toda la página
 
 
-      await loadServicesIntoSelect('idaServiceSelect');
-      await loadServicesIntoSelect('vueltaServiceSelect');
-      await loadServicesIntoSelect('configServiceSelect'); // Agregar selector de la pestaña configuración
-      console.log("Selectores de servicios actualizados");
+      // Actualizar TODOS los selectores de servicios con múltiples métodos (redundante pero funcional)
+      console.log("[Main] Actualizando TODOS los selectores de servicios después de cargar Excel...");
+      
+      // Método 1: Usando loadServicesIntoSelect
+      try {
+        await loadServicesIntoSelect('idaServiceSelect');
+        console.log("[Main] Selector IDA actualizado");
+      } catch(e) {
+        console.log("[Main] Error actualizando selector IDA:", e.message);
+      }
+      
+      try {
+        await loadServicesIntoSelect('vueltaServiceSelect');
+        console.log("[Main] Selector VUELTA actualizado");
+      } catch(e) {
+        console.log("[Main] Error actualizando selector VUELTA:", e.message);
+      }
+      
+      try {
+        await loadServicesIntoSelect('configServiceSelect');
+        console.log("[Main] Selector CONFIG actualizado");
+      } catch(e) {
+        console.log("[Main] Error actualizando selector CONFIG:", e.message);
+      }
+      
+      // Método 2: Forzar actualización con updateServiceDropdowns si existe
+      if (typeof updateServiceDropdowns === 'function') {
+        console.log("[Main] Llamando updateServiceDropdowns()...");
+        try {
+          updateServiceDropdowns();
+        } catch(e) {
+          console.log("[Main] Error en updateServiceDropdowns:", e.message);
+        }
+      }
+      
+      // Método 3: Actualización directa con fetch (más redundancia)
+      setTimeout(async () => {
+        try {
+          const response = await fetch('/api/services');
+          const servicesData = await response.json();
+          
+          if (servicesData.services && Array.isArray(servicesData.services)) {
+            // Actualizar selector IDA si aún está vacío
+            const idaSelect = document.getElementById('idaServiceSelect');
+            if (idaSelect && idaSelect.options.length <= 1) {
+              console.log("[Main] Poblando selector IDA directamente con fetch...");
+              servicesData.services.forEach(service => {
+                if (service.service_number && !Array.from(idaSelect.options).some(opt => opt.value === service.service_number)) {
+                  const option = document.createElement('option');
+                  option.value = service.service_number;
+                  option.textContent = `${service.service_number} - ${service.service_name || 'Servicio'}`;
+                  idaSelect.appendChild(option);
+                }
+              });
+            }
+            
+            // Actualizar selector VUELTA si aún está vacío
+            const vueltaSelect = document.getElementById('vueltaServiceSelect');
+            if (vueltaSelect && vueltaSelect.options.length <= 1) {
+              console.log("[Main] Poblando selector VUELTA directamente con fetch...");
+              servicesData.services.forEach(service => {
+                if (service.service_number && !Array.from(vueltaSelect.options).some(opt => opt.value === service.service_number)) {
+                  const option = document.createElement('option');
+                  option.value = service.service_number;
+                  option.textContent = `${service.service_number} - ${service.service_name || 'Servicio'}`;
+                  vueltaSelect.appendChild(option);
+                }
+              });
+            }
+          }
+        } catch(e) {
+          console.log("[Main] Error en actualización directa de selectores:", e.message);
+        }
+      }, 1000);
+      
+      console.log("Selectores de servicios actualizados con múltiples métodos");
 
       // Notificar a todos los componentes que se ha cargado un nuevo archivo
       try {
@@ -733,6 +1103,19 @@ async function uploadExcelFile(formData) {
         }
       }
 
+      // NUEVO: Almacenar información del Excel para uso posterior en configuraciones
+      if (data.service_number && step2Result.data) {
+        window.currentExcelInfo = {
+          serviceNumber: data.service_number,
+          serviceName: data.service_name,
+          filename: data.filename,
+          structureFile: data.structure_file,
+          excelId: step2Result.data?.ExcelId || step2Result.data?.excelId,
+          databaseResult: step2Result.data
+        };
+        console.log('📋 [MAIN] Información del Excel almacenada para configuraciones:', window.currentExcelInfo);
+      }
+
 
     // Mostrar notificación de éxito (comentada temporalmente)
     // ConfigUtils.showNotification("Archivo procesado correctamente. Servicios actualizados.", 'success');
@@ -760,12 +1143,71 @@ async function uploadExcelFile(formData) {
           if (configTabButton) {
             configTabButton.click(); 
           }
-          const configServiceSelect = document.getElementById('configServiceSelect');
-          if (configServiceSelect) {
-            configServiceSelect.value = data.service_number;
-            const event = new Event('change', { bubbles: true });
-            configServiceSelect.dispatchEvent(event);
-          }
+          
+          // Dar un pequeño delay para asegurar que la pestaña se renderice
+          setTimeout(() => {
+            const configServiceSelect = document.getElementById('configServiceSelect');
+            if (configServiceSelect) {
+              // SIEMPRE recargar los servicios para asegurar que estén actualizados
+              console.log("[Main.js] Recargando servicios para el selector de configuración...");
+              
+              // Forzar recarga de servicios usando múltiples métodos (redundante pero funcional)
+              
+              // Método 1: Usar ConfigServiceLoader
+              if (typeof ConfigServiceLoader !== 'undefined' && ConfigServiceLoader.loadAvailableServices) {
+                ConfigServiceLoader.loadAvailableServices(configServiceSelect, function(services) {
+                  console.log(`[Main.js] ${services.length} servicios cargados via ConfigServiceLoader`);
+                  // Seleccionar el servicio actual
+                  setTimeout(() => {
+                    configServiceSelect.value = data.service_number;
+                    const event = new Event('change', { bubbles: true });
+                    configServiceSelect.dispatchEvent(event);
+                  }, 100);
+                });
+              }
+              
+              // Método 2: Cargar servicios directamente (redundante pero asegura funcionamiento)
+              fetch('/api/services')
+                .then(response => response.json())
+                .then(servicesData => {
+                  if (servicesData.services && Array.isArray(servicesData.services)) {
+                    // Solo poblar si está vacío
+                    if (configServiceSelect.options.length <= 1) {
+                      while (configServiceSelect.options.length > 1) {
+                        configServiceSelect.remove(1);
+                      }
+                      
+                      servicesData.services.forEach(service => {
+                        if (service.service_number) {
+                          const option = document.createElement('option');
+                          option.value = service.service_number;
+                          option.textContent = `${service.service_number} - ${service.service_name || 'Servicio'}`;
+                          configServiceSelect.appendChild(option);
+                        }
+                      });
+                    }
+                    
+                    // Seleccionar el servicio actual con otro delay
+                    setTimeout(() => {
+                      configServiceSelect.value = data.service_number;
+                      const event = new Event('change', { bubbles: true });
+                      configServiceSelect.dispatchEvent(event);
+                    }, 200);
+                  }
+                })
+                .catch(err => {
+                  console.error('[Main.js] Error cargando servicios directamente:', err);
+                });
+              
+              // Método 3: Disparar evento de inicialización de configuración (redundante)
+              if (typeof ConfigInit !== 'undefined' && ConfigInit.initServiceSelector) {
+                setTimeout(() => {
+                  console.log("[Main.js] Reinicializando selector de servicios...");
+                  ConfigInit.initServiceSelector();
+                }, 300);
+              }
+            }
+          }, 500); // Delay de medio segundo para asegurar que todo esté listo
           // Ocultar overlay de progreso si el usuario confirma y navega
           const progressOverlay = document.getElementById('progressOverlay');
           if (progressOverlay) {
@@ -2365,6 +2807,20 @@ document.addEventListener('DOMContentLoaded', function() {
   const configTabBtn = document.querySelector('.main-tab-btn[data-tab="configuracion"]');
   if (configTabBtn) {
     configTabBtn.addEventListener('click', function() {
+      // Cargar servicios en el selector si está vacío
+      const configServiceSelect = document.getElementById('configServiceSelect');
+      if (configServiceSelect && configServiceSelect.options.length <= 1) {
+        console.log("[Main] Cargando servicios en selector de configuración...");
+        
+        // Usar ConfigServiceLoader si está disponible
+        if (typeof ConfigServiceLoader !== 'undefined' && ConfigServiceLoader.loadAvailableServices) {
+          ConfigServiceLoader.loadAvailableServices(configServiceSelect, function(services) {
+            console.log(`[Main] ${services.length} servicios cargados en selector`);
+          });
+        }
+      }
+      
+      // Cargar configuraciones guardadas
       if (typeof ConfigStorageManager !== 'undefined' && typeof ConfigUIManager !== 'undefined') {
         ConfigStorageManager.loadSavedConfigurations(null, function(configs) {
           if (ConfigUIManager.updateSavedConfigurationsList) {
@@ -2372,6 +2828,44 @@ document.addEventListener('DOMContentLoaded', function() {
           }
         }, true); // true = forzar recarga
       }
+    });
+  }
+  
+  // Detectar cambio de tab y cargar servicios al entrar a 'API/Servicios'
+  const serviciosTabBtn = document.querySelector('.main-tab-btn[data-tab="servicios"]');
+  if (serviciosTabBtn) {
+    serviciosTabBtn.addEventListener('click', function() {
+      console.log("[Main] Tab API/Servicios activada, cargando servicios...");
+      
+      // Forzar carga de servicios en todos los selectores de la pestaña API
+      setTimeout(() => {
+        // Cargar servicios en selector IDA
+        const idaServiceSelect = document.getElementById('idaServiceSelect');
+        if (idaServiceSelect && idaServiceSelect.options.length <= 1) {
+          console.log("[Main] Cargando servicios en selector IDA...");
+          if (typeof loadServicesIntoSelect === 'function') {
+            loadServicesIntoSelect('idaServiceSelect');
+          }
+        }
+        
+        // Cargar servicios en selector VUELTA
+        const vueltaServiceSelect = document.getElementById('vueltaServiceSelect');
+        if (vueltaServiceSelect && vueltaServiceSelect.options.length <= 1) {
+          console.log("[Main] Cargando servicios en selector VUELTA...");
+          if (typeof loadServicesIntoSelect === 'function') {
+            loadServicesIntoSelect('vueltaServiceSelect');
+          }
+        }
+        
+        // También actualizar usando updateServiceDropdowns si está disponible
+        if (typeof updateServiceDropdowns === 'function') {
+          console.log("[Main] Actualizando todos los dropdowns de servicios...");
+          updateServiceDropdowns();
+        }
+        
+        // NO disparar evento FILE_UPLOADED aquí porque causa que vuelva a la pestaña CARGA
+        // Solo actualizar los selectores directamente sin eventos
+      }, 300); // Pequeño delay para asegurar que la pestaña esté completamente renderizada
     });
   }
 });

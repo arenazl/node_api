@@ -91,31 +91,39 @@ function findOccurrenceCountField(elements) {
 
 /**
  * Extrae valores específicos de la columna VALORES
- * @param {string} fieldValues - Contenido de la columna VALORES
+ * @param {string|Array} fieldValues - Contenido de la columna VALORES (puede ser string o array)
  * @returns {Array} - Array de valores específicos encontrados
  */
 function extractSpecificValues(fieldValues) {
-  if (!fieldValues || fieldValues.trim() === '' || fieldValues.trim() === '-' ||
-      fieldValues.toLowerCase().trim() === 'valor') {
+  // Si fieldValues es un array, usarlo directamente
+  if (Array.isArray(fieldValues)) {
+    return fieldValues.filter(v => v && String(v).trim() !== '');
+  }
+  
+  // Convertir a string si no lo es
+  const fieldValuesStr = String(fieldValues || '');
+  
+  if (!fieldValuesStr || fieldValuesStr.trim() === '' || fieldValuesStr.trim() === '-' ||
+      fieldValuesStr.toLowerCase().trim() === 'valor') {
     return [];
   }
 
   const values = [];
 
   // Buscar patrones como "00", "02", "03", etc.
-  const codeMatches = fieldValues.match(/\b\d{1,3}\b/g);
+  const codeMatches = fieldValuesStr.match(/\b\d{1,3}\b/g);
   if (codeMatches && codeMatches.length > 0) {
     values.push(...codeMatches);
   }
 
   // Buscar patrones como "0=...", "1=...", etc.
-  const optionMatches = fieldValues.match(/(\d+)=/g);
+  const optionMatches = fieldValuesStr.match(/(\d+)=/g);
   if (optionMatches && optionMatches.length > 0) {
     values.push(...optionMatches.map(match => match.replace('=', '')));
   }
 
   // Buscar patrones como "1. consulta de Alertas", "2. otra opción", etc.
-  const dotOptionMatches = fieldValues.match(/(\d+)\.\s+[^\d]+/g);
+  const dotOptionMatches = fieldValuesStr.match(/(\d+)\.\s+[^\d]+/g);
   if (dotOptionMatches && dotOptionMatches.length > 0) {
     // Extraer solo el número antes del punto
     const numberMatches = dotOptionMatches.map(match => {
@@ -127,7 +135,7 @@ function extractSpecificValues(fieldValues) {
   }
 
   // Buscar valores entre comillas
-  const quotedMatches = fieldValues.match(/"([^"]+)"/g);
+  const quotedMatches = fieldValuesStr.match(/"([^"]+)"/g);
   if (quotedMatches && quotedMatches.length > 0) {
     values.push(...quotedMatches.map(match => match.replace(/"/g, '')));
   }
@@ -151,7 +159,8 @@ function generateIntelligentValue(field, simulateMode = false) {
   // 1. PRIORIDAD: Si es campo de fecha, usar formato específico
   if (isDateField(field)) {
     // Extraer formato limpio de la columna VALORES
-    const cleanValues = fieldValues.split(/[\s\(]/)[0].trim();
+    const fieldValuesStr = Array.isArray(fieldValues) ? (fieldValues[0] || '') : String(fieldValues || '');
+    const cleanValues = fieldValuesStr.split(/[\s\(]/)[0].trim();
     const dateFormat = cleanValues || 'DD/MM/AAAA';
     return generateDateString(dateFormat);
   }
@@ -173,9 +182,10 @@ function generateIntelligentValue(field, simulateMode = false) {
   }
 
   // 2.5 PRIORIDAD: Si el campo tiene un formato como "1. consulta de Alertas" pero no se extrajo valor
-  if (fieldValues && fieldValues.match(/^\d+\.\s+/)) {
+  const fieldValuesStr = Array.isArray(fieldValues) ? (fieldValues[0] || '') : String(fieldValues || '');
+  if (fieldValuesStr && fieldValuesStr.match(/^\d+\.\s+/)) {
     // Extraer el número al principio
-    const numMatch = fieldValues.match(/^(\d+)\./);
+    const numMatch = fieldValuesStr.match(/^(\d+)\./);
     if (numMatch && numMatch[1]) {
       const numValue = numMatch[1];
       // Formatear según el tipo y longitud del campo

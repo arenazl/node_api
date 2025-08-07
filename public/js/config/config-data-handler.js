@@ -64,9 +64,26 @@ const ConfigDataHandler = {
             console.warn("No se encontró header sample, usando valores por defecto");
             ConfigUtils.showNotification('No se encontró muestra de cabecera, usando valores por defecto', 'warning');
             
-            // Fallback to default method if no sample is available
+            // DEBUG: Verificar si los campos existen
             const headerInputs = document.querySelectorAll('#headerConfigTable .config-field-input');
+            console.log(`🔧 [DEBUG] Encontrados ${headerInputs.length} campos de cabecera para llenar`);
+            
+            if (headerInputs.length === 0) {
+                console.warn('⚠️ [DEBUG] No se encontraron campos de cabecera (.config-field-input)');
+                const headerTable = document.getElementById('headerConfigTable');
+                console.log('🔧 [DEBUG] headerConfigTable existe:', !!headerTable);
+                if (headerTable) {
+                    const allInputs = headerTable.querySelectorAll('input, select');
+                    console.log(`🔧 [DEBUG] Total inputs en headerConfigTable: ${allInputs.length}`);
+                    allInputs.forEach((input, index) => {
+                        console.log(`🔧 [DEBUG] Input ${index}:`, input.className, input.dataset);
+                    });
+                }
+            }
+            
+            // Fallback to default method if no sample is available
             headerInputs.forEach(input => {
+                console.log(`🔧 [DEBUG] Auto-filling field: ${input.dataset.fieldName}`);
                 this.autoFillInput(input, canalInput?.value);
             });
             
@@ -75,6 +92,12 @@ const ConfigDataHandler = {
             if (servicioInput && ConfigServiceLoader.currentServiceNumber) {
                 servicioInput.value = ConfigServiceLoader.currentServiceNumber;
                 console.log(`SERVICIO field set to current service number: ${ConfigServiceLoader.currentServiceNumber}`);
+            }
+            
+            if (headerInputs.length > 0) {
+                ConfigUtils.showNotification(`Campos de cabecera llenados con valores por defecto (${headerInputs.length} campos)`, 'success');
+            } else {
+                ConfigUtils.showNotification('No se encontraron campos de cabecera para llenar', 'warning');
             }
         } else {
             // Extract values from the sample using the structure
@@ -108,6 +131,17 @@ const ConfigDataHandler = {
             
             ConfigUtils.showNotification(`Campos de cabecera llenados automáticamente. ${fieldsPopulated} campos desde muestra.`, 'success');
         }
+        
+        // Asegurar que el campo CANAL en la cabecera tenga el valor del canal principal
+        setTimeout(() => {
+            const canalFieldInput = document.querySelector('input[data-field-name="CANAL"][data-section="header"]');
+            if (canalFieldInput && canalInput && canalInput.value) {
+                canalFieldInput.value = canalInput.value;
+                const event = new Event('change');
+                canalFieldInput.dispatchEvent(event);
+                console.log(`Canal "${canalInput.value}" propagado a la cabecera después del auto-fill`);
+            }
+        }, 100);
     },
     
     /**
@@ -275,6 +309,171 @@ const ConfigDataHandler = {
         });
     },
 
+    /**
+     * Crea un JSON dinámico (el complemento) a partir del JSON completo y la estructura
+     * Incluye SOLO los campos que están vacíos en la configuración (para que el usuario los complete)
+     * Este es el mismo algoritmo que usa la solapa API para mostrar los parámetros dinámicos
+     */
+    createDynamicJsonFromComplete: function(completeJson) {
+        // Obtener la estructura del servicio actual
+        const serviceRequestStructure = ConfigServiceLoader.currentStructure?.service_structure?.request;
+        
+        if (!serviceRequestStructure || !serviceRequestStructure.elements) {
+            console.warn('No hay estructura de servicio disponible para generar JSON dinámico');
+            return { header: {}, parameters: {} };
+        }
+        
+        // IMPORTANTE: Usar la misma estructura que la solapa API
+        // La solapa API usa "parameters" en lugar de "request" para el JSON dinámico
+        const dynamicJson = {
+            header: {},
+            parameters: {} // Usar "parameters" como en la solapa API
+        };
+        
+        // El header dinámico solo incluye serviceNumber y canal
+        const serviceNumber = ConfigServiceLoader.currentServiceNumber;
+        const canal = document.getElementById('canalInput')?.value || '';
+        
+        dynamicJson.header = {
+            serviceNumber: serviceNumber,
+            canal: canal
+        };
+        
+        // Procesar el request para incluir solo campos vacíos
+        const requestData = completeJson.request || {};
+        
+        // Función para construir el objeto de parámetros dinámicos (campos vacíos)
+        const buildParametersObject = (elements, currentConfigScope, isTopLevel = true) => {
+            const paramsObj = {};
+            
+            elements.forEach(element => {
+                if (element.type === 'field') {
+                    const valueFromConfig = currentConfigScope[element.name];
+                    // Solo incluir campos que están vacíos en settings (para que el usuario los complete)
+                    if (valueFromConfig === undefined || valueFromConfig === null || String(valueFromConfig).trim() === "") {
+                        paramsObj[element.name] = '';
+                    }
+                } else if (element.type === 'occurrence') {
+                    const occurrenceKey = element.id || element.name;
+                    const occurrenceDataArrayFromConfig = currentConfigScope[occurrenceKey] || [];
+                    
+                    if (isTopLevel) {
+                        // Si hay ocurrencias en la configuración, procesarlas para encontrar campos vacíos
+                        if (occurrenceDataArrayFromConfig.length > 0) {
+                            const instancesArray = [];
+                            
+                            // Para cada instancia en la configuración
+                            occurrenceDataArrayFromConfig.forEach(instanceData => {
+                                // Crear un objeto solo con los campos vacíos
+                                const emptyFieldsInstance = {};
+                                
+                                // Procesar cada campo de la ocurrencia
+                                if (element.fields && Array.isArray(element.fields)) {
+                                    element.fields.forEach(field => {
+                                        if (field.type === 'field') {
+                                            const fieldValue = instanceData[field.name];
+                                            // Solo incluir campos vacíos
+                                            if (fieldValue === undefined || fieldValue === null || String(fieldValue).trim() === "") {
+                                                emptyFieldsInstance[field.name] = '';
+                                            }
+                                        } else if (field.type === 'occurrence') {
+                                            // Procesar ocurrencias anidadas
+                                            const nestedOccKey = field.id || field.name;
+                                            const nestedOccArray = instanceData[nestedOccKey] || [];
+                                            
+                                            if (nestedOccArray.length > 0) {
+                                                const nestedInstancesArray = [];
+                                                
+                                                // Para cada instancia en la ocurrencia anidada
+                                                nestedOccArray.forEach(nestedInstanceData => {
+                                                    // Crear un objeto solo con los campos vacíos
+                                                    const nestedEmptyFieldsInstance = {};
+                                                    
+                                                    // Procesar cada campo de la ocurrencia anidada
+                                                    if (field.fields && Array.isArray(field.fields)) {
+                                                        field.fields.forEach(nestedField => {
+                                                            if (nestedField.type === 'field') {
+                                                                const nestedFieldValue = nestedInstanceData[nestedField.name];
+                                                                // Solo incluir campos vacíos
+                                                                if (nestedFieldValue === undefined || nestedFieldValue === null || String(nestedFieldValue).trim() === "") {
+                                                                    nestedEmptyFieldsInstance[nestedField.name] = '';
+                                                                }
+                                                            }
+                                                        });
+                                                    }
+                                                    
+                                                    // Solo agregar la instancia si tiene campos vacíos
+                                                    if (Object.keys(nestedEmptyFieldsInstance).length > 0) {
+                                                        nestedInstancesArray.push(nestedEmptyFieldsInstance);
+                                                    }
+                                                });
+                                                
+                                                // Solo agregar el array de ocurrencias anidadas si tiene instancias con campos vacíos
+                                                if (nestedInstancesArray.length > 0) {
+                                                    emptyFieldsInstance[nestedOccKey] = nestedInstancesArray;
+                                                }
+                                            } else {
+                                                // Si el campo de ocurrencia anidada está vacío, incluirlo
+                                                if (field.fields && Array.isArray(field.fields)) {
+                                                    const nestedEmptyInstance = {};
+                                                    field.fields.forEach(nestedField => {
+                                                        if (nestedField.type === 'field') {
+                                                            nestedEmptyInstance[nestedField.name] = '';
+                                                        }
+                                                    });
+                                                    
+                                                    if (Object.keys(nestedEmptyInstance).length > 0) {
+                                                        emptyFieldsInstance[nestedOccKey] = [nestedEmptyInstance];
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    });
+                                }
+                                
+                                // Solo agregar la instancia si tiene campos vacíos
+                                if (Object.keys(emptyFieldsInstance).length > 0) {
+                                    instancesArray.push(emptyFieldsInstance);
+                                }
+                            });
+                            
+                            // Solo agregar el array de ocurrencias si tiene instancias con campos vacíos
+                            if (instancesArray.length > 0) {
+                                paramsObj[occurrenceKey] = instancesArray;
+                            }
+                        } else {
+                            // Si no hay ocurrencias en la configuración, mostrar una instancia vacía
+                            const emptyInstance = {};
+                            if (element.fields && Array.isArray(element.fields)) {
+                                element.fields.forEach(field => {
+                                    if (field.type === 'field') {
+                                        emptyInstance[field.name] = '';
+                                    }
+                                });
+                            }
+                            
+                            // Solo agregar la instancia si tiene campos
+                            if (Object.keys(emptyInstance).length > 0) {
+                                paramsObj[occurrenceKey] = [emptyInstance];
+                            } else {
+                                paramsObj[occurrenceKey] = [];
+                            }
+                        }
+                    }
+                }
+            });
+            
+            return paramsObj;
+        };
+        
+        // Construir los parámetros dinámicos usando la estructura del servicio
+        if (serviceRequestStructure.elements && serviceRequestStructure.elements.length > 0) {
+            dynamicJson.parameters = buildParametersObject(serviceRequestStructure.elements, requestData, true);
+        }
+        
+        return dynamicJson;
+    },
+
     _showBasicDialog: function(serviceNumber, serviceName, canal, onSuccess, onError) {
         // Fallback si SweetAlert no está disponible
         const suffix = prompt('Ingrese una descripción para identificar esta configuración:');
@@ -316,17 +515,86 @@ const ConfigDataHandler = {
         // Collect request data (handles nesting and occurrences)
         configuration.request = this.collectRequestData();
 
-        // Optional: Log the collected data before sending
-        console.log("Configuration to save:", JSON.stringify(configuration, null, 2));
+        // IMPORTANTE: Antes de tomar los JSONs de los textareas, necesitamos actualizarlos
+        // con la configuración actual del formulario
+        
+        // Actualizar el JSON completo en el textarea (con valores)
+        const completeJson = {
+            header: configuration.header,
+            request: configuration.request
+        };
+        
+        // Crear el JSON dinámico (el complemento - solo campos vacíos)
+        const dynamicJson = this.createDynamicJsonFromComplete(completeJson);
+        
+        // Actualizar los textareas con estos JSONs para que estén sincronizados
+        try {
+            const idaJsonElement = document.getElementById('idaJsonInput');
+            if (idaJsonElement) {
+                idaJsonElement.textContent = JSON.stringify(completeJson, null, 2);
+                // Si existe la función de formateo, aplicarla
+                if (typeof window.formatJsonElement === 'function') {
+                    window.formatJsonElement(idaJsonElement, true);
+                }
+            }
+            
+            const idaDynamicElement = document.getElementById('idaDynamicParamsInput');
+            if (idaDynamicElement) {
+                idaDynamicElement.textContent = JSON.stringify(dynamicJson, null, 2);
+                // Si existe la función de formateo, aplicarla
+                if (typeof window.formatJsonElement === 'function') {
+                    window.formatJsonElement(idaDynamicElement, true);
+                }
+            }
+        } catch (e) {
+            console.warn('Error actualizando los textareas con los JSONs:', e);
+        }
 
-        // Send configuration to server
-        fetch('/service-config/save', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(configuration),
-        })
+        // Ahora usar estos JSONs actualizados
+        const finalCompleteJson = completeJson;
+        const finalDynamicJson = dynamicJson;
+
+        // Optional: Log the collected data before sending
+        console.log("JSON Completo (de la UI):", JSON.stringify(finalCompleteJson, null, 2));
+        console.log("JSON Dinámico (de la UI):", JSON.stringify(finalDynamicJson, null, 2));
+
+        // NUEVO: Enviar configuración usando el orchestrator (network visible)
+        const useOrchestrator = window.currentExcelInfo && window.currentExcelInfo.excelId;
+        
+        const fetchPromise = useOrchestrator ? 
+            (() => {
+                console.log('🔧 [ConfigDataHandler] Usando orchestrator con ExcelId:', window.currentExcelInfo.excelId);
+                // Usar nuevo endpoint del orchestrator para guardar en BD
+                return fetch('/api-orchestrator/step3-save-settings', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        excelId: window.currentExcelInfo.excelId,
+                        version: configuration.version,
+                        settingName: `Config_${serviceNumber}_${canal}_${suffix}`,
+                        completeSettingJson: finalCompleteJson,  // JSON completo tal cual está en la UI (solapa 1)
+                        dynamicSettingJson: finalDynamicJson,    // JSON dinámico tal cual está en la UI (solapa 2)
+                        serviceNumber: serviceNumber,
+                        canalCode: canal,
+                        suffix: suffix  // Agregar suffix explícitamente
+                    }),
+                });
+            })() : 
+            (() => {
+                console.log('🔧 [ConfigDataHandler] ExcelId no disponible, usando método legacy');
+                // Fallback al método original si no hay ExcelId
+                return fetch('/service-config/save', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(configuration),
+                });
+            })();
+        
+        fetchPromise
         .then(response => {
             if (!response.ok) {
                 // Try to get error message from response body
@@ -338,22 +606,38 @@ const ConfigDataHandler = {
         })
         .then(data => {
             console.log('[ConfigDataHandler] DEBUG - Respuesta del servidor:', data);
-            console.log('[ConfigDataHandler] DEBUG - Filename recibido:', data.filename);
-            ConfigUtils.showNotification(`Configuración guardada correctamente como: ${data.filename}`, 'success');
             
-            // Update the saved configurations list immediately
-            if (ConfigStorageManager && ConfigStorageManager.loadSavedConfigurations) {
-                ConfigStorageManager.loadSavedConfigurations(null, function(configs) {
-                    if (ConfigUIManager && ConfigUIManager.updateSavedConfigurationsList) {
-                        ConfigUIManager.updateSavedConfigurationsList(configs);
-                        console.log('Lista de configuraciones actualizada después de guardar:', configs.length);
-                    }
-                });
-            }
-            
-            // Call success callback if provided
-            if (typeof onSuccess === 'function') {
-                onSuccess(configuration, data.filename);
+            // Manejar respuesta según el método usado
+            if (useOrchestrator) {
+                console.log('[ConfigDataHandler] DEBUG - Respuesta del orchestrator:', data);
+                const settingName = data.settingName || `Config_${serviceNumber}_${canal}_${suffix}`;
+                ConfigUtils.showNotification(`Configuración guardada en BD: ${settingName}`, 'success');
+                
+                // Para orchestrator, simular filename para compatibilidad
+                const simulatedFilename = `${settingName}.json`;
+                
+                // Call success callback if provided
+                if (typeof onSuccess === 'function') {
+                    onSuccess(configuration, simulatedFilename);
+                }
+            } else {
+                console.log('[ConfigDataHandler] DEBUG - Filename recibido:', data.filename);
+                ConfigUtils.showNotification(`Configuración guardada correctamente como: ${data.filename}`, 'success');
+                
+                // Update the saved configurations list immediately
+                if (ConfigStorageManager && ConfigStorageManager.loadSavedConfigurations) {
+                    ConfigStorageManager.loadSavedConfigurations(null, function(configs) {
+                        if (ConfigUIManager && ConfigUIManager.updateSavedConfigurationsList) {
+                            ConfigUIManager.updateSavedConfigurationsList(configs);
+                            console.log('Lista de configuraciones actualizada después de guardar:', configs.length);
+                        }
+                    });
+                }
+                
+                // Call success callback if provided
+                if (typeof onSuccess === 'function') {
+                    onSuccess(configuration, data.filename);
+                }
             }
         })
                 .catch(err => {
@@ -580,31 +864,29 @@ else if (element.type === 'occurrence') {
         const instanceData = {};
         
         // Process fields in this instance
-if (element.fields && Array.isArray(element.fields)) {
-    for (const field of element.fields) {
-        if (field.type !== 'occurrence' && field.name) {
-            const fieldValue = getInstanceFieldValue(instanceId, field.name);
-            instanceData[field.name] = fieldValue;
-            console.log(`Instance field ${field.name} = "${fieldValue}"`);
+        if (element.fields && Array.isArray(element.fields)) {
+            for (const field of element.fields) {
+                if (field.type !== 'occurrence' && field.name) {
+                    const fieldValue = getInstanceFieldValue(instanceId, field.name);
+                    instanceData[field.name] = fieldValue;
+                    console.log(`Instance field ${field.name} = "${fieldValue}"`);
+                }
+                else if (field.type === 'occurrence') {
+                    // Handle nested occurrence within this instance
+                    const subNestedOccName = field.id || field.name;
+                    instanceData[subNestedOccName] = processNestedOccurrence(field, instanceId);
+                    console.log(`Processed deeper nested occurrence ${subNestedOccName}`);
+                }
+            }
         }
-        else if (field.type === 'occurrence') {
-            // Handle nested occurrence within this instance
-            const subNestedOccName = field.id || field.name;
-            instanceData[subNestedOccName] = processNestedOccurrence(field, instanceId);
-            console.log(`Processed deeper nested occurrence ${subNestedOccName}`);
+        
+        // Add instance data to the occurrence array
+        result[occName].push(instanceData);
+    });
+            }
         }
-    }
-}
 
-// Add instance data to the occurrence array
-result[occName].push(instanceData);
-});
-}
-}
-
-return result;
-
-// Make ConfigDataHandler globally accessible
+        return result;
         };
         
         // Build and return the request data object

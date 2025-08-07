@@ -346,7 +346,7 @@
           <div class="config-form">
             <div class="form-group select-service-group">
               <label for="configServiceSelect">Seleccione un servicio:</label>
-              <select id="configServiceSelect" class="service-select">
+              <select id="configServiceSelect" name="configServiceSelect" class="service-select">
                 <option value="">-- Seleccione un servicio --</option>
                 <!-- Las opciones se cargarán dinámicamente -->
               </select>
@@ -354,7 +354,7 @@
 
             <div class="form-group">
               <label for="canalInput">Canal (máximo 2 caracteres):</label>
-              <input type="text" id="canalInput" maxlength="2" placeholder="Ingrese su canal (obligatorio)" required>
+              <input type="text" id="canalInput" name="canalInput" maxlength="2" placeholder="Ingrese su canal (obligatorio)" required>
             </div>
 
             <div class="form-group">
@@ -463,7 +463,7 @@
               <div class="service-form">
                 <div class="form-group">
                   <label for="idaServiceSelect">Seleccione un servicio:</label>
-                  <select id="idaServiceSelect" class="service-select">
+                  <select id="idaServiceSelect" name="idaServiceSelect" class="service-select">
                     <option value="">-- Seleccione un servicio --</option>
                     <!-- Las opciones se cargarán dinámicamente -->
                   </select>
@@ -471,7 +471,7 @@
 
                 <div class="form-group">
                   <label for="idaConfigSelect">Seleccione una configuración:</label>
-                  <select id="idaConfigSelect" class="service-select">
+                  <select id="idaConfigSelect" name="idaConfigSelect" class="service-select">
                     <option value="">-- Seleccione una configuración --</option>
                     <!-- Las opciones se cargarán dinámicamente -->
                   </select>
@@ -547,7 +547,7 @@
               
                 <div class="form-group">
                   <label for="vueltaServiceSelect">Seleccione un servicio:</label>
-                  <select id="vueltaServiceSelect" class="service-select">
+                  <select id="vueltaServiceSelect" name="vueltaServiceSelect" class="service-select">
                     <option value="3088" selected>SERVICIO 3088 - Imputador Genérico para varias operaciones</option>
                     <!-- Las opciones se cargarán dinámicamente -->
                   </select>
@@ -555,7 +555,7 @@
 
                 <div class="form-group">
                   <label for="vueltaConfigSelect">Seleccione una configuración:</label>
-                  <select id="vueltaConfigSelect" class="service-select">
+                  <select id="vueltaConfigSelect" name="vueltaConfigSelect" class="service-select">
                     <option value="">-- Seleccione una configuración --</option>
                     <!-- Las opciones se cargarán dinámicamente -->
                   </select>
@@ -772,6 +772,8 @@
   <!-- Services Cache - Load FIRST before any API clients -->
   <script src="/js/core/services-cache.js"></script>
   <script src="/js/api_client/service-api-client.js"></script>
+  <!-- Performance utilities -->
+  <script src="/js/utils/performance-utils.js"></script>
   <!-- Modular configuration system - Load utilities first -->
   <script src="/js/config/config-utils.js"></script>
   <script src="/js/config/config-service-loader.js"></script>

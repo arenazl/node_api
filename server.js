@@ -20,7 +20,6 @@ const cors = require('cors');
 const path = require('path');
 const fileUpload = require('express-fileupload');
 const fs = require('fs-extra');
-const { initializeDatabase, query } = require('./config/database');
 
 // Cargar variables de entorno desde .env si existe
 try {
@@ -45,12 +44,18 @@ global.serviceCache = {
 };
 
 // Importar rutas
-const apiRoutes = require('./routes/api');
-const excelRoutes = require('./routes/excel');
-const serviceRoutes = require('./routes/services');
-const serviceConfigRoutes = require('./routes/service-config');
-const systemMaintenanceRoutes = require('./routes/system-maintenance');
-const logsRoutes = require('./routes/logs');
+const apiRoutes = require('./api/core-processing/routes-backend/api');
+const excelRoutes = require('./api/core-processing/routes-backend/excel');
+const serviceRoutes = require('./api/core-processing/routes-backend/services');
+const serviceConfigRoutes = require('./api/core-processing/routes-backend/service-config');
+const systemMaintenanceRoutes = require('./api/core-processing/routes-backend/system-maintenance');
+const logsRoutes = require('./api/core-processing/routes-backend/logs');
+
+// API Orchestrator para Network visibility
+const apiOrchestratorRoutes = require('./api/orchestrator/api-orchestrator');
+
+// Rutas de prueba de errores (solo en desarrollo)
+const testErrorRoutes = require('./api/core-processing/routes-backend/test-errors');
 
 // Crear directorios necesarios si no existen
 const uploadsDir = path.join(__dirname, 'JsonStorage', 'uploads');
@@ -131,17 +136,16 @@ if (process.env.VERBOSE_LOGS === 'true') {
   app.use(requestLoggerMiddleware);
 }
 
-// Middleware para manejar errores
-app.use((err, req, res, next) => {
-  console.error('Error en middleware:', err);
-  if (res.headersSent) {
-    return next(err);
-  }
-  res.status(500).json({
-    error: "Error interno del servidor",
-    details: process.env.NODE_ENV === 'development' ? err.message : undefined
-  });
-});
+// Importar middleware de manejo de errores mejorado
+const { errorHandler, timeoutMiddleware } = require('./middleware/error-handler');
+// Importar validador de Excel
+const { excelValidationMiddleware } = require('./middleware/excel-validator');
+
+// Aplicar timeout a todas las requests (2 minutos por defecto)
+app.use(timeoutMiddleware(REQUEST_TIMEOUT));
+
+// IMPORTANTE: El middleware de errores debe ir AL FINAL, después de todas las rutas
+// Se moverá al final del archivo
 
 // Servir archivos estáticos desde la carpeta public
 app.use(express.static(path.join(__dirname, 'public')));
@@ -156,11 +160,38 @@ app.use('/excel/structure', (req, res, next) => {
 
 // Rutas
 app.use('/api', apiRoutes);
-app.use('/excel', excelRoutes);
+// Aplicar validación de Excel antes de procesar
+app.use('/excel', excelValidationMiddleware, excelRoutes);
 app.use('/api/services', serviceRoutes);
 app.use('/service-config', serviceConfigRoutes);
 app.use('/system-maintenance', systemMaintenanceRoutes);
 app.use('/logs', logsRoutes);
+
+// API Orchestrator - EL MÉTODO que debe llamar el frontend
+// También necesita validación de Excel
+app.use('/api-orchestrator', excelValidationMiddleware, apiOrchestratorRoutes);
+
+// Rutas de prueba de errores (solo en desarrollo/testing)
+if (process.env.NODE_ENV !== 'production') {
+  app.use('/api/test-errors', testErrorRoutes);
+  
+  // Ruta DIRECTA para forzar crash (más fácil de probar)
+  const testCrashRoutes = require('./api/core-processing/routes-backend/test-crash');
+  app.use('/test-crash', testCrashRoutes);
+}
+
+// Rutas legacy sin el prefijo /api (para compatibilidad)
+app.get('/header', (req, res) => {
+  res.redirect('/api/header');
+});
+
+app.post('/parse', (req, res) => {
+  res.redirect(307, '/api/parse');
+});
+
+app.post('/process', (req, res) => {
+  res.redirect(307, '/api/process');
+});
 
 // Ruta principal - Servir la interfaz web
 app.get('/', (req, res) => {
@@ -188,26 +219,21 @@ app.get('/health', async (req, res) => {
     nodeVersion: process.version
   };
   
-  // Verificar conexión a base de datos
-  let databaseStatus = {
-    connected: false,
-    host: null,
-    database: null,
-    error: null
+  // Verificar estado de Mora.Sim-api integration
+  let moraSimStatus = {
+    enabled: process.env.MORA_SIM_API_ENABLED === 'true',
+    url: process.env.MORA_SIM_API_URL || 'http://localhost:5000/api/SimImporter',
+    available: false
   };
   
-  try {
-    const result = await query('SELECT 1 as test');
-    if (result && result[0] && result[0].test === 1) {
-      databaseStatus = {
-        connected: true,
-        host: 'mysql-aiven-arenazl.e.aivencloud.com',
-        database: 'SimImporter',
-        error: null
-      };
+  if (moraSimStatus.enabled) {
+    try {
+      const MoraSimDatabaseHelper = require('./api/external-integrations/sim-integration/mora-sim-database-helper');
+      const moraHelper = new MoraSimDatabaseHelper();
+      moraSimStatus.available = await moraHelper.testConnection();
+    } catch (error) {
+      moraSimStatus.error = error.message;
     }
-  } catch (error) {
-    databaseStatus.error = error.message;
   }
   
   res.json({
@@ -225,9 +251,13 @@ app.get('/health', async (req, res) => {
       structures: Object.keys(global.serviceCache.structures).length,
       lastUpdate: global.serviceCache.lastUpdate
     },
-    database: databaseStatus
+    moraSimApi: moraSimStatus
   });
 });
+
+// IMPORTANTE: Middleware de manejo de errores - DEBE ir al final, después de todas las rutas
+// Este middleware captura TODOS los errores no manejados y devuelve respuestas JSON estructuradas
+app.use(errorHandler);
 
 // Función para mostrar resumen del sistema al inicio
 const mostrarResumenSistema = () => {
@@ -264,16 +294,28 @@ const mostrarResumenSistema = () => {
   }
 };
 
-// Inicializar la base de datos antes de iniciar el servidor
+// Inicializar el servidor
 async function startServer() {
   try {
-    await initializeDatabase();
-    if (process.env.VERBOSE_LOGS === 'true') {
-      console.log('✅ Base de datos inicializada correctamente');
+    // Verificar si Mora.Sim-api está disponible (opcional)
+    if (process.env.MORA_SIM_API_ENABLED === 'true') {
+      try {
+        const MoraSimDatabaseHelper = require('./api/external-integrations/sim-integration/mora-sim-database-helper');
+        const moraHelper = new MoraSimDatabaseHelper();
+        const isAvailable = await moraHelper.testConnection();
+        
+        if (isAvailable) {
+          console.log('✅ Mora.Sim-api connection verified');
+        } else {
+          console.log('⚠️  Mora.Sim-api not available (will continue without integration)');
+        }
+      } catch (error) {
+        console.log('⚠️  Mora.Sim-api connection check failed (will continue without integration)');
+      }
     }
   } catch (error) {
     // Solo mostrar error resumido
-    console.log('⚠️  DB: Sin conexión (continuando sin base de datos)');
+    console.log('⚠️  Integration: Error en verificación (continuando sin integración)');
     if (process.env.VERBOSE_LOGS === 'true') {
       console.error('Error detallado:', error.message);
     }

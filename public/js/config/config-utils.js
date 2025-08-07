@@ -296,8 +296,8 @@ const ConfigUtils = {
 
         for (const line of lines) {
             const trimmedLine = line.trim();
-            // Mejorar el regex para capturar correctamente "0 = todos" o "1 = En fase..."
-            const codeMatch = trimmedLine.match(/^([0-9a-zA-Z]+)\s*[-=]\s*(.+)$/);
+            // Mejorar el regex para capturar patrones como "1. Consulta...", "1=Consulta...", "0 = todos", etc.
+            const codeMatch = trimmedLine.match(/^([0-9a-zA-Z]+)[\.\=\-\s]+(.+)$/);
 
             if (codeMatch) {
                 options.push({
@@ -350,6 +350,14 @@ const ConfigUtils = {
         // Si es un campo de tipo lista (con opciones)
         if (fieldType === 'lista') {
             input = document.createElement('select');
+            
+            // Debug: verificar que se está creando un select para lista
+            console.log(`🔧 [DEBUG] Creando select para campo: ${field.name} (tipo: lista)`);
+            
+            // Agregar id y name para autofill
+            const fieldId = `config_field_${field.name || 'field'}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            input.id = fieldId;
+            input.name = fieldId;
 
             // Añadir opción vacía
             const emptyOption = document.createElement('option');
@@ -370,10 +378,34 @@ const ConfigUtils = {
             });
 
             input.dataset.isOptionsList = 'true';
+            
+            // Agregar debug en onChange SOLO para campos de requerimiento
+            input.addEventListener('change', function(e) {
+                // Solo debug para campos de la tabla de requerimiento
+                const isRequestField = e.target.closest('#requestConfigTable') !== null;
+                if (isRequestField) {
+                    console.log(`🚨 [DEBUG COMBO REQUERIMIENTO] Field: ${field.name}`);
+                    console.log(`🚨 Selected value: "${e.target.value}"`);
+                    console.log(`🚨 Selected text: "${e.target.options[e.target.selectedIndex]?.textContent}"`);
+                    console.log(`🚨 Element:`, e.target);
+                    
+                    // Debug adicional - verificar si el value se está aplicando
+                    console.log(`🚨 Input value después del change: "${e.target.value}"`);
+                    console.log(`🚨 Selected index: ${e.target.selectedIndex}`);
+                    
+                    // Alert para que sea más visible
+                    alert(`Combo cambiado: ${field.name} = "${e.target.value}"`);
+                }
+            });
         }
         // Compatibilidad con el formato antiguo de valores predefinidos
         else if (field.values && Array.isArray(field.values) && field.values.length > 0) {
             input = document.createElement('select');
+            
+            // Agregar id y name para autofill
+            const fieldId = `config_field_${field.name || 'field'}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            input.id = fieldId;
+            input.name = fieldId;
 
             // Añadir opción vacía
             const emptyOption = document.createElement('option');
@@ -388,6 +420,21 @@ const ConfigUtils = {
                 option.textContent = value;
                 input.appendChild(option);
             });
+            
+            // Agregar debug en onChange SOLO para campos de requerimiento
+            input.addEventListener('change', function(e) {
+                // Solo debug para campos de la tabla de requerimiento
+                const isRequestField = e.target.closest('#requestConfigTable') !== null;
+                if (isRequestField) {
+                    console.log(`🚨 [DEBUG COMBO REQUERIMIENTO LEGACY] Field: ${field.name}`);
+                    console.log(`🚨 Selected value: "${e.target.value}"`);
+                    console.log(`🚨 Selected text: "${e.target.options[e.target.selectedIndex]?.textContent}"`);
+                    console.log(`🚨 Element:`, e.target);
+                    
+                    // Alert para que sea más visible
+                    alert(`Combo Legacy cambiado: ${field.name} = "${e.target.value}"`);
+                }
+            });
         }
         // Campos numéricos
         else if (fieldType === 'numerico') {
@@ -395,6 +442,11 @@ const ConfigUtils = {
             input.type = 'text';
             input.pattern = '[0-9]*';
             input.inputMode = 'numeric';
+            
+            // Agregar id y name para autofill
+            const fieldId = `config_field_${field.name || 'field'}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            input.id = fieldId;
+            input.name = fieldId;
 
             // Añadir validación en tiempo real
             input.addEventListener('input', function(e) {
@@ -410,6 +462,11 @@ const ConfigUtils = {
             input = document.createElement('input');
             input.type = 'text';
             input.classList.add('fecha-input');
+            
+            // Agregar id y name para autofill
+            const fieldId = `config_field_${field.name || 'field'}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            input.id = fieldId;
+            input.name = fieldId;
 
             // Extraer formato de fecha desde el campo values
             const dateFormat = this.extractDateFormat(field.values);
@@ -485,6 +542,11 @@ const ConfigUtils = {
         else if (fieldType === 'alfanumerico') {
             input = document.createElement('input');
             input.type = 'text';
+            
+            // Agregar id y name para autofill
+            const fieldId = `config_field_${field.name || 'field'}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            input.id = fieldId;
+            input.name = fieldId;
 
             if (field.length) {
                 input.maxLength = field.length;
@@ -503,6 +565,11 @@ const ConfigUtils = {
         else {
             input = document.createElement('input');
             input.type = 'text';
+            
+            // Agregar id y name para autofill
+            const fieldId = `config_field_${field.name || 'field'}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            input.id = fieldId;
+            input.name = fieldId;
 
             if (field.length) {
                 input.maxLength = field.length;
@@ -611,6 +678,22 @@ const ConfigUtils = {
                         optionElement.textContent = option.label;
                         optionElement.dataset.fullValue = option.label;
                         select.appendChild(optionElement);
+                    });
+                    
+                    // Agregar debug en onChange SOLO para campos de requerimiento
+                    select.addEventListener('change', function(e) {
+                        // Solo debug para campos de la tabla de requerimiento
+                        const isRequestField = e.target.closest('#requestConfigTable') !== null;
+                        if (isRequestField) {
+                            const fieldName = e.target.dataset.fieldName || 'unknown';
+                            console.log(`🚨 [DEBUG COMBO REQUERIMIENTO DYNAMIC] Field: ${fieldName}`);
+                            console.log(`🚨 Selected value: "${e.target.value}"`);
+                            console.log(`🚨 Selected text: "${e.target.options[e.target.selectedIndex]?.textContent}"`);
+                            console.log(`🚨 Element:`, e.target);
+                            
+                            // Alert para que sea más visible
+                            alert(`Combo Dynamic cambiado: ${fieldName} = "${e.target.value}"`);
+                        }
                     });
 
                     input.replaceWith(select);

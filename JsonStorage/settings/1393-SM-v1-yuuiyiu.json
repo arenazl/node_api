@@ -1,0 +1,27 @@
+{
+  "serviceNumber": "1393",
+  "serviceName": "Servicio 1393",
+  "canal": "SM",
+  "version": "v1",
+  "suffix": "yuuiyiu",
+  "timestamp": "2025-08-07T04:41:17.230Z",
+  "header": {
+    "LONGITUD DEL MENSAJE": "000113",
+    "CANAL": "SM",
+    "SERVICIO": "1393",
+    "CÓDIGO DE RETORNO": "0000",
+    "ID DEL MENSAJE": "000000102",
+    "FECHA": "13062011",
+    "HORA": "090909",
+    "USUARIO": "P046343",
+    "Ubicación": "4002",
+    "TEXTO DEL CÓDIGO DE RETORNO": "",
+    "ESTADO ENVIADO": "00",
+    "CAMPO COMPLEMENTARIO": ""
+  },
+  "request": {
+    "SVC1393-TIP-PEDIDO": "",
+    "SVC1393-N-ITN-PL-C": ""
+  },
+  "dynamicParams": {}
+}

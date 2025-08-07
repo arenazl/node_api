@@ -384,11 +384,81 @@ function parseServiceStructureOriginal(filePath) {
   function createField(row, index) {
     const fieldName = String(row[COL_FIELD_NAME] || '').trim();
     const fieldType = String(row[COL_TYPE] || '').trim();
+    const fieldLength = row[COL_LENGTH] && String(row[COL_LENGTH]).trim().match(/^\d+$/) ? parseInt(String(row[COL_LENGTH])) : 0;
+    
+    // Procesar valores de campo (para listas de opciones)
+    let fieldValues = String(row[COL_VALUES] || '').trim();
+    if (fieldValues) {
+      const hasListFormat = fieldValues.match(/(\d+[\.\=\-]\s*|\w+[\.\=\-]\s*)/);
+      const hasMultipleLines = fieldValues.includes('\n') || fieldValues.includes('\r');
+      const hasSeparators = fieldValues.includes(',') || fieldValues.includes(';');
+      const isList = hasListFormat || hasMultipleLines || hasSeparators;
+      
+      if (isList) {
+        const valuesList = [];
+        const lines = fieldValues.split(/[\r\n]+/);
+        
+        if (lines.length > 1) {
+          // Procesar líneas múltiples  
+          for (const line of lines) {
+            if (line.trim()) valuesList.push(line.trim());
+          }
+        } else {
+          // Procesar otros separadores
+          const items = fieldValues.split(/(?=\d+[\.\=\-]\s*|\w+[\.\=\-]\s*)/);
+          if (items.length > 1) {
+            for (const item of items) {
+              if (item.trim()) valuesList.push(item.trim());
+            }
+          } else if (fieldValues.includes(',') || fieldValues.includes(';')) {
+            const separatorItems = fieldValues.split(/[,;]+/);
+            for (const item of separatorItems) {
+              if (item.trim()) valuesList.push(item.trim());
+            }
+          } else if (fieldValues.match(/\d+/)) {
+            const spaceItems = fieldValues.split(/\s+(?=\d+)/);
+            if (spaceItems.length > 1) {
+              for (const item of spaceItems) {
+                if (item.trim()) valuesList.push(item.trim());
+              }
+            }
+          }
+        }
+        
+        if (valuesList.length > 1) {
+          // Para campos numéricos con longitud definida, formatear códigos
+          if (fieldType.toLowerCase().includes('numerico') && fieldLength > 0) {
+            fieldValues = valuesList.map(item => {
+              const numMatch = item.match(/^(\d+)[\.\=\-]\s*/);
+              if (numMatch && numMatch[1]) {
+                return item.replace(/^(\d+)/, numMatch[1].padStart(fieldLength, '0'));
+              }
+              return item;
+            });
+          } else {
+            fieldValues = valuesList;
+          }
+        } else if (hasListFormat && fieldValues.trim()) {
+          // Procesar un solo elemento con formato de lista
+          if (fieldType.toLowerCase().includes('numerico') && fieldLength > 0) {
+            const numMatch = fieldValues.match(/^(\d+)[\.\=\-]\s*/);
+            if (numMatch && numMatch[1]) {
+              fieldValues = [fieldValues.replace(/^(\d+)/, numMatch[1].padStart(fieldLength, '0'))];
+            } else {
+              fieldValues = [fieldValues.trim()];
+            }
+          } else {
+            fieldValues = [fieldValues.trim()];
+          }
+        }
+      }
+    }
+    
     return {
       type: 'field', index: index, name: fieldName,
-      length: row[COL_LENGTH] && String(row[COL_LENGTH]).trim().match(/^\d+$/) ? parseInt(String(row[COL_LENGTH])) : 0,
+      length: fieldLength,
       fieldType: fieldType, required: String(row[COL_REQUIRED] || '').trim(),
-      values: String(row[COL_VALUES] || '').trim(), description: String(row[COL_DESC] || '').trim()
+      values: fieldValues, description: String(row[COL_DESC] || '').trim()
     };
   }
 

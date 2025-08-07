@@ -121,26 +121,38 @@ function initializeIdaServiceHandlers() {
                 console.log(`[Services UI - IDA] Service selected: ${serviceNumber}. Loading structure...`);
 
                 if (typeof ConfigServiceLoader !== 'undefined') {
-                    ConfigServiceLoader.loadServiceStructure(
-                        serviceNumber,
-                        (structure) => {
-                            console.log('[Services UI - IDA] Service structure loaded successfully.', structure);
+                    // OPTIMIZACIÓN: Usar singleFlight para evitar llamadas duplicadas
+                    if (window.PerformanceUtils && window.PerformanceUtils.singleFlight) {
+                        window.PerformanceUtils.singleFlight(
+                            `loadService_${serviceNumber}`,
+                            () => new Promise((resolve, reject) => {
+                                ConfigServiceLoader.loadServiceStructure(
+                                    serviceNumber,
+                                    (structure) => resolve(structure),
+                                    (error) => reject(error)
+                                );
+                            })
+                        ).then((structure) => {
+                            console.log('[Services UI - IDA] Service structure loaded successfully (optimized).', structure);
                             if (idaConfigSelect) {
                                 loadConfigsForService(serviceNumber, idaConfigSelect);
                             }
                             if (detailedParamsView) {
                                 detailedParamsView.innerHTML = '<p>Seleccione una configuración para ver los parámetros detallados.</p>';
                             }
-                            // Sincronizar con el select de VUELTA
+                            // Sincronizar con el select de VUELTA sin disparar evento duplicado
                             const vueltaServiceSelect = document.getElementById('vueltaServiceSelect');
-                            if (vueltaServiceSelect) {
+                            if (vueltaServiceSelect && vueltaServiceSelect.value !== serviceNumber) {
+                                // Solo actualizar si el valor es diferente para evitar ciclos
                                 vueltaServiceSelect.value = serviceNumber;
-                                // Disparar el evento change para que se actualicen configs y UI de vuelta
+                                // Usar flag para indicar que es una sincronización interna
+                                vueltaServiceSelect.dataset.syncFromIda = 'true';
                                 const event = new Event('change');
                                 vueltaServiceSelect.dispatchEvent(event);
+                                // Limpiar el flag después
+                                setTimeout(() => delete vueltaServiceSelect.dataset.syncFromIda, 0);
                             }
-                        },
-                        (errorMessage) => {
+                        }).catch((errorMessage) => {
                             console.error('[Services UI - IDA] Error loading service structure:', errorMessage);
                             if (idaConfigSelect) {
                                 idaConfigSelect.innerHTML = '<option value="">-- Error al cargar configuraciones --</option>';
@@ -148,8 +160,40 @@ function initializeIdaServiceHandlers() {
                             if (detailedParamsView) {
                                 detailedParamsView.innerHTML = '<p>Error al cargar la estructura del servicio.</p>';
                             }
-                        }
-                    );
+                        });
+                    } else {
+                        // Fallback si PerformanceUtils no está disponible
+                        ConfigServiceLoader.loadServiceStructure(
+                            serviceNumber,
+                            (structure) => {
+                                console.log('[Services UI - IDA] Service structure loaded successfully.', structure);
+                                if (idaConfigSelect) {
+                                    loadConfigsForService(serviceNumber, idaConfigSelect);
+                                }
+                                if (detailedParamsView) {
+                                    detailedParamsView.innerHTML = '<p>Seleccione una configuración para ver los parámetros detallados.</p>';
+                                }
+                                // Sincronizar con el select de VUELTA
+                                const vueltaServiceSelect = document.getElementById('vueltaServiceSelect');
+                                if (vueltaServiceSelect && vueltaServiceSelect.value !== serviceNumber) {
+                                    vueltaServiceSelect.value = serviceNumber;
+                                    vueltaServiceSelect.dataset.syncFromIda = 'true';
+                                    const event = new Event('change');
+                                    vueltaServiceSelect.dispatchEvent(event);
+                                    setTimeout(() => delete vueltaServiceSelect.dataset.syncFromIda, 0);
+                                }
+                            },
+                            (errorMessage) => {
+                                console.error('[Services UI - IDA] Error loading service structure:', errorMessage);
+                                if (idaConfigSelect) {
+                                    idaConfigSelect.innerHTML = '<option value="">-- Error al cargar configuraciones --</option>';
+                                }
+                                if (detailedParamsView) {
+                                    detailedParamsView.innerHTML = '<p>Error al cargar la estructura del servicio.</p>';
+                                }
+                            }
+                        );
+                    }
                 } else {
                     console.error('[Services UI - IDA] ConfigServiceLoader is not available.');
                     if (typeof ConfigUtils !== 'undefined' && ConfigUtils.showNotification) {
@@ -191,8 +235,34 @@ function initializeIdaServiceHandlers() {
                      }
                     return;
                 }
-                loadJsonFromConfig(configId, idaJsonInput, serviceNumber);
-                loadDynamicParamsFromConfig(configId, idaDynamicParamsInput, serviceNumber);
+                // Restaurar llamadas múltiples para asegurar que todo funcione
+                // Llamada 1: Cargar configuración en el JSON input
+                if (typeof ConfigStorageManager !== 'undefined' && ConfigStorageManager.loadSavedConfiguration) {
+                    ConfigStorageManager.loadSavedConfiguration(configId, (config, error) => {
+                        if (!error && config && idaJsonInput) {
+                            processJsonFromConfig(config, idaJsonInput, serviceNumber);
+                        }
+                    });
+                }
+                
+                // Llamada 2: Cargar configuración en los parámetros dinámicos
+                if (typeof ConfigStorageManager !== 'undefined' && ConfigStorageManager.loadSavedConfiguration) {
+                    ConfigStorageManager.loadSavedConfiguration(configId, (config, error) => {
+                        if (!error && config && idaDynamicParamsInput) {
+                            // Asegurar que pasamos el serviceNumber
+                            processDynamicParamsFromConfig(config, idaDynamicParamsInput, serviceNumber);
+                        }
+                    });
+                }
+                
+                // Llamada 3: Cargar configuración en la vista detallada
+                if (typeof ConfigStorageManager !== 'undefined' && ConfigStorageManager.loadSavedConfiguration) {
+                    ConfigStorageManager.loadSavedConfiguration(configId, (config, error) => {
+                        if (!error && config && detailedParamsView) {
+                            processDetailedParamsFromConfig(config, detailedParamsView, serviceNumber);
+                        }
+                    });
+                }
             });
         }
         
@@ -200,6 +270,23 @@ function initializeIdaServiceHandlers() {
             generateStringBtn.removeEventListener('click', generateStringClickHandler);
             generateStringBtn.addEventListener('click', generateStringClickHandler);
             // console.log('[Services UI - IDA] Event listener added for Generate String button');
+        }
+        
+        // Agregar validación en tiempo real (onblur) para campos dinámicos
+        const idaDynamicParamsInput = document.getElementById('idaDynamicParamsInput');
+        console.log('[Services UI - IDA] Buscando idaDynamicParamsInput:', !!idaDynamicParamsInput);
+        if (idaDynamicParamsInput) {
+            // Remover event listener previo si existe
+            idaDynamicParamsInput.removeEventListener('blur', validateDynamicParamsOnBlur);
+            idaDynamicParamsInput.addEventListener('blur', validateDynamicParamsOnBlur);
+            console.log('[Services UI - IDA] Event listener added for Dynamic Params validation on blur');
+            
+            // Test inmediato
+            idaDynamicParamsInput.addEventListener('click', function() {
+                console.log('[Services UI - IDA] Campo dinámico clickeado - event listener funcionando');
+            });
+        } else {
+            console.warn('[Services UI - IDA] No se encontró idaDynamicParamsInput element');
         }
 
         const copyFixedStringBtn = document.getElementById('copyFixedStringBtn');
@@ -318,7 +405,7 @@ function generateStringClickHandler() {
         try {
             dynData = JSON.parse(dynText === '' ? '{}' : dynText);
         } catch (err) {
-            if (typeof ConfigUtils !== 'undefined') ConfigUtils.showNotification('JSON de parámetros dinámicos inválido: ' + err.message, 'error');
+            showJsonValidationError(err, dynText);
             generateStringBtn.disabled = false;
             generateStringBtn.textContent = 'Generar String Fijo';
             return;
@@ -431,6 +518,237 @@ function loadServicesInSelect(selectElement) {
     }
 }
 
+/**
+ * OPTIMIZACIÓN: Carga la configuración una sola vez y la distribuye a todos los componentes
+ * Evita hacer múltiples llamadas HTTP para obtener la misma configuración
+ */
+function loadConfigurationOnce(configId, jsonInputElement, dynamicParamsInputElement, serviceNumber) {
+    if (!configId || typeof ConfigStorageManager === 'undefined') return;
+    
+    // Una sola llamada para obtener la configuración
+    ConfigStorageManager.loadSavedConfiguration(configId, (config, error) => {
+        if (error || !config) {
+            // Manejo de error para todos los elementos
+            const detailedParamsView = document.getElementById('idaDetailedParamsView');
+            if (detailedParamsView) {
+                detailedParamsView.innerHTML = `<p>Error al cargar la configuración: ${error || 'No encontrada'}</p>`;
+            }
+            if (jsonInputElement) {
+                jsonInputElement.textContent = '{}';
+                if (typeof window.formatJsonElement === 'function') {
+                    window.formatJsonElement(jsonInputElement, true);
+                }
+            }
+            if (dynamicParamsInputElement) {
+                dynamicParamsInputElement.textContent = '{}';
+                if (typeof window.formatJsonElement === 'function') {
+                    setTimeout(() => window.formatJsonElement(dynamicParamsInputElement, true), 0);
+                }
+            }
+            return;
+        }
+        
+        // Procesar JSON completo
+        if (jsonInputElement) {
+            processJsonFromConfig(config, jsonInputElement, serviceNumber);
+        }
+        
+        // Procesar parámetros dinámicos
+        if (dynamicParamsInputElement) {
+            processDynamicParamsFromConfig(config, dynamicParamsInputElement, serviceNumber);
+        }
+        
+        // Actualizar vista detallada
+        const detailedParamsView = document.getElementById('idaDetailedParamsView');
+        if (detailedParamsView && ConfigServiceLoader && ConfigServiceLoader.currentStructure && 
+            ConfigServiceLoader.currentStructure.service_structure && 
+            ConfigServiceLoader.currentStructure.service_structure.request) {
+            populateIdaDetailedParamsView(config, serviceNumber, config.canal, 
+                ConfigServiceLoader.currentStructure.service_structure.request, detailedParamsView);
+        } else if (detailedParamsView) {
+            detailedParamsView.innerHTML = '<p>Estructura del servicio no disponible.</p>';
+        }
+    });
+}
+
+/**
+ * Procesa y muestra el JSON completo desde la configuración cargada
+ */
+function processJsonFromConfig(config, jsonInputElement, serviceNumber) {
+    try {
+        const jsonData = { 
+            header: config.header || {}, 
+            body: (config.request && typeof config.request === 'object' && !Array.isArray(config.request)) 
+                ? config.request 
+                : (Array.isArray(config.request) 
+                    ? config.request.reduce((obj, item) => { 
+                        if(item.name) obj[item.name] = item.value; 
+                        return obj; 
+                    }, {}) 
+                    : {})
+        };
+        jsonInputElement.textContent = (Object.keys(jsonData.header).length || Object.keys(jsonData.body).length) 
+            ? JSON.stringify(jsonData, null, 2) 
+            : '{}';
+        
+        if (typeof window.formatJsonElement === 'function') {
+            window.formatJsonElement(jsonInputElement, true);
+        }
+    } catch (err) {
+        jsonInputElement.textContent = '{}';
+        if (typeof window.formatJsonElement === 'function') {
+            window.formatJsonElement(jsonInputElement, true);
+        }
+        if (typeof ConfigUtils !== 'undefined') {
+            ConfigUtils.showNotification('Error al procesar config para JSON: ' + err.message, 'error');
+        }
+    }
+}
+
+/**
+ * Procesa y muestra los parámetros dinámicos desde la configuración cargada
+ */
+function processDynamicParamsFromConfig(config, dynamicParamsInputElement, serviceNumber) {
+    try {
+        // Si la configuración ya tiene un JSON dinámico guardado, usarlo directamente
+        if (config.dynamic_setting_json || config.dynamicSettingJson) {
+            const savedDynamicJson = config.dynamic_setting_json || config.dynamicSettingJson;
+            let parsedDynamic;
+            
+            try {
+                parsedDynamic = typeof savedDynamicJson === 'string' ? JSON.parse(savedDynamicJson) : savedDynamicJson;
+            } catch (e) {
+                console.warn('Error parseando JSON dinámico guardado:', e);
+                parsedDynamic = null;
+            }
+            
+            if (parsedDynamic && parsedDynamic.header) {
+                // Usar el JSON dinámico guardado tal cual
+                dynamicParamsInputElement.textContent = JSON.stringify(parsedDynamic, null, 2);
+                
+                if (typeof window.formatJsonElement === 'function') {
+                    setTimeout(() => window.formatJsonElement(dynamicParamsInputElement, true), 0);
+                }
+                return;
+            }
+        }
+        
+        // Si no hay JSON dinámico guardado, crearlo desde la configuración
+        // Obtener el serviceNumber de la configuración si no se pasó como parámetro
+        if (!serviceNumber) {
+            serviceNumber = config.service_number || config.serviceNumber || 
+                           ConfigServiceLoader.currentServiceNumber || '';
+        }
+        
+        // Crear el objeto de parámetros dinámicos con la estructura esperada
+        const dynamicParams = {
+            header: {
+                serviceNumber: serviceNumber,
+                canal: config.canal || ''
+            },
+            parameters: {}
+        };
+        
+        // Obtener los datos del body/request de la configuración
+        const configBodyData = (config && (config.body || config.request)) ? (config.body || config.request) : {};
+        const flatConfigBody = Array.isArray(configBodyData) ? 
+            configBodyData.reduce((acc, field) => { 
+                if(field.name) acc[field.name] = field.value; 
+                return acc; 
+            }, {}) : configBodyData;
+        
+        // Si tenemos estructura del servicio, filtrar solo campos vacíos
+        if (ConfigServiceLoader && ConfigServiceLoader.currentStructure && 
+            ConfigServiceLoader.currentStructure.service_structure && 
+            ConfigServiceLoader.currentStructure.service_structure.request) {
+            
+            const serviceRequestStructure = ConfigServiceLoader.currentStructure.service_structure.request;
+            
+            // Usar la misma lógica de buildDynamicParametersObject que ya existe
+            if (serviceRequestStructure.elements && serviceRequestStructure.elements.length > 0) {
+                // Copiar la lógica existente de buildDynamicParametersObject aquí
+                // (Se mantiene la misma lógica pero se ejecuta una sola vez)
+                dynamicParams.parameters = buildDynamicParametersFromStructure(
+                    serviceRequestStructure.elements, 
+                    flatConfigBody
+                );
+            }
+        }
+        
+        dynamicParamsInputElement.textContent = JSON.stringify(dynamicParams, null, 2);
+        
+        if (typeof window.formatJsonElement === 'function') {
+            setTimeout(() => window.formatJsonElement(dynamicParamsInputElement, true), 0);
+        }
+    } catch (err) {
+        dynamicParamsInputElement.textContent = '{}';
+        if (typeof window.formatJsonElement === 'function') {
+            setTimeout(() => window.formatJsonElement(dynamicParamsInputElement, true), 0);
+        }
+        if (typeof ConfigUtils !== 'undefined') {
+            ConfigUtils.showNotification('Error al procesar parámetros dinámicos: ' + err.message, 'error');
+        }
+    }
+}
+
+/**
+ * Construye los parámetros dinámicos desde la estructura (helper para evitar duplicación)
+ */
+function buildDynamicParametersFromStructure(elements, currentConfigScope) {
+    const paramsObj = {};
+    elements.forEach(element => {
+        if (element.type === 'field') {
+            const valueFromConfig = currentConfigScope[element.name];
+            // Solo incluir campos que están vacíos en settings
+            if (valueFromConfig === undefined || valueFromConfig === null || String(valueFromConfig).trim() === "") {
+                paramsObj[element.name] = '';
+            }
+        } else if (element.type === 'occurrence') {
+            const occurrenceKey = element.id || element.name;
+            const occurrenceDataArrayFromConfig = currentConfigScope[occurrenceKey] || [];
+            
+            // Procesar ocurrencias (simplificado para evitar duplicación de código)
+            if (occurrenceDataArrayFromConfig.length > 0 && element.fields) {
+                const processedOccurrences = [];
+                occurrenceDataArrayFromConfig.forEach(instanceData => {
+                    const emptyFields = {};
+                    let hasEmptyFields = false;
+                    
+                    element.fields.forEach(field => {
+                        if (field.type === 'field') {
+                            const fieldValue = instanceData[field.name];
+                            if (fieldValue === undefined || fieldValue === null || String(fieldValue).trim() === "") {
+                                emptyFields[field.name] = '';
+                                hasEmptyFields = true;
+                            }
+                        }
+                    });
+                    
+                    if (hasEmptyFields) {
+                        processedOccurrences.push(emptyFields);
+                    }
+                });
+                
+                if (processedOccurrences.length > 0) {
+                    paramsObj[occurrenceKey] = processedOccurrences;
+                }
+            } else if (element.fields) {
+                // Si no hay ocurrencias, mostrar estructura vacía
+                const emptyInstance = {};
+                element.fields.forEach(field => {
+                    if (field.type === 'field') {
+                        emptyInstance[field.name] = '';
+                    }
+                });
+                if (Object.keys(emptyInstance).length > 0) {
+                    paramsObj[occurrenceKey] = [emptyInstance];
+                }
+            }
+        }
+    });
+    return paramsObj;
+}
+
 function loadConfigsForService(serviceNumber, selectElement) {
     const now = Date.now();
     if (now - (lastServiceLoaded[serviceNumber] || 0) < 500) return;
@@ -440,24 +758,54 @@ function loadConfigsForService(serviceNumber, selectElement) {
         if (typeof ConfigUtils !== 'undefined') ConfigUtils.showNotification('Error: Componente de configuración no disponible', 'error');
         return;
     }
-    selectElement.innerHTML = '<option value="" selected disabled>-- Seleccione una configuración --</option>';
-    ConfigStorageManager.loadSavedConfigurations(serviceNumber, (configs) => {
-        if (!configs || configs.length === 0) {
-            selectElement.innerHTML = '<option value="" selected disabled>-- No hay configuraciones disponibles --</option>';
-            return;
-        }
-        const uniqueConfigs = Array.from(new Map(configs.map(c => [c.id, c])).values());
-        uniqueConfigs.forEach(config => {
-            const option = document.createElement('option');
-            option.value = config.id;
-            let fecha = config.timestamp ? new Date(config.timestamp).toLocaleTimeString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }) : '';
-            // Usar displayName (nombre completo del archivo) en lugar de construir el texto
-            const displayText = config.displayName || config.filename?.replace('.json', '') || `${config.canal} - ${config.version || 'v1'}`;
-            option.textContent = fecha ? `${displayText} (${fecha})` : displayText;
-            Object.assign(option.dataset, { canal: config.canal, version: config.version, timestamp: config.timestamp });
-            selectElement.appendChild(option);
+    
+    // OPTIMIZACIÓN: Usar cache para evitar llamadas duplicadas
+    if (window.PerformanceUtils && window.PerformanceUtils.cachedExecute) {
+        window.PerformanceUtils.cachedExecute(
+            `configs_${serviceNumber}`,
+            () => new Promise((resolve) => {
+                ConfigStorageManager.loadSavedConfigurations(serviceNumber, (configs) => {
+                    resolve(configs || []);
+                }, true);
+            }),
+            60000 // Cache por 1 minuto
+        ).then(configs => {
+            selectElement.innerHTML = '<option value="" selected disabled>-- Seleccione una configuración --</option>';
+            if (configs.length === 0) {
+                selectElement.innerHTML = '<option value="" selected disabled>-- No hay configuraciones disponibles --</option>';
+                return;
+            }
+            const uniqueConfigs = Array.from(new Map(configs.map(c => [c.id, c])).values());
+            uniqueConfigs.forEach(config => {
+                const option = document.createElement('option');
+                option.value = config.id;
+                let fecha = config.timestamp ? new Date(config.timestamp).toLocaleTimeString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }) : '';
+                const displayText = config.displayName || config.filename?.replace('.json', '') || `${config.canal} - ${config.version || 'v1'}`;
+                option.textContent = fecha ? `${displayText} (${fecha})` : displayText;
+                Object.assign(option.dataset, { canal: config.canal, version: config.version, timestamp: config.timestamp });
+                selectElement.appendChild(option);
+            });
         });
-    }, true);
+    } else {
+        // Fallback sin cache
+        selectElement.innerHTML = '<option value="" selected disabled>-- Seleccione una configuración --</option>';
+        ConfigStorageManager.loadSavedConfigurations(serviceNumber, (configs) => {
+            if (!configs || configs.length === 0) {
+                selectElement.innerHTML = '<option value="" selected disabled>-- No hay configuraciones disponibles --</option>';
+                return;
+            }
+            const uniqueConfigs = Array.from(new Map(configs.map(c => [c.id, c])).values());
+            uniqueConfigs.forEach(config => {
+                const option = document.createElement('option');
+                option.value = config.id;
+                let fecha = config.timestamp ? new Date(config.timestamp).toLocaleTimeString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }) : '';
+                const displayText = config.displayName || config.filename?.replace('.json', '') || `${config.canal} - ${config.version || 'v1'}`;
+                option.textContent = fecha ? `${displayText} (${fecha})` : displayText;
+                Object.assign(option.dataset, { canal: config.canal, version: config.version, timestamp: config.timestamp });
+                selectElement.appendChild(option);
+            });
+        }, true);
+    }
 }
 
 function loadJsonFromConfig(configId, jsonInputElement, currentServiceNumber) {
@@ -1025,6 +1373,322 @@ function loadDynamicParamsFromConfig(configId, dynamicParamsInputElement, curren
             setTimeout(() => window.formatJsonElement(dynamicParamsInputElement, true), 0);
         }
     }
+}
+
+/**
+ * Muestra un SweetAlert con los errores de validación de JSON parsing
+ * @param {Error} error - Error de JSON parsing
+ * @param {string} jsonText - Texto JSON que causó el error
+ */
+function showJsonValidationError(error, jsonText) {
+    if (!error) return;
+    
+    // Obtener el tema actual
+    const currentTheme = document.body.classList.contains('dark-theme') ? 'dark' : 
+                        document.body.classList.contains('amber-theme') ? 'amber' : 'light';
+    
+    const colors = {
+        light: {
+            background: '#ffffff',
+            text: '#1f2937',
+            error: '#dc3545',
+            warning: '#f59e0b',
+            border: '#e5e7eb'
+        },
+        dark: {
+            background: '#1f2937',
+            text: '#f9fafb',
+            error: '#ef4444',
+            warning: '#f59e0b',
+            border: '#374151'
+        },
+        amber: {
+            background: '#fffbeb',
+            text: '#92400e',
+            error: '#dc2626',
+            warning: '#d97706',
+            border: '#fcd34d'
+        }
+    }[currentTheme];
+
+    // Extraer información del error
+    let lineNumber = 'N/A';
+    let columnNumber = 'N/A';
+    let position = 'N/A';
+    
+    // Parsear el mensaje de error para extraer línea y columna
+    const errorMessage = error.message || '';
+    const positionMatch = errorMessage.match(/position (\d+)/);
+    const lineMatch = errorMessage.match(/line (\d+)/);
+    const columnMatch = errorMessage.match(/column (\d+)/);
+    
+    if (positionMatch) position = positionMatch[1];
+    if (lineMatch) lineNumber = lineMatch[1];
+    if (columnMatch) columnNumber = columnMatch[1];
+    
+    // Si no encontramos línea/columna en el mensaje, intentar calcular
+    if (lineNumber === 'N/A' && positionMatch) {
+        const pos = parseInt(positionMatch[1]);
+        const lines = jsonText.substring(0, pos).split('\n');
+        lineNumber = lines.length;
+        columnNumber = lines[lines.length - 1].length + 1;
+    }
+
+    // Obtener el contexto del error (líneas alrededor del error)
+    let errorContext = '';
+    if (lineNumber !== 'N/A') {
+        const lines = jsonText.split('\n');
+        const errorLine = parseInt(lineNumber) - 1;
+        const startLine = Math.max(0, errorLine - 2);
+        const endLine = Math.min(lines.length - 1, errorLine + 2);
+        
+        for (let i = startLine; i <= endLine; i++) {
+            const lineNum = i + 1;
+            const isErrorLine = i === errorLine;
+            const prefix = isErrorLine ? '→ ' : '  ';
+            const lineStyle = isErrorLine ? `color: ${colors.error}; font-weight: bold;` : '';
+            errorContext += `<div style="${lineStyle}">${prefix}${lineNum}: ${lines[i] || ''}</div>`;
+        }
+    }
+
+    const toProperCase = (str) => str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+
+    const errorHtml = `
+    <div style="
+        background: ${colors.background};
+        color: ${colors.text};
+        border-radius: 8px;
+        text-align: left;
+        line-height: 1.6;">
+        
+        <div class="json-error-summary" style="
+            background: ${colors.error}15;
+            border: 1px solid ${colors.error}30;
+            border-radius: 6px;
+            padding: 16px;
+            margin-bottom: 20px;">
+            
+            <div class="json-error-title" style="
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                margin-bottom: 12px;
+                font-weight: 600;
+                font-size: 16px;
+                color: ${colors.error};">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>
+                </svg>
+                ${toProperCase('Error de Sintaxis JSON')}
+            </div>
+            
+            <div class="json-error-message" style="
+                background: ${colors.background};
+                border: 1px solid ${colors.border};
+                border-radius: 4px;
+                padding: 12px;
+                margin-bottom: 16px;
+                font-family: 'Courier New', monospace;
+                font-size: 14px;
+                color: ${colors.error};">
+                ${errorMessage}
+            </div>
+            
+            <div class="json-error-details" style="
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+                gap: 12px;
+                font-size: 14px;">
+                
+                <div class="json-error-detail-item" style="
+                    background: ${colors.background};
+                    border: 1px solid ${colors.border};
+                    border-radius: 4px;
+                    padding: 8px 12px;
+                    text-align: center;">
+                    <div style="font-weight: 600; color: ${colors.text};">Línea</div>
+                    <div style="font-size: 16px; color: ${colors.error}; font-weight: bold;">${lineNumber}</div>
+                </div>
+                
+                <div class="json-error-detail-item" style="
+                    background: ${colors.background};
+                    border: 1px solid ${colors.border};
+                    border-radius: 4px;
+                    padding: 8px 12px;
+                    text-align: center;">
+                    <div style="font-weight: 600; color: ${colors.text};">Columna</div>
+                    <div style="font-size: 16px; color: ${colors.error}; font-weight: bold;">${columnNumber}</div>
+                </div>
+                
+                <div class="json-error-detail-item" style="
+                    background: ${colors.background};
+                    border: 1px solid ${colors.border};
+                    border-radius: 4px;
+                    padding: 8px 12px;
+                    text-align: center;">
+                    <div style="font-weight: 600; color: ${colors.text};">Posición</div>
+                    <div style="font-size: 16px; color: ${colors.error}; font-weight: bold;">${position}</div>
+                </div>
+            </div>
+        </div>
+        
+        ${errorContext ? `
+        <div class="json-error-context" style="
+            background: ${colors.background};
+            border: 1px solid ${colors.border};
+            border-radius: 6px;
+            padding: 16px;
+            margin-bottom: 20px;">
+            
+            <div class="json-error-context-title" style="
+                font-weight: 600;
+                margin-bottom: 12px;
+                color: ${colors.text};">
+                ${toProperCase('Contexto del Error:')}
+            </div>
+            
+            <div class="json-error-context-content" style="
+                background: #f8f9fa;
+                border: 1px solid ${colors.border};
+                border-radius: 4px;
+                padding: 12px;
+                font-family: 'Courier New', monospace;
+                font-size: 13px;
+                line-height: 1.4;
+                overflow-x: auto;">
+                ${errorContext}
+            </div>
+        </div>` : ''}
+        
+        <div class="json-error-suggestions" style="
+            background: ${colors.warning}15;
+            border: 1px solid ${colors.warning}30;
+            border-radius: 6px;
+            padding: 16px;">
+            
+            <div class="json-error-suggestions-title" style="
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                margin-bottom: 12px;
+                font-weight: 600;
+                color: ${colors.warning};">
+                <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                </svg>
+                ${toProperCase('Sugerencias para Corregir:')}
+            </div>
+            
+            <div class="json-error-suggestions-list" style="
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+                font-size: 13px;
+                color: ${colors.text}99;">
+                
+                <div class="json-error-suggestion-item" style="
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M8 4v4m0 4h.01M15 8a7 7 0 11-14 0 7 7 0 0114 0z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                    ${toProperCase('Verificar comillas dobles en propiedades y valores')}
+                </div>
+                
+                <div class="json-error-suggestion-item" style="
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M8 4v4m0 4h.01M15 8a7 7 0 11-14 0 7 7 0 0114 0z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                    ${toProperCase('Revisar comas y llaves de apertura/cierre')}
+                </div>
+                
+                <div class="json-error-suggestion-item" style="
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M8 4v4m0 4h.01M15 8a7 7 0 11-14 0 7 7 0 0114 0z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                    ${toProperCase('Usar un validador JSON online para verificar la sintaxis')}
+                </div>
+            </div>
+        </div>
+    </div>`;
+    
+    // Mostrar SweetAlert con errores de validación JSON
+    if (typeof Swal !== 'undefined') {
+        Swal.fire({
+            title: `<span style="color: ${colors.error};">${toProperCase('Error de JSON')}</span>`,
+            html: errorHtml,
+            icon: 'error',
+            confirmButtonText: toProperCase('Entendido'),
+            confirmButtonColor: colors.error,
+            width: '900px',
+            padding: '20px',
+            background: colors.background
+        });
+    } else {
+        // Fallback si SweetAlert no está disponible
+        alert(`Error de JSON: ${errorMessage}\nLínea: ${lineNumber}, Columna: ${columnNumber}, Posición: ${position}`);
+    }
+}
+
+/**
+ * Valida el JSON de parámetros dinámicos en tiempo real (onblur)
+ * Aplica la misma validación que al hacer clic en "Generar String Fijo"
+ */
+function validateDynamicParamsOnBlur() {
+    console.log('[Services UI - IDA] validateDynamicParamsOnBlur ejecutándose');
+    
+    const idaDynamicParamsInput = document.getElementById('idaDynamicParamsInput');
+    const idaServiceSelect = document.getElementById('idaServiceSelect');
+    
+    if (!idaDynamicParamsInput) {
+        console.warn('[Services UI - IDA] idaDynamicParamsInput no encontrado en blur');
+        return;
+    }
+    
+    const dynText = idaDynamicParamsInput.textContent.trim();
+    console.log('[Services UI - IDA] Texto a validar:', dynText);
+    
+    // No validar si el campo está vacío o solo tiene {}
+    if (!dynText || dynText === '{}' || dynText === '{ }' || /^\{\s*\}$/.test(dynText)) {
+        console.log('[Services UI - IDA] Campo vacío o JSON válido básico, saltando validación');
+        return;
+    }
+    
+    // Obtener el número de servicio actual
+    const serviceNumber = idaServiceSelect ? idaServiceSelect.value : null;
+    if (!serviceNumber) {
+        console.log('[Services UI - IDA] No hay servicio seleccionado, saltando validación');
+        return;
+    }
+    
+    // 1. VALIDAR SINTAXIS JSON
+    let dynData = {};
+    try {
+        dynData = JSON.parse(dynText === '' ? '{}' : dynText);
+        console.log('[Services UI - IDA] Sintaxis JSON válida');
+    } catch (err) {
+        // JSON inválido, mostrar SweetAlert detallado para sintaxis
+        console.log('[Services UI - IDA] Error de sintaxis JSON detectado en blur:', err.message);
+        showJsonValidationError(err, dynText);
+        return;
+    }
+    
+    // 2. VALIDAR TIPOS DE DATOS Y LONGITUDES (igual que en "Generar String Fijo")
+    const validationErrors = validateJsonAgainstConfigInputs(dynData);
+    if (validationErrors.length > 0) {
+        console.log('[Services UI - IDA] Errores de validación de datos detectados en blur:', validationErrors);
+        showFieldLengthValidationError(validationErrors);
+        return;
+    }
+    
+    console.log('[Services UI - IDA] Todas las validaciones pasaron correctamente');
 }
 
 /**

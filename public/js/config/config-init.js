@@ -14,11 +14,23 @@ initialize: function() {
     
     // Initialize event listeners once DOM is loaded
     document.addEventListener('DOMContentLoaded', () => {
-        // Initialize ConfigUIManager first
-        this.initUIManager();
-        
-        // Then initialize event listeners
-        this.initEventListeners();
+        // Wait a bit to ensure all scripts are fully loaded
+        setTimeout(() => {
+            // Initialize ConfigUIManager first
+            this.initUIManager();
+            
+            // Then initialize event listeners
+            this.initEventListeners();
+            
+            // Load services in the selector if it's empty
+            const configServiceSelect = document.getElementById('configServiceSelect');
+            if (configServiceSelect && configServiceSelect.options.length <= 1) {
+                console.log('[ConfigInit] Cargando servicios disponibles al inicializar...');
+                if (typeof ConfigServiceLoader !== 'undefined' && ConfigServiceLoader.loadAvailableServices) {
+                    ConfigServiceLoader.loadAvailableServices(configServiceSelect);
+                }
+            }
+        }, 100);
     });
     
     // Listen for service selection events
@@ -61,9 +73,21 @@ initUIManager: function() {
             document.getElementById('headerConfigTable'),
             document.getElementById('requestConfigTable')
         );
-        // console.log('ConfigDataHandler initialized with table elements');
+        console.log('ConfigDataHandler initialized with table elements');
     } else {
-        console.error('ConfigDataHandler not available or initialize method missing');
+        console.warn('ConfigDataHandler not available yet, retrying in 200ms...');
+        // Retry after a short delay in case the script is still loading
+        setTimeout(() => {
+            if (typeof window.ConfigDataHandler !== 'undefined' && window.ConfigDataHandler.initialize) {
+                window.ConfigDataHandler.initialize(
+                    document.getElementById('headerConfigTable'),
+                    document.getElementById('requestConfigTable')
+                );
+                console.log('ConfigDataHandler initialized with table elements (retry successful)');
+            } else {
+                console.error('ConfigDataHandler still not available after retry');
+            }
+        }, 200);
     }
 },
     
@@ -99,9 +123,9 @@ initUIManager: function() {
             return;
         }
         
-        // Add event to propagate canal value using blur instead of input
-        canalInput.addEventListener('blur', function() {
-            const canalValue = this.value;
+        // Función para propagar el valor del canal
+        const propagateCanalValue = function() {
+            const canalValue = canalInput.value;
             
             // Use the exact selector for the CANAL field
             const canalFieldInput = document.querySelector('input[data-field-name="CANAL"][data-section="header"]');
@@ -112,11 +136,46 @@ initUIManager: function() {
                 canalFieldInput.dispatchEvent(event);
                 console.log(`Canal propagado: "${canalValue}" al campo CANAL de la cabecera`);
             } else {
-                console.log('No se encontró el campo CANAL en la cabecera');
+                // Si no se encuentra aún, intentar de nuevo después de un delay
+                setTimeout(() => {
+                    const retryField = document.querySelector('input[data-field-name="CANAL"][data-section="header"]');
+                    if (retryField) {
+                        retryField.value = canalValue;
+                        const event = new Event('change');
+                        retryField.dispatchEvent(event);
+                        console.log(`Canal propagado (retry): "${canalValue}" al campo CANAL de la cabecera`);
+                    }
+                }, 500);
             }
+        };
+        
+        // Propagar cuando cambia el valor (blur)
+        canalInput.addEventListener('blur', propagateCanalValue);
+        
+        // También propagar cuando cambia el valor (input)
+        canalInput.addEventListener('input', propagateCanalValue);
+        
+        // Propagar el valor inicial si ya tiene uno
+        if (canalInput.value) {
+            setTimeout(propagateCanalValue, 100);
+        }
+        
+        // Observer para detectar cuando se establece el valor programáticamente
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'value') {
+                    propagateCanalValue();
+                }
+            });
         });
         
-        console.log('Canal propagation event initialized (onblur)');
+        // Observar cambios en el atributo value
+        observer.observe(canalInput, {
+            attributes: true,
+            attributeFilter: ['value']
+        });
+        
+        console.log('Canal propagation initialized (blur, input, initial value, and observer)');
     },
     
     /**
@@ -206,6 +265,31 @@ initUIManager: function() {
                     if (structure) {
                         console.log('Estructura cargada:', serviceNumber);
                         
+                        // IMPORTANTE: Recuperar ExcelId (primero de sessionStorage, luego de la estructura)
+                        let excelId = sessionStorage.getItem(`excelId_${serviceNumber}`);
+                        
+                        if (excelId) {
+                            console.log(`📝 [CONFIG] ExcelId recuperado del sessionStorage: ${excelId} para servicio ${serviceNumber}`);
+                        } else if (structure.excelId) {
+                            // Si no está en sessionStorage, usar el que viene de la estructura (archivo de mapeo)
+                            excelId = structure.excelId;
+                            console.log(`📝 [CONFIG] ExcelId recuperado del servidor (mapeo): ${excelId} para servicio ${serviceNumber}`);
+                            // Guardarlo en sessionStorage para futuras referencias en esta sesión
+                            sessionStorage.setItem(`excelId_${serviceNumber}`, excelId);
+                        } else {
+                            console.warn(`⚠️ [CONFIG] No se encontró ExcelId para servicio ${serviceNumber} ni en sessionStorage ni en el servidor`);
+                        }
+                        
+                        if (excelId) {
+                            window.currentExcelInfo = {
+                                excelId: parseInt(excelId),
+                                serviceNumber: serviceNumber,
+                                timestamp: new Date().toISOString()
+                            };
+                        } else {
+                            window.currentExcelInfo = null;
+                        }
+                        
                         // Populate UI tables with structure (fields will be empty initially)
                         if (ConfigUIManager.populateHeaderConfigTable) {
                             ConfigUIManager.populateHeaderConfigTable(structure.header_structure);
@@ -216,6 +300,18 @@ initUIManager: function() {
                             console.log('Tabla de requerimiento poblada con campos vacíos');
                         }
                         
+                        // Propagar el valor actual del canal a la tabla de cabecera
+                        setTimeout(() => {
+                            const canalValue = canalInput ? canalInput.value : 'SM';
+                            const canalFieldInput = document.querySelector('input[data-field-name="CANAL"][data-section="header"]');
+                            if (canalFieldInput && canalValue) {
+                                canalFieldInput.value = canalValue;
+                                const event = new Event('change');
+                                canalFieldInput.dispatchEvent(event);
+                                console.log(`Canal "${canalValue}" propagado automáticamente a la cabecera después de cargar estructura`);
+                            }
+                        }, 200);
+                        
                         // Cargar versiones disponibles para este servicio
                         ConfigInit.loadServiceVersions(serviceNumber);
                         
@@ -223,22 +319,30 @@ initUIManager: function() {
                         const canalInput = document.getElementById('canalInput');
                         ConfigUtils.showNotification('Completando campos automáticamente...', 'info');
                         
-                        // Fill fields with data from header sample
-                        try {
-                            window.ConfigDataHandler.autoFillFields(serviceNumber, structure.header_structure, canalInput);
-                            console.log('Campos auto-completados al seleccionar servicio');
-                            
-                            // Aplicar validaciones a los campos después de completarlos
-                            setTimeout(() => {
-                                if (typeof ConfigUtils !== 'undefined' && ConfigUtils.applyValidationsToExistingFields) {
-                                    ConfigUtils.applyValidationsToExistingFields();
-                                    console.log('Validaciones aplicadas a campos existentes');
+                        // Add timing delay to ensure DOM elements are fully rendered
+                        setTimeout(() => {
+                            try {
+                                // Verificar que ConfigDataHandler esté disponible
+                                if (typeof window.ConfigDataHandler !== 'undefined' && window.ConfigDataHandler.autoFillFields) {
+                                    window.ConfigDataHandler.autoFillFields(serviceNumber, structure.header_structure, canalInput);
+                                    console.log('Campos auto-completados al seleccionar servicio');
+                                } else {
+                                    console.warn('ConfigDataHandler no está disponible, saltando auto-completado');
+                                    ConfigUtils.showNotification('Estructura cargada correctamente', 'success');
                                 }
-                            }, 300);
-                        } catch (err) {
-                            console.error('Error al auto-completar campos:', err);
-                            ConfigUtils.showNotification('Estructura cargada, pero hubo un error al auto-completar campos. Puede usar "Auto Llenar Campos" manualmente.', 'warning');
-                        }
+                                
+                                // Aplicar validaciones a los campos después de completarlos
+                                setTimeout(() => {
+                                    if (typeof ConfigUtils !== 'undefined' && ConfigUtils.applyValidationsToExistingFields) {
+                                        ConfigUtils.applyValidationsToExistingFields();
+                                        console.log('Validaciones aplicadas a campos existentes');
+                                    }
+                                }, 300);
+                            } catch (err) {
+                                console.error('Error al auto-completar campos:', err);
+                                ConfigUtils.showNotification('Estructura cargada, pero hubo un error al auto-completar campos. Puede usar "Auto Llenar Campos" manualmente.', 'warning');
+                            }
+                        }, 500); // 500ms delay to ensure header table is fully rendered
                         
                         // Cargar las configuraciones guardadas para este servicio
                         if (typeof ConfigStorageManager !== 'undefined' &&
@@ -601,6 +705,17 @@ ConfigInit.initialize();
 const canalInput = document.getElementById('canalInput');
 if (canalInput && !canalInput.value) {
     canalInput.value = 'SM';
+    
+    // Propagar el valor por defecto al campo CANAL de la cabecera
+    setTimeout(() => {
+        const canalFieldInput = document.querySelector('input[data-field-name="CANAL"][data-section="header"]');
+        if (canalFieldInput) {
+            canalFieldInput.value = 'SM';
+            const event = new Event('change');
+            canalFieldInput.dispatchEvent(event);
+            console.log('Canal por defecto "SM" propagado a la cabecera');
+        }
+    }, 100);
 }
 
 // Al inicializar el panel, conectar el callback del toggle

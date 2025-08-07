@@ -127,11 +127,18 @@ const ConfigServiceLoader = {
             })
             .catch(err => {
                 console.error('Error loading service structure:', err);
-                ConfigUtils.showNotification(`Error al cargar la estructura: ${err.message}`, 'error');
+                
+                // Mensaje más claro para el usuario
+                let userMessage = err.message;
+                if (err.message && err.message.includes('No se encontraron archivos de estructura')) {
+                    userMessage = `No se ha cargado el Excel para el servicio ${serviceNumber}. Por favor, vaya a la pestaña CARGA y suba el archivo Excel correspondiente.`;
+                }
+                
+                ConfigUtils.showNotification(`Error: ${userMessage}`, 'error');
                 
                 // Call error callback
                 if (typeof onErrorCallback === 'function') {
-                    onErrorCallback(err.message);
+                    onErrorCallback(userMessage);
                 }
             });
     },

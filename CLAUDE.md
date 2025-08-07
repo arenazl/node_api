@@ -16,17 +16,31 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Architecture
 
-### Purpose
-MQ Importer API is a Node.js middleware service that converts between JSON and fixed-length strings for mainframe integration. It processes Excel files containing message structure definitions and provides bidirectional conversion capabilities.
+### Purpose  
+MQ Importer API is a Node.js middleware service that converts between JSON and fixed-length strings for mainframe integration. It processes Excel files containing message structure definitions and provides bidirectional conversion capabilities. Now includes integration with Mora.Sim-api for persistent storage of Excel structures and configurations.
 
 ### Core Components
 
-#### API Endpoints (Routes)
-- **`/routes/services.js`** - Primary service endpoints for external consumption
+#### New Architecture (api/ folder)
+- **`/api/core-processing/routes/services.js`** - Primary service endpoints for external consumption
   - `POST /api/services/sendmessage` - JSON to fixed-length string conversion (IDA)
   - `POST /api/services/receivemessage` - Fixed-length string to JSON conversion (VUELTA)
   - `GET /api/services` - List available services
-- **`/routes/excel.js`** - Excel file upload and processing
+- **`/api/core-processing/routes/excel.js`** - Excel file upload and processing with Mora.Sim-api integration
+- **`/api/core-processing/routes/service-config.js`** - Service configuration with Mora.Sim-api integration
+- **`/api/orchestrator/api-orchestrator.js`** - **NUEVO v3.0**: Network Visibility Orchestrator
+  - `POST /api-orchestrator/step1-upload` - File system upload (visible in Network)
+  - `POST /api-orchestrator/step2-mora-sim-api` - BD storage via Mora.Sim-api (visible in Network)
+  - **Purpose**: Expone 2 endpoints separados para que el frontend vea ambas llamadas en Network tab
+- **`/api/external-integrations/sim-integration/`** - Mora.Sim-api integration components
+  - `mora-sim-api-client.js` - HTTP client for Mora.Sim-api endpoints
+  - `mora-sim-database-helper.js` - Wrapper for consistent integration interface
+- **`/api/external-integrations/shared/`** - Shared utilities for external APIs
+  - `http-client.js` - Generic HTTP client with retry logic and error handling
+
+#### Legacy Routes (still active)
+- **`/routes/services.js`** - Legacy service endpoints (still functional)
+- **`/routes/excel.js`** - Legacy Excel upload (still functional)
 - **`/routes/api.js`** - Legacy API endpoints
 
 #### Business Logic (Utils)
@@ -73,6 +87,12 @@ MQ Importer API is a Node.js middleware service that converts between JSON and f
 - `FILE_UPLOAD_SIZE_LIMIT` - Max upload size in MB (default: 50)
 - `REQUEST_TIMEOUT` - Request timeout in ms (default: 120000)
 - `ALLOWED_ORIGINS` - CORS allowed origins (comma-separated)
+
+#### Mora.Sim-api Integration
+- `MORA_SIM_API_ENABLED` - Enable/disable integration (default: false)
+- `MORA_SIM_API_URL` - Base URL for Mora.Sim-api (default: http://localhost:5000/api/SimImporter)
+- `MORA_SIM_API_TIMEOUT` - Request timeout in ms (default: 30000)
+- `MORA_SIM_API_RETRIES` - Number of retry attempts (default: 3)
 - `VERBOSE_LOGS` - Enable detailed logging (default: false). When false, shows clean emoji-based summaries
 
 ### Directory Structure Created Automatically
@@ -126,3 +146,50 @@ This API serves as middleware between modern JSON-based applications and legacy 
 
 ## Testing & Validation
 Currently no test framework is configured. When adding tests, check the codebase for any existing testing patterns first.
+
+## 🎯 Network Visibility Feature (v3.0)
+
+### Problem Solved
+**Issue**: When frontend uploaded Excel files, only 1 HTTP call was visible in browser's Network tab, making debugging difficult despite multiple internal operations occurring.
+
+**Solution**: API Orchestrator that exposes separate endpoints for each operation step.
+
+### Implementation Details
+
+#### API Orchestrator Architecture
+```
+/api/orchestrator/api-orchestrator.js
+├── step1-upload: File system operations (internal responsibility)
+└── step2-mora-sim-api: Database operations (external responsibility)
+```
+
+#### Frontend Integration
+```javascript
+// BEFORE: Single invisible call
+await uploadExcelFile(formData); // → 1 call to /excel/upload
+
+// AFTER: Two visible calls (automatic within uploadExcelFile)
+// 1. POST /api-orchestrator/step1-upload
+// 2. POST /api-orchestrator/step2-mora-sim-api
+```
+
+#### Developer Experience
+- **Frontend code**: NO CHANGES required - same `uploadExcelFile()` function
+- **Network tab**: Shows 2 separate HTTP calls for full visibility
+- **Debugging**: Can inspect each step independently in DevTools
+- **Compatibility**: 100% backward compatible with existing code
+
+#### Architecture Benefits
+- **Clean separation**: File system vs database responsibilities
+- **Proper location**: Orchestrator at `/api/orchestrator/` (not in external-integrations)
+- **Network visibility**: Each step appears as separate HTTP call
+- **Maintainability**: Clear boundaries between internal and external operations
+
+### Usage in Production
+1. Frontend continues using existing upload functionality
+2. Open F12 → Network tab before uploading Excel
+3. Upload file through normal UI
+4. Observe 2 separate HTTP calls instead of 1
+5. Better debugging and request tracing capabilities
+
+This feature significantly improves the debugging experience for developers while maintaining full compatibility with existing frontend code.
